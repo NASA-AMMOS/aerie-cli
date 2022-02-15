@@ -74,7 +74,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
     @classmethod
     def from_dict(cls, obj: dict) -> "ActivityPlanCreate":
         return ActivityPlanCreate(
-            name=obj["name"],
+            name=obj["name"] + arrow.utcnow().format('YYYY-MM-DD HH:mm:ss ZZ'),
             start_time=arrow.get(obj["start_time"]),
             end_time=arrow.get(obj["end_time"]),
             activities=[
