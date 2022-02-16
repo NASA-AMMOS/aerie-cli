@@ -78,9 +78,9 @@ class AerieClient:
         return ActivityPlanRead.from_api_read(api_plan)
 
     def create_activity_plan(
-        self, model_id: int, plan_to_create: ActivityPlanCreate
+        self, model_id: int, plan_to_create: ActivityPlanCreate, time_tag: bool
     ) -> int:
-        api_plan_create = plan_to_create.to_api_create(model_id)
+        api_plan_create = plan_to_create.to_api_create(model_id, time_tag)
         create_plan_mutation = """
         mutation CreatePlan($plan: plan_insert_input!) {
             createPlan: insert_plan_one(object: $plan) {
