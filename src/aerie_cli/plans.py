@@ -52,9 +52,11 @@ def upload(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
-    time_tag: bool = typer.confirm(
-        "Do you want to append time tag to plan name?"
-    ),
+    time_tag: bool = typer.Option(
+        True, 
+        help="Append time tag to plan name",
+        prompt=True
+    )
 ):
     """Create a plan from an input JSON file."""
     auth = Auth(username, password)
