@@ -40,6 +40,20 @@ You can confirm that `aerie-cli` has been installed on your system:
 > path/to/aerie-cli
 ```
 
+### Updating with `pip`
+
+In order to update your currently installed version of `aerie-cli`, first uninstall your local package and then reinstall from GitHub.
+
+```sh
+$ python3 -m pip uninstall aerie_cli
+> Successfully uninstalled aerie-cli-0.0.0
+```
+If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
+
+```sh
+$ python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git@branchname
+```
+
 ### Installation with `poetry`
 
 If you use `poetry` for your dependency management and intend to use this package in another Python project, you can install this package to an existing `poetry` project with:
