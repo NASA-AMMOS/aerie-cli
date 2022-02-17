@@ -46,7 +46,7 @@ In order to update your currently installed version of `aerie-cli`, first uninst
 
 ```sh
 $ python3 -m pip uninstall aerie_cli
-> Successfully uninstalled aerie-cli-0.0.0
+> Successfully uninstalled aerie-cli-<version>
 ```
 If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
 

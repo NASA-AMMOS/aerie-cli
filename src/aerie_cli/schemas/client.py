@@ -68,16 +68,13 @@ class ActivityPlanCreate(EmptyActivityPlan):
     activities: list[ActivityCreate]
 
     @classmethod
-    def from_json(cls, json_str: str, time_tag: bool) -> "ActivityPlanCreate":
-        return ActivityPlanCreate.from_dict(json.loads(json_str), time_tag)
+    def from_json(cls, json_str: str) -> "ActivityPlanCreate":
+        return ActivityPlanCreate.from_dict(json.loads(json_str))
 
     @classmethod
-    def from_dict(cls, obj: dict, time_tag: bool) -> "ActivityPlanCreate":
-        name = obj["name"] 
-        if time_tag:
-            name += arrow.utcnow().format(' YYYY-MM-DD HH:mm:ss ZZ')
+    def from_dict(cls, obj: dict) -> "ActivityPlanCreate":
         return ActivityPlanCreate(
-            name=name,
+            name=obj["name"],
             start_time=arrow.get(obj["start_time"]),
             end_time=arrow.get(obj["end_time"]),
             activities=[
@@ -87,24 +84,18 @@ class ActivityPlanCreate(EmptyActivityPlan):
         )
 
     @classmethod
-    def from_plan_read(cls, plan_read: "ActivityPlanRead", time_tag: bool) -> "ActivityPlanCreate":
-        name = plan_read.name
-        if time_tag:
-            name += arrow.utcnow().format(' YYYY-MM-DD HH:mm:ss ZZ')
+    def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
         return ActivityPlanCreate(
-            name=name,
+            name=plan_read.name,
             start_time=plan_read.start_time,
             end_time=plan_read.end_time,
             activities=plan_read.activities,
         )
 
-    def to_api_create(self, model_id: int, time_tag: bool) -> "ApiActivityPlanCreate":
-        name = self.name
-        if time_tag:
-            name += arrow.utcnow().format(' YYYY-MM-DD HH:mm:ss ZZ')
+    def to_api_create(self, model_id: int) -> "ApiActivityPlanCreate":
         return ApiActivityPlanCreate(
             model_id=model_id,
-            name=name,
+            name=self.name,
             start_time=self.start_time,
             duration=self.end_time - self.start_time,
         )

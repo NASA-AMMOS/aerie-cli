@@ -5,7 +5,7 @@ from typing import Any
 from typing import Callable
 
 import requests
-from arrow import Arrow
+import arrow
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.client import ActivityCreate
@@ -80,7 +80,10 @@ class AerieClient:
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate, time_tag: bool
     ) -> int:
-        api_plan_create = plan_to_create.to_api_create(model_id, time_tag)
+
+        if time_tag:
+            plan_to_create.name += arrow.utcnow().isoformat("|")
+        api_plan_create = plan_to_create.to_api_create(model_id)
         create_plan_mutation = """
         mutation CreatePlan($plan: plan_insert_input!) {
             createPlan: insert_plan_one(object: $plan) {
@@ -118,7 +121,7 @@ class AerieClient:
         return plan_id
 
     def create_activity(
-        self, activity_to_create: ActivityCreate, plan_id: int, plan_start_time: Arrow
+        self, activity_to_create: ActivityCreate, plan_id: int, plan_start_time: arrow.Arrow
     ) -> int:
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_insert_input!) {
