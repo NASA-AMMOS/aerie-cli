@@ -2,6 +2,7 @@ import json
 from typing import Union
 
 import typer
+import arrow
 
 from .client import AerieClient
 from .client import Auth
@@ -52,6 +53,7 @@ def upload(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
+    time_tag: bool = typer.Option(False, help = "Append time tag to plan name")
 ):
     """Create a plan from an input JSON file."""
     auth = Auth(username, password)
@@ -59,6 +61,8 @@ def upload(
     with open(input) as in_file:
         contents = in_file.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
+    if time_tag:
+        plan_to_create.name += arrow.utcnow().isoformat()
     plan_id = client.create_activity_plan(model_id, plan_to_create)
     typer.echo(f"Created plan at: {client.ui_path()}/plans/{plan_id}")
 

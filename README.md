@@ -31,6 +31,12 @@ Assuming you have Python installed on your system, you can install `aerie-cli` w
 python -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
 ```
 
+If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
+
+```sh
+$ python -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git@branchname
+```
+
 Note: if `python` points to a system-provided Python 2 installation, you should instead use `python3`.
 
 You can confirm that `aerie-cli` has been installed on your system:
@@ -39,6 +45,16 @@ You can confirm that `aerie-cli` has been installed on your system:
 >>> which aerie-cli
 > path/to/aerie-cli
 ```
+
+### Updating with `pip`
+
+In order to update your currently installed version of `aerie-cli`, first uninstall your local package and then reinstall from GitHub.
+
+```sh
+$ python3 -m pip uninstall aerie_cli
+> Successfully uninstalled aerie-cli-<version>
+```
+
 
 ### Installation with `poetry`
 
