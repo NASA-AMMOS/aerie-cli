@@ -199,7 +199,7 @@ class AerieClient:
 
         resp = self.__gql_query(
             create_model_mutation, 
-            mission_model={
+            model={
                 "name": project_name,
                 "mission": "eurc",
                 "version": jar_version,
