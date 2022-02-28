@@ -2,10 +2,12 @@
 import typer
 
 from . import plans
+from . import models
 
 
 app = typer.Typer()
 app.add_typer(plans.app, name="plans")
+app.add_typer(models.app, name="models")
 
 
 def main():
