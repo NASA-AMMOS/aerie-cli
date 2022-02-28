@@ -191,7 +191,7 @@ class AerieClient:
 
         create_model_mutation = """
         mutation CreateModel($model: mission_model_insert_input!) {
-            createPlan: insert_plan_one(object: $model) {
+            createModel: insert_mission_model_one(object: $model) {
                 id
             }
         }
