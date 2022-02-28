@@ -3,6 +3,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from typing import Callable
+from pathlib import Path
 
 import requests
 import arrow
@@ -35,7 +36,7 @@ class AerieClient:
         return self.server_url + ":9000"
 
     def files_api_path(self) -> str:
-        return self.gateway_path() + "/files"
+        return self.gateway_path() + "/file"
 
     def login_api_path(self) -> str:
         return self.gateway_path() + "/auth/login"
@@ -168,6 +169,45 @@ class AerieClient:
             sys.exit(f"Simulation failed. Response:\n{resp}")
 
         return resp["results"]
+
+    def upload_mission_model(self, mission_model_path: str, project_name: str) -> int:
+
+        file_api_url = self.files_api_path
+
+        # Create unique jar identifier for server side
+        jar_version = arrow.utcnow().isoformat()
+
+        server_side_jar_name = Path(mission_model_path).stem + "--" +  jar_version + ".jar"
+
+        with open(mission_model_path, "rb") as jar_file:
+            resp = requests.post(
+                file_api_url,
+                files = {"file": (server_side_jar_name, jar_file)},
+                headers = {"x-auth-sso-token": self.sso_token}
+            )
+
+        jar_id = resp.json()["id"]
+
+
+        create_model_mutation = """
+        mutation CreateModel($model: mission_model_insert_input!) {
+            createPlan: insert_plan_one(object: $model) {
+                id
+            }
+        }
+        """
+
+        resp = self.__gql_query(
+            create_model_mutation, 
+            mission_model={
+                "name": project_name,
+                "mission": "eurc",
+                "version": jar_version,
+                "jar_id": jar_id
+            }
+        )
+
+        return resp["id"]
 
     def __gql_query(
         self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs
