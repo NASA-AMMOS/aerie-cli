@@ -33,7 +33,7 @@ def upload(
     client = AerieClient(server_url=server_url, auth=auth)
     
     # Upload mission model file to Aerie server
-    model_id = client.upload_mission_model(mission_model_path=mission_model_path)
+    model_id = client.upload_mission_model(mission_model_path=mission_model_path, project_name=model_name)
 
     typer.echo(f"Created new mission model: {model_name} at {client.ui_path()}/models with Model ID: {model_id}")
 
