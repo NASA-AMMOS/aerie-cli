@@ -10,7 +10,7 @@ from .schemas.client import ActivityPlanCreate
 
 app = typer.Typer()
 
-@app.command
+@app.command()
 def upload(
     username: str = typer.Option(..., help="JPL username", prompt=True),
     password: str = typer.Option(
