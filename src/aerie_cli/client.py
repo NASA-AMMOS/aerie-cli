@@ -172,7 +172,7 @@ class AerieClient:
 
     def upload_mission_model(self, mission_model_path: str, project_name: str) -> int:
 
-        file_api_url = self.files_api_path
+        file_api_url = self.files_api_path()
 
         # Create unique jar identifier for server side
         jar_version = arrow.utcnow().isoformat()
