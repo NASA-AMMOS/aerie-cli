@@ -48,9 +48,11 @@ def delete(
         hide_input=True,
     ),
     server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
+        "http://localhost", 
+        help="The URL of the Aerie deployment"
     ),
-    delete_all: bool = typer.Option(False, help = "Delete all current mission models")
+    delete_all: bool = typer.Option(False, help = "Delete all current mission models"),
+    model_id: int = typer.Option(None, help= "Mission model ID to be deleted")
 ):
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
@@ -59,4 +61,36 @@ def delete(
     if delete_all:
         resp = client.get_mission_models()
         for model in resp:
-            print(model)
+            client.delete_mission_model(model["id"])
+
+    # If model id id provided, delete that model
+    elif model_id is not None:
+        model_name = client.delete_mission_model(model_id)
+        typer.echo(f"Mission Model {model_name} with ID: {model_id} has been removed")
+
+    # Prompt user to input a model id or delete all
+    else:
+        typer.echo(f"Error: Please provide a model id to delete or use --delete-all flag to delete all models")
+
+@app.command()
+def show(
+    username: str = typer.Option(..., help="JPL username", prompt=True),
+    password: str = typer.Option(
+        ...,
+        help="JPL password",
+        prompt=True,
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", 
+        help="The URL of the Aerie deployment"
+    ),
+):
+    auth = Auth(username, password)
+    client = AerieClient(server_url=server_url, auth=auth)
+
+    resp = client.get_mission_models()
+    
+    for model in resp:
+        typer.echo(f"Model Name: {model['name']}, ID:  {model['id']}")
+
