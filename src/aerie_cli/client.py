@@ -213,7 +213,7 @@ class AerieClient:
 
         delete_model_mutation = """
         mutation deleteMissionModel($model_id: Int!) {
-            delete_mission_model_by_pk(object: $model_id){
+            delete_mission_model_by_pk(id: $model_id){
                 name
             }
         }
