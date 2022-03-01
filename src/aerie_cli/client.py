@@ -209,7 +209,7 @@ class AerieClient:
 
         return resp["id"]
     
-    def delete_mission_model(self, model_id: int) -> int:
+    def delete_mission_model(self, model_id: int) -> str:
 
         delete_model_mutation = """
         mutation deleteMissionModel($model_id: Int!) {
