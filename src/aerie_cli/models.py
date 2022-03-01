@@ -52,7 +52,7 @@ def delete(
         help="The URL of the Aerie deployment"
     ),
     delete_all: bool = typer.Option(False, help = "Delete all current mission models"),
-    model_id: int = typer.Option(None, help= "Mission model ID to be deleted")
+    model_id: int = typer.Option(None, help= "Mission model ID to be deleted", prompt=True)
 ):
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
