@@ -208,6 +208,36 @@ class AerieClient:
         )
 
         return resp["id"]
+    
+    def delete_mission_model(self, model_id: int) -> int:
+
+        delete_model_mutation = """
+        mutation deleteMissionModel($model_id: Int!) {
+            delete_mission_model_by_pk(object: $model_id){
+                name
+            }
+        }
+        """
+
+        resp = self.__gql_query(delete_model_mutation, model_id=model_id)
+
+        return resp.json()["name"]
+    
+    def get_mission_models(self):
+
+        get_mission_model_query = """
+        query getMissionModels {
+            mission_model {
+                name
+                id
+            }
+        }
+        """
+
+        resp = self.__gql_query(get_mission_model_query)
+
+        return resp.json()
+
 
     def __gql_query(
         self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs

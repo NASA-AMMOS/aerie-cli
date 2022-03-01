@@ -38,3 +38,25 @@ def upload(
     typer.echo(f"Created new mission model: {model_name} at {client.ui_path()}/models with Model ID: {model_id}")
 
 
+@app.command()
+def delete(
+    username: str = typer.Option(..., help="JPL username", prompt=True),
+    password: str = typer.Option(
+        ...,
+        help="JPL password",
+        prompt=True,
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    delete_all: bool = typer.Option(False, help = "Delete all current mission models")
+):
+    auth = Auth(username, password)
+    client = AerieClient(server_url=server_url, auth=auth)
+
+    # Get all models if delete all
+    if delete_all:
+        resp = client.get_mission_models()
+        for model in resp:
+            print(model)
