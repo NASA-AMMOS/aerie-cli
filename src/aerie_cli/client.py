@@ -236,7 +236,7 @@ class AerieClient:
 
         resp = self.__gql_query(get_mission_model_query)
 
-        return resp.json()
+        return resp
 
 
     def __gql_query(
