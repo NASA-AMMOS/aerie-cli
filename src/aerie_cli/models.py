@@ -52,7 +52,7 @@ def delete(
         help="The URL of the Aerie deployment"
     ),
     delete_all: bool = typer.Option(False, help = "Delete all current mission models"),
-    model_id: int = typer.Option(None, 
+    model_id: int = typer.Option(0, 
         help= "Mission model ID to be deleted", 
         prompt=True,
         show_default=True)
@@ -66,8 +66,8 @@ def delete(
         for model in resp:
             client.delete_mission_model(model["id"])
 
-    # If model id id provided, delete that model
-    elif model_id is not None:
+    # If model id is provided, delete that model
+    elif model_id != 0:
         model_name = client.delete_mission_model(model_id)
         typer.echo(f"Mission Model {model_name} with ID: {model_id} has been removed")
 
