@@ -221,7 +221,7 @@ class AerieClient:
 
         resp = self.__gql_query(delete_model_mutation, model_id=model_id)
 
-        return resp.json()["name"]
+        return resp["name"]
     
     def get_mission_models(self):
 
