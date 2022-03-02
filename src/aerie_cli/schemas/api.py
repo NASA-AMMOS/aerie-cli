@@ -11,43 +11,67 @@ from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
 
 from ..utils.serialization import hms_string_to_timedelta
+from ..utils.serialization import postgres_interval_to_timedelta
+from ..utils.serialization import timedelta_to_postgres_interval
 
 
 @dataclass_json
 @dataclass
-class ApiActivityCreate:
+class ApiActivityBase:
     type: str
     plan_id: int
-    start_offset: timedelta = field(
-        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
-    )
     arguments: dict[str, Any]
 
 
 @dataclass_json
 @dataclass
-class ApiActivityRead(ApiActivityCreate):
-    id: int
+class ApiActivityCreate(ApiActivityBase):
+    start_offset: timedelta = field(
+        metadata=config(
+            decoder=postgres_interval_to_timedelta,
+            encoder=timedelta_to_postgres_interval,
+        )
+    )
 
 
 @dataclass_json
 @dataclass
-class ApiActivityPlanCreate:
-    model_id: int
-    name: str
-    start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
-    )
-    duration: timedelta = field(
+class ApiActivityRead(ApiActivityBase):
+    id: int
+    start_offset: timedelta = field(
         metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
     )
 
 
 @dataclass_json
 @dataclass
-class ApiActivityPlanRead(ApiActivityPlanCreate):
+class ApiActivityPlanBase:
+    model_id: int
+    name: str
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
+
+
+@dataclass_json
+@dataclass
+class ApiActivityPlanCreate(ApiActivityPlanBase):
+    duration: timedelta = field(
+        metadata=config(
+            decoder=postgres_interval_to_timedelta,
+            encoder=timedelta_to_postgres_interval,
+        )
+    )
+
+
+@dataclass_json
+@dataclass
+class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
     activities: list[ApiActivityRead]
+    duration: timedelta = field(
+        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+    )
 
 
 @dataclass_json

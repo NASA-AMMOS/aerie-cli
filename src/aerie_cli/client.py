@@ -13,7 +13,6 @@ from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
-from .utils.serialization import timedelta_to_postgres_interval
 
 
 @dataclass
@@ -92,12 +91,7 @@ class AerieClient:
         """
         plan_resp = self.__gql_query(
             create_plan_mutation,
-            plan={
-                "model_id": api_plan_create.model_id,
-                "name": api_plan_create.name,
-                "start_time": str(api_plan_create.start_time),
-                "duration": timedelta_to_postgres_interval(api_plan_create.duration),
-            },
+            plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
 
@@ -125,6 +119,7 @@ class AerieClient:
         plan_id: int,
         plan_start_time: arrow.Arrow,
     ) -> int:
+        api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_insert_input!) {
             createActivity: insert_activity_one(object: $activity) {
@@ -134,14 +129,7 @@ class AerieClient:
         """
         resp = self.__gql_query(
             insert_activity_mutation,
-            activity={
-                "plan_id": plan_id,
-                "start_offset": timedelta_to_postgres_interval(
-                    activity_to_create.start_time - plan_start_time
-                ),
-                "type": activity_to_create.type,
-                "arguments": activity_to_create.parameters,
-            },
+            activity=api_activity_create.to_dict(),
         )
         return resp["id"]
 
