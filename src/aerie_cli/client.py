@@ -13,6 +13,7 @@ from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
+from .utils.serialization import hms_string_to_timedelta
 from .utils.serialization import timedelta_to_postgres_interval
 
 
@@ -74,9 +75,8 @@ class AerieClient:
             }
         }
         """
-        api_plan = self.__gql_query(
-            query, plan_id=plan_id, deserializer=ApiActivityPlanRead.from_dict
-        )
+        resp = self.__gql_query(query, plan_id=plan_id)
+        api_plan = ApiActivityPlanRead.from_dict(resp)
         return ActivityPlanRead.from_api_read(api_plan)
 
     def create_activity_plan(
@@ -96,8 +96,10 @@ class AerieClient:
             plan={
                 "model_id": api_plan_create.model_id,
                 "name": api_plan_create.name,
-                "start_time": api_plan_create.start_time.isoformat(),
-                "duration": timedelta_to_postgres_interval(api_plan_create.duration),
+                "start_time": api_plan_create.start_time,
+                "duration": timedelta_to_postgres_interval(
+                    hms_string_to_timedelta(api_plan_create.duration)
+                ),
             },
         )
         plan_id = plan_resp["id"]
