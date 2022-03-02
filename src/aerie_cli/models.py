@@ -43,7 +43,7 @@ def upload(
         prompt=True),
     time_tag_version: bool = typer.Option(
         False,
-        "--time-tag-verison", 
+        "--time-tag-version", 
         help="Use timestamp for model version"),
     version: str = typer.Option(
         "", 
