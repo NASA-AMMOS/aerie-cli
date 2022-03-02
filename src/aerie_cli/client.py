@@ -9,6 +9,7 @@ import requests
 import arrow
 
 from .schemas.api import ApiActivityPlanRead
+from .schemas.api import ApiMissionModel
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
@@ -170,14 +171,13 @@ class AerieClient:
 
         return resp["results"]
 
-    def upload_mission_model(self, mission_model_path: str, project_name: str) -> int:
+    def upload_mission_model(self, mission_model_path: str, project_name: str, mission: str, version: str) -> int:
 
         file_api_url = self.files_api_path()
 
         # Create unique jar identifier for server side
-        jar_version = arrow.utcnow().isoformat()
-
-        server_side_jar_name = Path(mission_model_path).stem + "--" +  jar_version + ".jar"
+        upload_timestamp = arrow.utcnow().isoformat()
+        server_side_jar_name = Path(mission_model_path).stem + "--" +  upload_timestamp + ".jar"
 
         with open(mission_model_path, "rb") as jar_file:
             resp = requests.post(
@@ -201,8 +201,8 @@ class AerieClient:
             create_model_mutation, 
             model={
                 "name": project_name,
-                "mission": "eurc",
-                "version": jar_version,
+                "mission": mission,
+                "version": version,
                 "jar_id": jar_id
             }
         )
@@ -223,7 +223,7 @@ class AerieClient:
 
         return resp["name"]
     
-    def get_mission_models(self):
+    def get_mission_models(self) -> list[ApiMissionModel]:
 
         get_mission_model_query = """
         query getMissionModels {
@@ -234,7 +234,7 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_mission_model_query)
+        resp = self.__gql_query(get_mission_model_query, deserializer=ApiMissionModel.multi_from_dict)
 
         return resp
 
