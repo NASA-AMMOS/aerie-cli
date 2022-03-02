@@ -1,19 +1,5 @@
-import json
 import math
 from datetime import timedelta
-from typing import Any
-
-from arrow import Arrow
-
-CUSTOM_ENCODERS = {Arrow: Arrow.for_json}
-
-
-class CustomJsonEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        for data_type, custom_encoder in CUSTOM_ENCODERS.items():
-            if isinstance(obj, data_type):
-                return custom_encoder(obj)
-        return json.JSONEncoder.default(self, obj)
 
 
 def hms_string_to_timedelta(hms_string: str) -> timedelta:
