@@ -1,14 +1,15 @@
-import json
-from dataclasses import asdict
 from dataclasses import dataclass
+from dataclasses import field
 from datetime import timedelta
 from typing import Any
 from typing import Optional
 
 import arrow
 from arrow import Arrow
+from dataclasses_json import config
+from dataclasses_json import dataclass_json
 
-from ..utils.serialization import CustomJsonEncoder
+from ..utils.serialization import hms_string_to_timedelta
 from .api import ApiActivityCreate
 from .api import ApiActivityPlanCreate
 from .api import ApiActivityPlanRead
@@ -18,19 +19,14 @@ from .api import ApiSimulatedResourceSample
 from .api import ApiSimulationResults
 
 
+@dataclass_json
 @dataclass
 class ActivityCreate:
     type: str
-    start_time: Arrow
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
     parameters: dict[str, Any]
-
-    @classmethod
-    def from_dict(cls, obj: dict) -> "ActivityCreate":
-        return ActivityCreate(
-            type=obj["type"],
-            start_time=arrow.get(obj["start_time"]),
-            parameters=obj["parameters"],
-        )
 
     def to_api_create(self, plan_id: int, plan_start_time: Arrow):
         return ApiActivityCreate(
@@ -41,6 +37,7 @@ class ActivityCreate:
         )
 
 
+@dataclass_json
 @dataclass
 class ActivityRead(ActivityCreate):
     id: int
@@ -57,35 +54,23 @@ class ActivityRead(ActivityCreate):
         )
 
 
+@dataclass_json
 @dataclass
 class EmptyActivityPlan:
     name: str
-    start_time: Arrow
-    end_time: Arrow
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
+    end_time: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
 
 
+@dataclass_json
 @dataclass
 class ActivityPlanCreate(EmptyActivityPlan):
     activities: list[ActivityCreate]
-
-    @classmethod
-    def from_json(cls, json_str: str) -> "ActivityPlanCreate":
-        return ActivityPlanCreate.from_dict(json.loads(json_str))
-
-    @classmethod
-    def from_dict(cls, obj: dict) -> "ActivityPlanCreate":
-        return ActivityPlanCreate(
-            name=obj["name"],
-            start_time=arrow.get(obj["start_time"]),
-            end_time=arrow.get(obj["end_time"]),
-            activities=[
-                ActivityCreate.from_dict(activity_json)
-                for activity_json in obj["activities"]
-            ],
-        )
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
@@ -105,14 +90,12 @@ class ActivityPlanCreate(EmptyActivityPlan):
         )
 
 
+@dataclass_json
 @dataclass
 class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     activities: list[ActivityRead]
-
-    def to_json(self) -> str:
-        return json.dumps(asdict(self), cls=CustomJsonEncoder, indent=4)
 
     @classmethod
     def from_api_read(cls, api_plan_read: ApiActivityPlanRead) -> "ActivityPlanRead":
@@ -130,14 +113,19 @@ class ActivityPlanRead(EmptyActivityPlan):
         )
 
 
+@dataclass_json
 @dataclass
 class AsSimulatedActivity:
     type: str
     id: str
     parent: Optional[str]
-    start_time: Arrow
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
     children: list[str]
-    duration: timedelta
+    duration: timedelta = field(
+        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+    )
     parameters: dict[str, Any]
 
     @classmethod
@@ -155,12 +143,14 @@ class AsSimulatedActivity:
         )
 
 
+@dataclass_json
 @dataclass
 class SimulatedResourceSample:
-    t: Arrow
+    t: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
     v: Any
 
 
+@dataclass_json
 @dataclass
 class SimulatedResourceTimeline:
     name: str
@@ -182,9 +172,12 @@ class SimulatedResourceTimeline:
         )
 
 
+@dataclass_json
 @dataclass
 class SimulationResults:
-    start_time: arrow
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
     activities: list[AsSimulatedActivity]
     resources: list[SimulatedResourceTimeline]
 
@@ -204,6 +197,3 @@ class SimulationResults:
                 for name, api_timeline in api_sim_results.resources.items()
             ],
         )
-
-    def to_json(self, str):
-        raise RuntimeError("Not yet implemented")
