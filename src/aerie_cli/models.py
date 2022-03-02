@@ -142,8 +142,8 @@ def list(
     
     # Create output table
     table = Table(title="Current Mission Models")
-    table.add_column("Model Name", no_wrap=True)
     table.add_column("Model ID", style="magenta")
+    table.add_column("Model Name", no_wrap=True)
     for api_mission_model in resp:
-        table.add_row(api_mission_model.name, api_mission_model.id)
+        table.add_row(str(api_mission_model.id), api_mission_model.name)
 
