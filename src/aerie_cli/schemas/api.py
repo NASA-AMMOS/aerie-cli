@@ -61,14 +61,24 @@ class ApiAsSimulatedActivity:
         )
     )
     children: list[str]
-    duration: int  # microseconds since plan start
+    duration: timedelta = field(
+        metadata=config(
+            decoder=lambda microseconds: timedelta(microseconds=microseconds),
+            encoder=lambda dur: round(dur.total_seconds() * 1e6),
+        )
+    )
     parameters: dict[str, Any]
 
 
 @dataclass_json
 @dataclass
 class ApiSimulatedResourceSample:
-    x: int  # microseconds since plan start
+    x: timedelta = field(
+        metadata=config(
+            decoder=lambda microseconds: timedelta(microseconds=microseconds),
+            encoder=lambda dur: round(dur.total_seconds() * 1e6),
+        )
+    )
     y: Any
 
 

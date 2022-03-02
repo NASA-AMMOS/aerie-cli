@@ -150,7 +150,7 @@ class AsSimulatedActivity:
             parent=api_as_simulated_activity.parent,
             start_time=api_as_simulated_activity.start_timestamp,
             children=api_as_simulated_activity.children,
-            duration=timedelta(microseconds=api_as_simulated_activity.duration),
+            duration=api_as_simulated_activity.duration,
             parameters=api_as_simulated_activity.parameters,
         )
 
@@ -176,9 +176,7 @@ class SimulatedResourceTimeline:
         return SimulatedResourceTimeline(
             name=name,
             values=[
-                SimulatedResourceSample(
-                    t=profile_start_time + timedelta(microseconds=sample.x), v=sample.y
-                )
+                SimulatedResourceSample(t=profile_start_time + sample.x, v=sample.y)
                 for sample in api_sim_res_timeline
             ],
         )
