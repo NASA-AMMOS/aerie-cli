@@ -30,7 +30,7 @@ def download(
     client = AerieClient(server_url=server_url, auth=auth)
     plan = client.get_activity_plan(id)
     with open(output, "w") as out_file:
-        out_file.write(plan.to_json())
+        out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
 
 
@@ -125,7 +125,7 @@ def simulate(
     if output:
         typer.echo("Writing simulation results...")
         with open(output, "w") as out_file:
-            out_file.write(results.to_json())
+            out_file.write(results.to_json(indent=2))
         typer.echo(f"Wrote results to {output}")
 
 
