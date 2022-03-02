@@ -4,13 +4,15 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Callable
 
-import requests
 import arrow
+import requests
 
 from .schemas.api import ApiActivityPlanRead
+from .schemas.api import ApiSimulationResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
+from .schemas.client import SimulationResults
 from .utils.serialization import timedelta_to_postgres_interval
 
 
@@ -80,7 +82,7 @@ class AerieClient:
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
     ) -> int:
-    
+
         api_plan_create = plan_to_create.to_api_create(model_id)
         create_plan_mutation = """
         mutation CreatePlan($plan: plan_insert_input!) {
@@ -119,7 +121,10 @@ class AerieClient:
         return plan_id
 
     def create_activity(
-        self, activity_to_create: ActivityCreate, plan_id: int, plan_start_time: arrow.Arrow
+        self,
+        activity_to_create: ActivityCreate,
+        plan_id: int,
+        plan_start_time: arrow.Arrow,
     ) -> int:
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_insert_input!) {
@@ -141,7 +146,7 @@ class AerieClient:
         )
         return resp["id"]
 
-    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> dict[str, Any]:
+    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> SimulationResults:
 
         simulate_query = """
         query Simulate($plan_id: Int!) {
@@ -167,7 +172,8 @@ class AerieClient:
         if resp["status"] == "failed":
             sys.exit(f"Simulation failed. Response:\n{resp}")
 
-        return resp["results"]
+        api_sim_results = ApiSimulationResults.from_dict(resp["results"])
+        return SimulationResults.from_api_sim_results(api_sim_results)
 
     def __gql_query(
         self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs

@@ -3,6 +3,7 @@ from dataclasses import asdict
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
+from typing import Optional
 
 import arrow
 from arrow import Arrow
@@ -12,6 +13,9 @@ from .api import ApiActivityCreate
 from .api import ApiActivityPlanCreate
 from .api import ApiActivityPlanRead
 from .api import ApiActivityRead
+from .api import ApiAsSimulatedActivity
+from .api import ApiSimulatedResourceSample
+from .api import ApiSimulationResults
 
 
 @dataclass
@@ -123,3 +127,83 @@ class ActivityPlanRead(EmptyActivityPlan):
                 for api_activity in api_plan_read.activities
             ],
         )
+
+
+@dataclass
+class AsSimulatedActivity:
+    type: str
+    id: str
+    parent: Optional[str]
+    start_time: Arrow
+    children: list[str]
+    duration: timedelta
+    parameters: dict[str, Any]
+
+    @classmethod
+    def from_api_as_simulated_activity(
+        cls, api_as_simulated_activity: ApiAsSimulatedActivity, id: str
+    ):
+        return AsSimulatedActivity(
+            type=api_as_simulated_activity.type,
+            id=id,
+            parent=api_as_simulated_activity.parent,
+            start_time=api_as_simulated_activity.start_timestamp,
+            children=api_as_simulated_activity.children,
+            duration=timedelta(microseconds=api_as_simulated_activity.duration),
+            parameters=api_as_simulated_activity.parameters,
+        )
+
+
+@dataclass
+class SimulatedResourceSample:
+    t: Arrow
+    v: Any
+
+
+@dataclass
+class SimulatedResourceTimeline:
+    name: str
+    values: list[SimulatedResourceSample]
+
+    @classmethod
+    def from_api_sim_res_timeline(
+        cls,
+        name: str,
+        api_sim_res_timeline: list[ApiSimulatedResourceSample],
+        profile_start_time: arrow,
+    ):
+        return SimulatedResourceTimeline(
+            name=name,
+            values=[
+                SimulatedResourceSample(
+                    t=profile_start_time + timedelta(microseconds=sample.x), v=sample.y
+                )
+                for sample in api_sim_res_timeline
+            ],
+        )
+
+
+@dataclass
+class SimulationResults:
+    start_time: arrow
+    activities: list[AsSimulatedActivity]
+    resources: list[SimulatedResourceTimeline]
+
+    @classmethod
+    def from_api_sim_results(cls, api_sim_results: ApiSimulationResults):
+        return SimulationResults(
+            start_time=api_sim_results.start,
+            activities=[
+                AsSimulatedActivity.from_api_as_simulated_activity(act, id)
+                for id, act in api_sim_results.activities.items()
+            ],
+            resources=[
+                SimulatedResourceTimeline.from_api_sim_res_timeline(
+                    name, api_timeline, api_sim_results.start
+                )
+                for name, api_timeline in api_sim_results.resources.items()
+            ],
+        )
+
+    def to_json(self, str):
+        raise RuntimeError("Not yet implemented")
