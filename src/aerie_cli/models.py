@@ -53,7 +53,7 @@ def upload(
 ):
     # Determine Aerie UI model version 
     if time_tag_version:
-        version = arrow.utcnow.isoformat()
+        version = arrow.utcnow().isoformat()
     
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
