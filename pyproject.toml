@@ -21,6 +21,7 @@ click = "^8.0.1"
 typer = "^0.4.0"
 arrow = "^1.2.2"
 requests = "^2.27.1"
+rich = "^11.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
