@@ -117,7 +117,7 @@ def clean(
     for api_mission_model in resp:
         client.delete_mission_model(api_mission_model.id)
     
-    typer.echo(f"All mission models at {client.ui_path}/models have been deleted")
+    typer.echo(f"All mission models at {client.ui_path()}/models have been deleted")
 
 
 @app.command()
