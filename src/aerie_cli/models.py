@@ -146,4 +146,7 @@ def list(
     table.add_column("Model Name", no_wrap=True)
     for api_mission_model in resp:
         table.add_row(str(api_mission_model.id), api_mission_model.name)
+    
+    console = Console()
+    console.print(table)
 
