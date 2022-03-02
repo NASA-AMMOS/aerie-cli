@@ -102,7 +102,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
         return ApiActivityPlanCreate(
             model_id=model_id,
             name=self.name,
-            start_time=self.start_time.isoformat(),  # TODO: check this
+            start_time=self.start_time,  # TODO: check this
             duration=str(self.end_time - self.start_time),  # TODO: check this
         )
 
@@ -150,7 +150,7 @@ class AsSimulatedActivity:
             type=api_as_simulated_activity.type,
             id=id,
             parent=api_as_simulated_activity.parent,
-            start_time=arrow.get(api_as_simulated_activity.start_timestamp),
+            start_time=api_as_simulated_activity.start_timestamp,
             children=api_as_simulated_activity.children,
             duration=timedelta(microseconds=api_as_simulated_activity.duration),
             parameters=api_as_simulated_activity.parameters,
@@ -194,7 +194,7 @@ class SimulationResults:
 
     @classmethod
     def from_api_sim_results(cls, api_sim_results: ApiSimulationResults):
-        plan_start = arrow.get(api_sim_results.start)
+        plan_start = api_sim_results.start
         return SimulationResults(
             start_time=plan_start,
             activities=[

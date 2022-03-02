@@ -3,6 +3,8 @@ from dataclasses import field
 from typing import Any
 from typing import Optional
 
+import arrow
+from arrow import Arrow
 from dataclasses_json import config
 from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
@@ -28,7 +30,9 @@ class ApiActivityRead(ApiActivityCreate):
 class ApiActivityPlanCreate:
     model_id: int
     name: str
-    start_time: str  # ISO format
+    start_time: Arrow = field(
+        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+    )
     duration: str  # HMS string
 
 
@@ -44,9 +48,11 @@ class ApiActivityPlanRead(ApiActivityPlanCreate):
 class ApiAsSimulatedActivity:
     type: str
     parent: Optional[str]
-    start_timestamp: str = field(
-        metadata=config(letter_case=LetterCase.CAMEL)
-    )  # ISO format
+    start_timestamp: Arrow = field(
+        metadata=config(
+            letter_case=LetterCase.CAMEL, decoder=arrow.get, encoder=Arrow.isoformat
+        )
+    )
     children: list[str]
     duration: int  # microseconds since plan start
     parameters: dict[str, Any]
@@ -62,7 +68,7 @@ class ApiSimulatedResourceSample:
 @dataclass_json
 @dataclass
 class ApiSimulationResults:
-    start: str
+    start: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
     activities: dict[str, ApiAsSimulatedActivity]
     # TODO: implement constraints
     constraints: Any
