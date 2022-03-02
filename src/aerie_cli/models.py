@@ -42,7 +42,8 @@ def upload(
         help="Mission to associate with the model", 
         prompt=True),
     time_tag_version: bool = typer.Option(
-        False, 
+        False,
+        "--time-tag-verison", 
         help="Use timestamp for model version"),
     version: str = typer.Option(
         "", 

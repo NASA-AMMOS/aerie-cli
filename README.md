@@ -74,6 +74,8 @@ For more info on `poetry`, see the [Contributing](#contributing) section below.
 
 We're using the [`typer`](https://typer.tiangolo.com) library for command-line input. This allows us to run any of these commands interactively (with user prompts for each un-provided argument) OR non-interactively (where all are provided).
 
+Currently, Aerie-CLI supports `plans` and `models` command trees.
+
 **Note**: during the early stages of development, the examples in this README may not be perfectly in sync with updates to the commands and sub-commands supported by the CLI. If there is any discrepancy, you're encouraged to use the `--help` option (see [Help](#help) section) for information on commands and sub-commands in your specific CLI version.
 
 #### Interactive
@@ -157,9 +159,9 @@ Options:
   --help             Show this message and exit.
 ```
 
-#### Specific Sub-Commands
+#### Specific Sub-Commands: Plans
 
-##### Plan Download
+##### Download
 
 You can download an Aerie plan simply as such:
 
@@ -169,7 +171,7 @@ aerie-cli plans download
 
 The output JSON file resembles the plan as hosted on the Aerie deployment.
 
-##### Plan Upload
+##### Upload
 
 You can upload an Aerie plan simply with:
 
@@ -179,7 +181,7 @@ aerie-cli plans upload
 
 NOTE: a downloaded JSON plan includes arguments for `id` (plan ID), `model_id` (mission model / adaptation ID), and an `id` for each activity instance. These are included for the convenience of the user, but if the same downloaded plan is used for upload, these fields are ignored (since new activity instances and a new plan container are created for an upload). You may feel free to delete these fields from persisted plans if you'd like.
 
-##### Plan Duplication
+##### Duplication
 
 You can duplicate an Aerie plan (create a copy against the same mission model) with:
 
@@ -187,7 +189,7 @@ You can duplicate an Aerie plan (create a copy against the same mission model) w
 aerie-cli plans duplicate
 ```
 
-##### Plan Simulation
+##### Simulation
 
 You can simulate an Aerie plan with:
 
@@ -196,6 +198,44 @@ aerie-cli plans simulate
 ```
 
 If an `--output` argument isn't provided, this will simply run a simulation so that the results are cached on the server and are quickly visible in the UI. However, if you want to persist the results in JSON form, you should provide an `--output` path to a local file.
+
+#### Specific Sub-Commands: Models
+
+##### Upload
+
+You can upload an Aerie mission model simply as such:
+
+```sh
+aerie-cli models upload
+```
+
+NOTE: Required fields include `mission-model-path`, `model-name`, and `mission-name`. The model version defaults to an empty string that can be overwritten by the user input. Alternatively, use the `--time-tag-version` flag to set the model version with the current timestamp.
+
+##### List
+
+You can list out all current Aerie mission models like so:
+
+```sh
+aerie-cli models list
+```
+
+##### Prune
+
+You can delete an Aerie model simply with:
+
+```sh
+aerie-cli models prune
+```
+
+NOTE: Required fields include `model-id`. 
+
+##### Clean
+
+You can delete all Aerie mission models with:
+
+```sh
+aerie-cli models clean
+```
 
 ### `AerieClient` Usage
 
