@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import timedelta
 from typing import Any
 from typing import Optional
 
@@ -9,13 +10,17 @@ from dataclasses_json import config
 from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
 
+from ..utils.serialization import hms_string_to_timedelta
+
 
 @dataclass_json
 @dataclass
 class ApiActivityCreate:
     type: str
     plan_id: int
-    start_offset: str  # HMS string
+    start_offset: timedelta = field(
+        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+    )
     arguments: dict[str, Any]
 
 
@@ -33,7 +38,9 @@ class ApiActivityPlanCreate:
     start_time: Arrow = field(
         metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
     )
-    duration: str  # HMS string
+    duration: timedelta = field(
+        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+    )
 
 
 @dataclass_json

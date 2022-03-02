@@ -9,7 +9,6 @@ import arrow
 from arrow import Arrow
 
 from ..utils.serialization import CustomJsonEncoder
-from ..utils.serialization import hms_string_to_timedelta
 from .api import ApiActivityCreate
 from .api import ApiActivityPlanCreate
 from .api import ApiActivityPlanRead
@@ -37,7 +36,7 @@ class ActivityCreate:
         return ApiActivityCreate(
             type=self.type,
             plan_id=plan_id,
-            start_offset=str(self.start_time - plan_start_time),  # TODO: check this
+            start_offset=self.start_time - plan_start_time,
             arguments=self.parameters,
         )
 
@@ -53,8 +52,7 @@ class ActivityRead(ActivityCreate):
         return ActivityRead(
             id=api_activity_read.id,
             type=api_activity_read.type,
-            start_time=plan_start_time
-            + hms_string_to_timedelta(api_activity_read.start_offset),
+            start_time=plan_start_time + api_activity_read.start_offset,
             parameters=api_activity_read.arguments,
         )
 
@@ -102,8 +100,8 @@ class ActivityPlanCreate(EmptyActivityPlan):
         return ApiActivityPlanCreate(
             model_id=model_id,
             name=self.name,
-            start_time=self.start_time,  # TODO: check this
-            duration=str(self.end_time - self.start_time),  # TODO: check this
+            start_time=self.start_time,
+            duration=self.end_time - self.start_time,
         )
 
 
@@ -124,7 +122,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             name=api_plan_read.name,
             model_id=api_plan_read.model_id,
             start_time=plan_start,
-            end_time=plan_start + hms_string_to_timedelta(api_plan_read.duration),
+            end_time=plan_start + api_plan_read.duration,
             activities=[
                 ActivityRead.from_api_read(api_activity, plan_start)
                 for api_activity in api_plan_read.activities
