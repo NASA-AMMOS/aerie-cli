@@ -1,8 +1,7 @@
-import json
 from typing import Union
 
-import typer
 import arrow
+import typer
 
 from .client import AerieClient
 from .client import Auth
@@ -31,7 +30,7 @@ def download(
     client = AerieClient(server_url=server_url, auth=auth)
     plan = client.get_activity_plan(id)
     with open(output, "w") as out_file:
-        out_file.write(plan.to_json())
+        out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
 
 
@@ -53,7 +52,7 @@ def upload(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
-    time_tag: bool = typer.Option(False, help = "Append time tag to plan name")
+    time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
     auth = Auth(username, password)
@@ -117,7 +116,7 @@ def simulate(
         help="The period (seconds) at which to poll for simulation completion",
     ),
 ):
-    """Download a plan and save it locally as a JSON file."""
+    """Simulate a plan and optionally download the results."""
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
@@ -126,7 +125,7 @@ def simulate(
     if output:
         typer.echo("Writing simulation results...")
         with open(output, "w") as out_file:
-            out_file.write(json.dumps(results, indent=4))
+            out_file.write(results.to_json(indent=2))
         typer.echo(f"Wrote results to {output}")
 
 

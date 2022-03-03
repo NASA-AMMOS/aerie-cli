@@ -1,19 +1,11 @@
-import json
 import math
+import re
 from datetime import timedelta
-from typing import Any
-
-from arrow import Arrow
-
-CUSTOM_ENCODERS = {Arrow: Arrow.for_json}
 
 
-class CustomJsonEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        for data_type, custom_encoder in CUSTOM_ENCODERS.items():
-            if isinstance(obj, data_type):
-                return custom_encoder(obj)
-        return json.JSONEncoder.default(self, obj)
+POSTGRES_INTERVAL_PATTERN = re.compile(
+    r"(?P<seconds>\d+)\sseconds\s(?P<milliseconds>\d+)\smilliseconds"
+)
 
 
 def hms_string_to_timedelta(hms_string: str) -> timedelta:
@@ -27,3 +19,11 @@ def timedelta_to_postgres_interval(delta: timedelta) -> str:
     # what is appropriate rounding method?
     milliseconds = math.floor(partial_seconds * 1000)
     return f"{int(seconds)} seconds {milliseconds} milliseconds"
+
+
+def postgres_interval_to_timedelta(interval: str) -> timedelta:
+    """Constructs a timedelta from a PostgresQL interval string."""
+    match = POSTGRES_INTERVAL_PATTERN.match(interval)
+    return timedelta(
+        seconds=match.group("seconds"), milliseconds=match.group("milliseconds")
+    )
