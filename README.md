@@ -55,7 +55,6 @@ $ python3 -m pip uninstall aerie_cli
 > Successfully uninstalled aerie-cli-<version>
 ```
 
-
 ### Installation with `poetry`
 
 If you use `poetry` for your dependency management and intend to use this package in another Python project, you can install this package to an existing `poetry` project with:
@@ -227,7 +226,7 @@ You can delete an Aerie model simply with:
 aerie-cli models prune
 ```
 
-NOTE: Required fields include `model-id`. 
+NOTE: Required fields include `model-id`.
 
 ##### Clean
 

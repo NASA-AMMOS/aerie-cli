@@ -67,15 +67,12 @@ class ApiActivityPlanRead(ApiActivityPlanCreate):
             ],
         )
 
+
 @dataclass
 class ApiMissionModel:
     name: str
     id: int
 
     @classmethod
-    def multi_from_dict(cls, obj:dict) -> list["ApiMissionModel"]:
-        return [
-            ApiMissionModel(
-            id=model["id"],
-            name=model["name"]
-        ) for model in obj]
+    def multi_from_dict(cls, obj: dict) -> list["ApiMissionModel"]:
+        return [ApiMissionModel(id=model["id"], name=model["name"]) for model in obj]
