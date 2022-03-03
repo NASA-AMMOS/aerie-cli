@@ -116,7 +116,7 @@ def simulate(
         help="The period (seconds) at which to poll for simulation completion",
     ),
 ):
-    """Download a plan and save it locally as a JSON file."""
+    """Simulate a plan and optionally download the results."""
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
