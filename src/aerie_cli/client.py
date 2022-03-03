@@ -1,8 +1,6 @@
 import sys
 import time
 from dataclasses import dataclass
-from typing import Any
-from typing import Callable
 
 import arrow
 import requests
@@ -162,9 +160,7 @@ class AerieClient:
         api_sim_results = ApiSimulationResults.from_dict(resp["results"])
         return SimulationResults.from_api_sim_results(api_sim_results)
 
-    def __gql_query(
-        self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs
-    ):
+    def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
             self.graphql_path(),
             json={"query": query, "variables": kwargs},
@@ -194,11 +190,6 @@ class AerieClient:
                 print(f"Variables: {kwargs}\n")
 
             sys.exit(f"Query: {query}\n Response: {resp.text}")
-
-        if deserializer is not None:
-            return deserializer(data)
-        else:
-            return data
 
     def __auth_header(self) -> dict[str, str]:
         return {"x-auth-sso-token": self.sso_token}
