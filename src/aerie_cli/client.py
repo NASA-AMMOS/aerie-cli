@@ -1,12 +1,12 @@
 import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from typing import Callable
-from pathlib import Path
 
-import requests
 import arrow
+import requests
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiMissionModel
@@ -45,6 +45,9 @@ class AerieClient:
     def ui_path(self) -> str:
         return self.server_url
 
+    def ui_models_path(self) -> str:
+        return self.ui_path() + "/models"
+
     def get_sso_token(self, auth: Auth) -> str:
         resp = requests.post(
             url=self.login_api_path(),
@@ -82,7 +85,7 @@ class AerieClient:
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
     ) -> int:
-    
+
         api_plan_create = plan_to_create.to_api_create(model_id)
         create_plan_mutation = """
         mutation CreatePlan($plan: plan_insert_input!) {
@@ -121,7 +124,10 @@ class AerieClient:
         return plan_id
 
     def create_activity(
-        self, activity_to_create: ActivityCreate, plan_id: int, plan_start_time: arrow.Arrow
+        self,
+        activity_to_create: ActivityCreate,
+        plan_id: int,
+        plan_start_time: arrow.Arrow,
     ) -> int:
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_insert_input!) {
@@ -171,23 +177,26 @@ class AerieClient:
 
         return resp["results"]
 
-    def upload_mission_model(self, mission_model_path: str, project_name: str, mission: str, version: str) -> int:
+    def upload_mission_model(
+        self, mission_model_path: str, project_name: str, mission: str, version: str
+    ) -> int:
 
         file_api_url = self.files_api_path()
 
         # Create unique jar identifier for server side
         upload_timestamp = arrow.utcnow().isoformat()
-        server_side_jar_name = Path(mission_model_path).stem + "--" +  upload_timestamp + ".jar"
+        server_side_jar_name = (
+            Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
+        )
 
         with open(mission_model_path, "rb") as jar_file:
             resp = requests.post(
                 file_api_url,
-                files = {"file": (server_side_jar_name, jar_file)},
-                headers = {"x-auth-sso-token": self.sso_token}
+                files={"file": (server_side_jar_name, jar_file)},
+                headers={"x-auth-sso-token": self.sso_token},
             )
 
         jar_id = resp.json()["id"]
-
 
         create_model_mutation = """
         mutation CreateModel($model: mission_model_insert_input!) {
@@ -198,17 +207,17 @@ class AerieClient:
         """
 
         resp = self.__gql_query(
-            create_model_mutation, 
+            create_model_mutation,
             model={
                 "name": project_name,
                 "mission": mission,
                 "version": version,
-                "jar_id": jar_id
-            }
+                "jar_id": jar_id,
+            },
         )
 
         return resp["id"]
-    
+
     def delete_mission_model(self, model_id: int) -> str:
 
         delete_model_mutation = """
@@ -222,7 +231,7 @@ class AerieClient:
         resp = self.__gql_query(delete_model_mutation, model_id=model_id)
 
         return resp["name"]
-    
+
     def get_mission_models(self) -> list[ApiMissionModel]:
 
         get_mission_model_query = """
@@ -234,10 +243,11 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_mission_model_query, deserializer=ApiMissionModel.multi_from_dict)
+        resp = self.__gql_query(
+            get_mission_model_query, deserializer=ApiMissionModel.multi_from_dict
+        )
 
         return resp
-
 
     def __gql_query(
         self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs

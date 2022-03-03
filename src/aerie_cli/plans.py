@@ -1,8 +1,8 @@
 import json
 from typing import Union
 
-import typer
 import arrow
+import typer
 
 from .client import AerieClient
 from .client import Auth
@@ -53,7 +53,7 @@ def upload(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
-    time_tag: bool = typer.Option(False, help = "Append time tag to plan name")
+    time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
     auth = Auth(username, password)

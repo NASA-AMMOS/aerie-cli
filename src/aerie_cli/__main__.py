@@ -1,8 +1,8 @@
 """Command-line interface."""
 import typer
 
-from . import plans
 from . import models
+from . import plans
 
 
 app = typer.Typer()
