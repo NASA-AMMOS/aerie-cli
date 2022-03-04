@@ -1,6 +1,3 @@
-import json
-from typing import Union
-
 import arrow
 import typer
 from rich.console import Console
@@ -8,7 +5,6 @@ from rich.table import Table
 
 from .client import AerieClient
 from .client import Auth
-from .schemas.client import ActivityPlanCreate
 
 app = typer.Typer()
 
@@ -42,7 +38,7 @@ def upload(
         prompt=True,
     ),
 ):
-    """Upload a single mission model from a .jar file"""
+    """Upload a single mission model from a .jar file."""
     # Determine Aerie UI model version
     if time_tag_version:
         version = arrow.utcnow().isoformat()
@@ -59,7 +55,8 @@ def upload(
     )
 
     typer.echo(
-        f"Created new mission model: {model_name} at {client.ui_path()}/models with Model ID: {model_id}"
+        f"Created new mission model: {model_name} at \
+            {client.ui_path()}/models with Model ID: {model_id}"
     )
 
 
@@ -121,7 +118,7 @@ def list(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
 ):
-    """List of current mission models"""
+    """List of current mission models."""
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
 
@@ -131,8 +128,11 @@ def list(
     table = Table(title="Current Mission Models")
     table.add_column("Model ID", style="magenta")
     table.add_column("Model Name", no_wrap=True)
+    table.add_column("Model Version", no_wrap=True)
     for api_mission_model in resp:
-        table.add_row(str(api_mission_model.id), api_mission_model.name)
+        table.add_row(
+            str(api_mission_model.id), api_mission_model.name, api_mission_model.version
+        )
 
     console = Console()
     console.print(table)
