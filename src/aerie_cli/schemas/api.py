@@ -72,6 +72,7 @@ class ApiActivityPlanRead(ApiActivityPlanCreate):
 class ApiMissionModel:
     name: str
     id: int
+    verison: str
 
     @classmethod
     def multi_from_dict(cls, obj: dict) -> list["ApiMissionModel"]:
