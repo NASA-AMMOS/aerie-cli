@@ -1,19 +1,16 @@
 import sys
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
-from typing import Callable
 
 import arrow
 import requests
 
 from .schemas.api import ApiActivityPlanRead
-from .schemas.api import ApiMissionModel
+from .schemas.api import ApiSimulationResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
-from .utils.serialization import timedelta_to_postgres_interval
+from .schemas.client import SimulationResults
 
 
 @dataclass
@@ -77,9 +74,8 @@ class AerieClient:
             }
         }
         """
-        api_plan = self.__gql_query(
-            query, plan_id=plan_id, deserializer=ApiActivityPlanRead.from_dict
-        )
+        resp = self.__gql_query(query, plan_id=plan_id)
+        api_plan = ApiActivityPlanRead.from_dict(resp)
         return ActivityPlanRead.from_api_read(api_plan)
 
     def create_activity_plan(
@@ -96,12 +92,7 @@ class AerieClient:
         """
         plan_resp = self.__gql_query(
             create_plan_mutation,
-            plan={
-                "model_id": api_plan_create.model_id,
-                "name": api_plan_create.name,
-                "start_time": api_plan_create.start_time.isoformat(),
-                "duration": timedelta_to_postgres_interval(api_plan_create.duration),
-            },
+            plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
 
@@ -129,6 +120,7 @@ class AerieClient:
         plan_id: int,
         plan_start_time: arrow.Arrow,
     ) -> int:
+        api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_insert_input!) {
             createActivity: insert_activity_one(object: $activity) {
@@ -138,18 +130,11 @@ class AerieClient:
         """
         resp = self.__gql_query(
             insert_activity_mutation,
-            activity={
-                "plan_id": plan_id,
-                "start_offset": timedelta_to_postgres_interval(
-                    activity_to_create.start_time - plan_start_time
-                ),
-                "type": activity_to_create.type,
-                "arguments": activity_to_create.parameters,
-            },
+            activity=api_activity_create.to_dict(),
         )
         return resp["id"]
 
-    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> dict[str, Any]:
+    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> SimulationResults:
 
         simulate_query = """
         query Simulate($plan_id: Int!) {
@@ -175,83 +160,10 @@ class AerieClient:
         if resp["status"] == "failed":
             sys.exit(f"Simulation failed. Response:\n{resp}")
 
-        return resp["results"]
+        api_sim_results = ApiSimulationResults.from_dict(resp["results"])
+        return SimulationResults.from_api_sim_results(api_sim_results)
 
-    def upload_mission_model(
-        self, mission_model_path: str, project_name: str, mission: str, version: str
-    ) -> int:
-
-        file_api_url = self.files_api_path()
-
-        # Create unique jar identifier for server side
-        upload_timestamp = arrow.utcnow().isoformat()
-        server_side_jar_name = (
-            Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
-        )
-
-        with open(mission_model_path, "rb") as jar_file:
-            resp = requests.post(
-                file_api_url,
-                files={"file": (server_side_jar_name, jar_file)},
-                headers={"x-auth-sso-token": self.sso_token},
-            )
-
-        jar_id = resp.json()["id"]
-
-        create_model_mutation = """
-        mutation CreateModel($model: mission_model_insert_input!) {
-            createModel: insert_mission_model_one(object: $model) {
-                id
-            }
-        }
-        """
-
-        resp = self.__gql_query(
-            create_model_mutation,
-            model={
-                "name": project_name,
-                "mission": mission,
-                "version": version,
-                "jar_id": jar_id,
-            },
-        )
-
-        return resp["id"]
-
-    def delete_mission_model(self, model_id: int) -> str:
-
-        delete_model_mutation = """
-        mutation deleteMissionModel($model_id: Int!) {
-            delete_mission_model_by_pk(id: $model_id){
-                name
-            }
-        }
-        """
-
-        resp = self.__gql_query(delete_model_mutation, model_id=model_id)
-
-        return resp["name"]
-
-    def get_mission_models(self) -> list[ApiMissionModel]:
-
-        get_mission_model_query = """
-        query getMissionModels {
-            mission_model {
-                name
-                id
-            }
-        }
-        """
-
-        resp = self.__gql_query(
-            get_mission_model_query, deserializer=ApiMissionModel.multi_from_dict
-        )
-
-        return resp
-
-    def __gql_query(
-        self, query: str, deserializer: Callable[[dict[str, Any]], Any] = None, **kwargs
-    ):
+    def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
             self.graphql_path(),
             json={"query": query, "variables": kwargs},
@@ -281,11 +193,6 @@ class AerieClient:
                 print(f"Variables: {kwargs}\n")
 
             sys.exit(f"Query: {query}\n Response: {resp.text}")
-
-        if deserializer is not None:
-            return deserializer(data)
-        else:
-            return data
 
     def __auth_header(self) -> dict[str, str]:
         return {"x-auth-sso-token": self.sso_token}
