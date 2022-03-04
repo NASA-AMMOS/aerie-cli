@@ -225,4 +225,33 @@ This example shows that we can create an `AerieClient` object given an Aerie dep
 
 ## Contributing
 
-TBD...
+If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
+
+Then, you will need to run the following commands:
+1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
+2. `poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.
+
+While developing, you'll need to use `poetry` when testing your updates. E.g.:
+```
+poetry run aerie-cli plans simulate --output foo.json --id 42
+```
+
+Whenever you try to commit your changes (`git commit -m "my commit message"`), you will likely experience errors because your current shell doesn't have access to the dependencies required for the pre-commit hook. To remedy this, simply prefix your `git` command with `poetry run`. E.g.: `poetry run git commit -m "my commit message"`.
+
+If your code does not conform to formatting or style conventions, your commit will fail, and you will have to revise your code before committing it. Note, however, that our auto-formatter `black` does modify your files in-place when you run the pre-commit hook; you'll simply have to `git add` the changed files to stage the formatting changes, and you can attempt to commit again.
+
+### IDE Settings
+
+Since you are using `poetry` for development, your system Python interpreter will likely complain about any dependencies used within this project. To remedy this, you'll need to select the Python interpreter from your `poetry` virtualenv in your IDE. The method for doing so is unfortunately IDE-dependent, however.
+
+#### VS Code
+
+For Mac users developing in VS Code, you can achieve this by adding the following setting to your `settings.json` file:
+```
+"python.venvPath": "~/Library/Caches/pypoetry/virtualenvs",
+```
+
+After doing this, you can select a new Python interpreter by typing `Cmd + Shift + P` and selecting a Python interpreter which corresponds to your `poetry` virtualenv:
+
+<img width="601" alt="image" src="https://github.jpl.nasa.gov/storage/user/6097/files/884e5c80-9b18-11ec-9b65-63a69b606733">
+
