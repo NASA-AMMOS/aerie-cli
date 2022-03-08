@@ -131,7 +131,9 @@ def list(
     table.add_column("Model Version", no_wrap=True)
     for api_mission_model in resp:
         table.add_row(
-            str(api_mission_model.id), api_mission_model.name, api_mission_model.version
+            str(api_mission_model.id),
+            str(api_mission_model.name),
+            str(api_mission_model.version),
         )
 
     console = Console()

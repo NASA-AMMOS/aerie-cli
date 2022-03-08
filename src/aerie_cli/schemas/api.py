@@ -116,3 +116,23 @@ class ApiSimulationResults:
     resources: dict[str, list[ApiSimulatedResourceSample]]
     # TODO: implement events
     events: Any
+
+
+@dataclass_json
+@dataclass
+class ApiMissionModelBase:
+    name: str
+    version: str
+
+
+@dataclass_json
+@dataclass
+class ApiMissionModelCreate(ApiMissionModelBase):
+    mission: str
+    jar_id: str
+
+
+@dataclass_json
+@dataclass
+class ApiMissionModelRead(ApiMissionModelBase):
+    id: int
