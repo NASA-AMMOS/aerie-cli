@@ -10,9 +10,13 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
   - [Installation with `poetry`](#installation-with-poetry)
 - [Usage](#usage)
   - [CLI Usage](#cli-usage)
-  - [`AerieClient` Usage](#ide-configuration)
+  - [`AerieClient` Usage](#aerieclient-usage)
 - [Contributing](#contributing)
-
+  - [Installation](#installation)
+  - [Dependency Management](#dependency-management)
+  - [Testing](#testing)
+  - [Pre-Commit Hook](#pre-commit-hook)
+  - [IDE Settings](#ide-settings)
 ---
 
 ## Overview
@@ -225,18 +229,31 @@ This example shows that we can create an `AerieClient` object given an Aerie dep
 
 ## Contributing
 
+### Installation
+
 If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
 
 Then, you will need to run the following commands:
 1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
 2. `poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.
 
+
+### Dependency Management
+
+If you'd like to add or remove dependencies, you can use the `poetry add` and `poetry remove` commands, respectively. These will install the dependencies in your `poetry`-managed virtual environment, update your `pyproject.toml` file, and update your `poetry.lock` file. If you update the dependencies, you should stage and commit your changes to these two files so that others will be guaranteed to have the same Python configuration.
+
+For more information on dependency and project management, see the [`poetry` docs](https://python-poetry.org/docs/master/).
+
+### Testing
+
 While developing, you'll need to use `poetry` when testing your updates. E.g.:
 ```
 poetry run aerie-cli plans simulate --output foo.json --id 42
 ```
 
-Whenever you try to commit your changes (`git commit -m "my commit message"`), you will likely experience errors because your current shell doesn't have access to the dependencies required for the pre-commit hook. To remedy this, simply prefix your `git` command with `poetry run`. E.g.: `poetry run git commit -m "my commit message"`.
+### Pre-Commit Hook
+
+Whenever you try to commit your changes (`git commit -m "my commit message"`), you may experience errors if your current shell doesn't have access to the dependencies required for the pre-commit hook. To remedy this, simply prefix your `git` command with `poetry run`. E.g.: `poetry run git commit -m "my commit message"`.
 
 If your code does not conform to formatting or style conventions, your commit will fail, and you will have to revise your code before committing it. Note, however, that our auto-formatter `black` does modify your files in-place when you run the pre-commit hook; you'll simply have to `git add` the changed files to stage the formatting changes, and you can attempt to commit again.
 
