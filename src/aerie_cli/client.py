@@ -1,11 +1,14 @@
 import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import arrow
 import requests
 
 from .schemas.api import ApiActivityPlanRead
+from .schemas.api import ApiMissionModelCreate
+from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiSimulationResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
@@ -34,13 +37,16 @@ class AerieClient:
         return self.server_url + ":9000"
 
     def files_api_path(self) -> str:
-        return self.gateway_path() + "/files"
+        return self.gateway_path() + "/file"
 
     def login_api_path(self) -> str:
         return self.gateway_path() + "/auth/login"
 
     def ui_path(self) -> str:
         return self.server_url
+
+    def ui_models_path(self) -> str:
+        return self.ui_path() + "/models"
 
     def get_sso_token(self, auth: Auth) -> str:
         resp = requests.post(
@@ -160,6 +166,78 @@ class AerieClient:
         api_sim_results = ApiSimulationResults.from_dict(resp["results"])
         return SimulationResults.from_api_sim_results(api_sim_results)
 
+    def upload_mission_model(
+        self, mission_model_path: str, project_name: str, mission: str, version: str
+    ) -> int:
+
+        file_api_url = self.files_api_path()
+
+        # Create unique jar identifier for server side
+        upload_timestamp = arrow.utcnow().isoformat()
+        server_side_jar_name = (
+            Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
+        )
+
+        with open(mission_model_path, "rb") as jar_file:
+            resp = requests.post(
+                file_api_url,
+                files={"file": (server_side_jar_name, jar_file)},
+                headers={"x-auth-sso-token": self.sso_token},
+            )
+
+        jar_id = resp.json()["id"]
+
+        create_model_mutation = """
+        mutation CreateModel($model: mission_model_insert_input!) {
+            createModel: insert_mission_model_one(object: $model) {
+                id
+            }
+        }
+        """
+
+        api_mission_model = ApiMissionModelCreate(
+            name=project_name, mission=mission, version=version, jar_id=jar_id
+        )
+
+        resp = self.__gql_query(
+            create_model_mutation, model=api_mission_model.to_dict()
+        )
+
+        return resp["id"]
+
+    def delete_mission_model(self, model_id: int) -> str:
+
+        delete_model_mutation = """
+        mutation deleteMissionModel($model_id: Int!) {
+            delete_mission_model_by_pk(id: $model_id){
+                name
+            }
+        }
+        """
+
+        resp = self.__gql_query(delete_model_mutation, model_id=model_id)
+
+        return resp["name"]
+
+    def get_mission_models(self) -> list[ApiMissionModelRead]:
+
+        get_mission_model_query = """
+        query getMissionModels {
+            mission_model {
+                name
+                id
+                version
+                mission
+                jar_id
+            }
+        }
+        """
+
+        resp = self.__gql_query(get_mission_model_query)
+        api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
+
+        return api_mission_models
+
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
             self.graphql_path(),
@@ -190,6 +268,8 @@ class AerieClient:
                 print(f"Variables: {kwargs}\n")
 
             sys.exit(f"Query: {query}\n Response: {resp.text}")
+
+        return data
 
     def __auth_header(self) -> dict[str, str]:
         return {"x-auth-sso-token": self.sso_token}
