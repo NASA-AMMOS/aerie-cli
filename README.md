@@ -12,7 +12,7 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
   - [CLI Usage](#cli-usage)
   - [`AerieClient` Usage](#aerieclient-usage)
 - [Contributing](#contributing)
-  - [Installation](#installation)
+  - [Contributor Installation](#contributor-installation)
   - [Dependency Management](#dependency-management)
   - [Testing](#testing)
   - [Pre-Commit Hook](#pre-commit-hook)
@@ -229,7 +229,7 @@ This example shows that we can create an `AerieClient` object given an Aerie dep
 
 ## Contributing
 
-### Installation
+### Contributor Installation
 
 If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
 
