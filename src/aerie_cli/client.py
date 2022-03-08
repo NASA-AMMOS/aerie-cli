@@ -194,11 +194,14 @@ class AerieClient:
             }
         }
         """
+
         api_mission_model = ApiMissionModelCreate(
             name=project_name, mission=mission, version=version, jar_id=jar_id
-        ).to_dict()
+        )
 
-        resp = self.__gql_query(create_model_mutation, model=api_mission_model)
+        resp = self.__gql_query(
+            create_model_mutation, model=api_mission_model.to_dict()
+        )
 
         return resp["id"]
 
@@ -224,6 +227,8 @@ class AerieClient:
                 name
                 id
                 version
+                mission
+                jar_id
             }
         }
         """
