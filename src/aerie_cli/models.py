@@ -118,7 +118,7 @@ def list(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
 ):
-    """List of current mission models."""
+    """List uploaded mission models."""
     auth = Auth(username, password)
     client = AerieClient(server_url=server_url, auth=auth)
 
