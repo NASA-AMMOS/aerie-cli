@@ -229,8 +229,7 @@ class AerieClient:
         """
 
         resp = self.__gql_query(get_mission_model_query)
-        print(resp)
-        api_mission_models = ApiMissionModelRead.from_dict(resp)
+        api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
 
@@ -264,6 +263,8 @@ class AerieClient:
                 print(f"Variables: {kwargs}\n")
 
             sys.exit(f"Query: {query}\n Response: {resp.text}")
+
+        return data
 
     def __auth_header(self) -> dict[str, str]:
         return {"x-auth-sso-token": self.sso_token}
