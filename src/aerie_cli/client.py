@@ -58,7 +58,7 @@ class AerieClient:
 
         return resp.json()["ssoToken"]
 
-    def get_activity_plan(self, plan_id: int) -> ActivityPlanRead:
+    def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
         query get_plans ($plan_id: Int!) {
             plan_by_pk(id: $plan_id) {
@@ -80,6 +80,33 @@ class AerieClient:
         resp = self.__gql_query(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
         return ActivityPlanRead.from_api_read(api_plan)
+
+    def get_all_activity_plans(self) -> list[ActivityPlanRead]:
+        get_all_plans_query = """
+        query get__all_plans {
+            plan{
+                id
+                model_id
+                name
+                start_time
+                duration
+                activities {
+                    id
+                    plan_id
+                    type
+                    start_offset
+                    arguments
+                }
+            }
+        }
+        """
+        resp = self.__gql_query(get_all_plans_query)
+        api_mission_models = [
+            ActivityPlanRead.from_api_read(ApiActivityPlanRead.from_dict(plan))
+            for plan in resp
+        ]
+
+        return api_mission_models
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
