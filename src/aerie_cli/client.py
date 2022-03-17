@@ -101,12 +101,12 @@ class AerieClient:
         }
         """
         resp = self.__gql_query(get_all_plans_query)
-        api_mission_models = [
+        activity_plans = [
             ActivityPlanRead.from_api_read(ApiActivityPlanRead.from_dict(plan))
             for plan in resp
         ]
 
-        return api_mission_models
+        return activity_plans
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
