@@ -153,14 +153,16 @@ def list(
     # Create output table
     table = Table(title="Current Activity Plans")
     table.add_column("Plan ID", style="magenta")
-    table.add_column("Plan Name", no_wrap=True)
-    table.add_column("Plan Start Time", no_wrap=True)
-    table.add_column("Model ID", no_wrap=True)
+    table.add_column("Plan Name", style="cyan")
+    table.add_column("Plan Start Time")
+    table.add_column("Plan End Time")
+    table.add_column("Model ID")
     for activity_plan in resp:
         table.add_row(
             str(activity_plan.id),
             str(activity_plan.name),
             str(activity_plan.start_time),
+            str(activity_plan.end_time),
             str(activity_plan.model_id),
         )
 
