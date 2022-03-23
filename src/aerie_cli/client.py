@@ -26,9 +26,14 @@ class AerieClient:
     server_url: str
     sso_token: str
 
-    def __init__(self, server_url: str, auth: Auth):
-        self.server_url = server_url
-        self.sso_token = self.get_sso_token(auth)
+    def __init__(self, server_url: str, **kwargs):
+        auth = kwargs["auth"]
+        if type(auth) != str:
+            self.server_url = server_url
+            self.sso_token = self.get_sso_token(auth)
+        else:
+            self.server_url = server_url
+            self.sso_token = auth
 
     def graphql_path(self) -> str:
         return self.server_url + ":8080/v1/graphql"
