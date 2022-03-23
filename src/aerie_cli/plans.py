@@ -33,8 +33,12 @@ def download(
         auth = Auth(username, password)
         client = AerieClient(server_url=server_url, auth=auth)
 
-    else:
+    elif sso != "":
         client = client = AerieClient(server_url=server_url, auth=sso)
+
+    else:
+        print("Please provide a valid SSO token or username+password")
+        return
 
     plan = client.get_activity_plan_by_id(id)
     with open(output, "w") as out_file:
@@ -68,8 +72,12 @@ def upload(
         auth = Auth(username, password)
         client = AerieClient(server_url=server_url, auth=auth)
 
-    else:
+    elif sso != "":
         client = client = AerieClient(server_url=server_url, auth=sso)
+
+    else:
+        print("Please provide a valid SSO token or username+password")
+        return
 
     with open(input) as in_file:
         contents = in_file.read()
@@ -103,8 +111,12 @@ def duplicate(
         auth = Auth(username, password)
         client = AerieClient(server_url=server_url, auth=auth)
 
-    else:
+    elif sso != "":
         client = client = AerieClient(server_url=server_url, auth=sso)
+
+    else:
+        print("Please provide a valid SSO token or username+password")
+        return
 
     plan = client.get_activity_plan_by_id(id)
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
@@ -142,8 +154,12 @@ def simulate(
         auth = Auth(username, password)
         client = AerieClient(server_url=server_url, auth=auth)
 
-    else:
+    elif sso != "":
         client = client = AerieClient(server_url=server_url, auth=sso)
+
+    else:
+        print("Please provide a valid SSO token or username+password")
+        return
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     results = client.simulate_plan(id, poll_period)
@@ -174,8 +190,12 @@ def list(
         auth = Auth(username, password)
         client = AerieClient(server_url=server_url, auth=auth)
 
-    else:
+    elif sso != "":
         client = client = AerieClient(server_url=server_url, auth=sso)
+
+    else:
+        print("Please provide a valid SSO token or username+password")
+        return
 
     resp = client.get_all_activity_plans()
 
