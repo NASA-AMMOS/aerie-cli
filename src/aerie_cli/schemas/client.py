@@ -139,7 +139,7 @@ class AsSimulatedActivity:
             start_time=api_as_simulated_activity.start_timestamp,
             children=api_as_simulated_activity.children,
             duration=api_as_simulated_activity.duration,
-            parameters=api_as_simulated_activity.parameters,
+            parameters=api_as_simulated_activity.arguments,
         )
 
 

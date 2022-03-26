@@ -91,7 +91,7 @@ class ApiAsSimulatedActivity:
             encoder=lambda dur: round(dur.total_seconds() * 1e6),
         )
     )
-    parameters: dict[str, Any]
+    arguments: dict[str, Any]
 
 
 @dataclass_json
