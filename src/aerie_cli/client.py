@@ -182,9 +182,7 @@ class AerieClient:
         """
 
         def exec_sim_query():
-            # Note: Aerie API schema says that the plan ID should be an int,
-            # but that fails; it requires a str
-            return self.__gql_query(simulate_query, plan_id=str(plan_id))
+            return self.__gql_query(simulate_query, plan_id=plan_id)
 
         resp = exec_sim_query()
 
