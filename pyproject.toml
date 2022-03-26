@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aerie-cli"
-version = "0.1.0"
+version = "0.10.1.0"
 description = "aerie-cli"
 authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>"]
 license = "MIT"
