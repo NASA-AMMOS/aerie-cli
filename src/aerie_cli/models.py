@@ -4,7 +4,6 @@ from rich.console import Console
 from rich.table import Table
 
 from .client import AerieClient
-from .client import Auth
 
 app = typer.Typer()
 
@@ -45,16 +44,9 @@ def upload(
         version = arrow.utcnow().isoformat()
 
     # Initialize Aerie client
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     # Upload mission model file to Aerie server
     model_id = client.upload_mission_model(
@@ -88,16 +80,9 @@ def delete(
     ),
 ):
     """Delete a mission model by its model id."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     model_name = client.delete_mission_model(model_id)
     typer.echo(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
@@ -118,16 +103,9 @@ def clean(
     ),
 ):
     """Delete all mission models."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     resp = client.get_mission_models()
     for api_mission_model in resp:
@@ -151,16 +129,9 @@ def list(
     ),
 ):
     """List uploaded mission models."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     resp = client.get_mission_models()
 
