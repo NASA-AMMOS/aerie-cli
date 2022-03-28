@@ -6,7 +6,6 @@ from rich.console import Console
 from rich.table import Table
 
 from .client import AerieClient
-from .client import Auth
 from .schemas.client import ActivityPlanCreate
 
 app = typer.Typer()
@@ -29,16 +28,9 @@ def download(
     ),
 ):
     """Download a plan and save it locally as a JSON file."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     plan = client.get_activity_plan_by_id(id)
     with open(output, "w") as out_file:
@@ -68,16 +60,9 @@ def upload(
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     with open(input) as in_file:
         contents = in_file.read()
@@ -107,16 +92,9 @@ def duplicate(
     ),
 ):
     """Duplicate an existing plan."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     plan = client.get_activity_plan_by_id(id)
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
@@ -150,16 +128,9 @@ def simulate(
     ),
 ):
     """Simulate a plan and optionally download the results."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     results = client.simulate_plan(id, poll_period)
@@ -186,16 +157,9 @@ def list(
     ),
 ):
     """List uploaded plans."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = AerieClient(
+        server_url=server_url, username=username, password=password, sso=sso
+    )
 
     resp = client.get_all_activity_plans()
 
