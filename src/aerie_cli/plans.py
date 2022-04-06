@@ -11,6 +11,25 @@ from .schemas.client import ActivityPlanCreate
 app = typer.Typer()
 
 
+def mutually_exclusive(size=2):
+    group = {"sso", "username", "password"}
+
+    def callback(ctx: typer.Context, param: typer.CallbackParam, value: str):
+        # Remove cli option from group if it was called with a value
+        if value != "" and param.name in group:
+            group.remove(param.name)
+        if "sso" in group and "username" in group:
+            raise typer.BadParameter(
+                f"{param.name} is mutually exclusive with {group.pop()}"
+            )
+        return value
+
+    return callback
+
+
+exclusivity_callback = mutually_exclusive()
+
+
 @app.command()
 def download(
     username: str = typer.Option("", help="JPL username", prompt=True),
@@ -144,22 +163,41 @@ def simulate(
 
 @app.command()
 def list(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
+    interactive_login: bool = typer.Option(
+        None,
+        "--token/--userpwd",
+        help="Interactive login using either sso token or username+password",
+    ),
 ):
     """List uploaded plans."""
-    client = AerieClient(
-        server_url=server_url, username=username, password=password, sso=sso
-    )
+    # Assuming user has provided either SSO token or username+password
+    if interactive_login is None:
+        client = AerieClient(
+            server_url=server_url, username=username, password=password, sso=sso
+        )
+    # Using SSO
+    elif interactive_login:
+        sso = typer.prompt("SSO Token")
+        client = AerieClient(
+            server_url=server_url, username=username, password=password, sso=sso
+        )
+    # Using username+password
+    else:
+        user = (typer.prompt("JPL username"),)
+        pwd = typer.prompt("JPL password", hide_input=True)
+        client = AerieClient(
+            server_url=server_url, username=user, password=pwd, sso=sso
+        )
 
     resp = client.get_all_activity_plans()
 
