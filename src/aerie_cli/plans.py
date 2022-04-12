@@ -11,35 +11,46 @@ from .schemas.client import ActivityPlanCreate
 app = typer.Typer()
 
 
-def mutually_exclusive(size=2):
-    group = {"sso", "username", "password"}
-
-    def callback(ctx: typer.Context, param: typer.CallbackParam, value: str):
-        # Remove cli option from group if it was called with a value
-        if value != "" and param.name in group:
-            group.remove(param.name)
-        if "sso" in group and "username" in group:
-            raise typer.BadParameter(
-                f"{param.name} is mutually exclusive with {group.pop()}"
+def auth_helper(sso: str, username: str, password: str, server_url: str):
+    # Assuming user has not provided valid credentials during command call
+    if (sso == "") and (username == ""):
+        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
+        if method == 1:
+            sso = typer.prompt("SSO Token")
+            client = AerieClient(
+                server_url=server_url, username=username, password=password, sso=sso
             )
-        return value
-
-    return callback
-
-
-exclusivity_callback = mutually_exclusive()
+        elif method == 2:
+            user = typer.prompt("JPL Username")
+            pwd = typer.prompt("JPL Password", hide_input=True)
+            client = AerieClient(
+                server_url=server_url, username=user, password=pwd, sso=sso
+            )
+        else:
+            print(
+                """
+                Please select of the following login options:
+                1) SSO Token
+                2) JPL Username+Password
+                """
+            )
+            exit(1)
+    else:
+        client = AerieClient(
+            server_url=server_url, username=username, password=password, sso=sso
+        )
+    return client
 
 
 @app.command()
 def download(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
     server_url: str = typer.Option(
@@ -47,8 +58,8 @@ def download(
     ),
 ):
     """Download a plan and save it locally as a JSON file."""
-    client = AerieClient(
-        server_url=server_url, username=username, password=password, sso=sso
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
     )
 
     plan = client.get_activity_plan_by_id(id)
@@ -59,14 +70,13 @@ def download(
 
 @app.command()
 def upload(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     input: str = typer.Option(
         ..., help="The input file from which to create an Aerie plan", prompt=True
     ),
@@ -79,8 +89,8 @@ def upload(
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
-    client = AerieClient(
-        server_url=server_url, username=username, password=password, sso=sso
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
     )
 
     with open(input) as in_file:
@@ -94,14 +104,13 @@ def upload(
 
 @app.command()
 def duplicate(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     duplicated_plan_name: str = typer.Option(
         ..., help="The name for the duplicated plan", prompt=True
@@ -111,8 +120,8 @@ def duplicate(
     ),
 ):
     """Duplicate an existing plan."""
-    client = AerieClient(
-        server_url=server_url, username=username, password=password, sso=sso
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
     )
 
     plan = client.get_activity_plan_by_id(id)
@@ -126,14 +135,13 @@ def duplicate(
 
 @app.command()
 def simulate(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: Union[str, None] = typer.Option(
         None, help="The output file destination for simulation results (if desired)"
@@ -147,8 +155,8 @@ def simulate(
     ),
 ):
     """Simulate a plan and optionally download the results."""
-    client = AerieClient(
-        server_url=server_url, username=username, password=password, sso=sso
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
     )
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
@@ -173,31 +181,11 @@ def list(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
-    interactive_login: bool = typer.Option(
-        None,
-        "--token/--userpwd",
-        help="Interactive login using either sso token or username+password",
-    ),
 ):
     """List uploaded plans."""
-    # Assuming user has provided either SSO token or username+password
-    if interactive_login is None:
-        client = AerieClient(
-            server_url=server_url, username=username, password=password, sso=sso
-        )
-    # Using SSO
-    elif interactive_login:
-        sso = typer.prompt("SSO Token")
-        client = AerieClient(
-            server_url=server_url, username=username, password=password, sso=sso
-        )
-    # Using username+password
-    else:
-        user = (typer.prompt("JPL username"),)
-        pwd = typer.prompt("JPL password", hide_input=True)
-        client = AerieClient(
-            server_url=server_url, username=user, password=pwd, sso=sso
-        )
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
 
     resp = client.get_all_activity_plans()
 
