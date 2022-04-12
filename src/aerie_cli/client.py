@@ -34,12 +34,6 @@ class AerieClient:
         elif sso != "":
             self.server_url = server_url
             self.sso_token = sso
-        else:
-            print(
-                """Please provide one of the following: SSO Token, JPL Username+Password
-                or Select an interactive authentication method (--token/--userpwd)"""
-            )
-            exit()
 
     def auth_sso(self, token: str):
         self.sso_token = token
