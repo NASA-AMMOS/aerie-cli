@@ -5,6 +5,7 @@ from pathlib import Path
 
 import arrow
 import requests
+import typer
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiMissionModelCreate
@@ -26,14 +27,21 @@ class AerieClient:
     server_url: str
     sso_token: str
 
-    def __init__(self, server_url: str, username: str, password: str, sso: str):
-        if username != "":
-            auth = Auth(username, password)
-            self.server_url = server_url
+    def __init__(self, server_url: str, sso="", username="", pwd="", userpass=True):
+        self.server_url = server_url
+        if userpass:
+            auth = Auth(username=username, password=pwd)
             self.sso_token = self.get_sso_token(auth)
-        elif sso != "":
-            self.server_url = server_url
+        else:
             self.sso_token = sso
+
+    @classmethod
+    def from_sso(cls, server_url: str, sso: str):
+        return cls(server_url=server_url, sso=sso, userpass=False)
+
+    @classmethod
+    def from_userpass(cls, server_url, username: str, password: str):
+        return cls(server_url=server_url, username=username, password=password)
 
     def graphql_path(self) -> str:
         return self.server_url + ":8080/v1/graphql"
@@ -310,3 +318,39 @@ def check_response_status(
 ):
     if response.status_code != status_code:
         raise RuntimeError(f"{error_message}\nServer response: {response.json()}")
+
+
+def auth_helper(sso: str, username: str, password: str, server_url: str):
+    # Assuming user has not provided valid credentials during command call
+    if (sso == "") and (username == "") and (password == ""):
+        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
+        if method == 1:
+            sso = typer.prompt("SSO Token")
+            client = AerieClient.from_sso(server_url=server_url, sso=sso)
+        elif method == 2:
+            user = typer.prompt("JPL Username")
+            pwd = typer.prompt("JPL Password", hide_input=True)
+            client = AerieClient.from_userpass(
+                server_url=server_url, username=user, password=pwd
+            )
+        else:
+            print(
+                """
+                Please select of the following login options:
+                1) SSO Token
+                2) JPL Username+Password
+                """
+            )
+            exit(1)
+    elif sso != "":
+        client = AerieClient.from_sso(server_url=server_url, sso=sso)
+    elif (username != "") and (password != ""):
+        client = AerieClient.from_userpass(
+            server_url=server_url, username=username, password=password
+        )
+    else:
+        print(
+            "Please provide either --sso flag or both --username and --password flags"
+        )
+        exit(1)
+    return client
