@@ -5,6 +5,7 @@ from pathlib import Path
 
 import arrow
 import requests
+import typer
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiMissionModelCreate
@@ -26,42 +27,72 @@ class AerieClient:
     server_url: str
     sso_token: str
 
-    def __init__(self, server_url: str, **kwargs):
-        auth = kwargs["auth"]
-        if type(auth) != str:
-            self.server_url = server_url
-            self.sso_token = self.get_sso_token(auth)
-        else:
-            self.server_url = server_url
-            self.sso_token = auth
+    def __init__(self, server_url: str, sso=""):
+        self.server_url = server_url
+        self.sso_token = sso
 
-    def graphql_path(self) -> str:
-        return self.server_url + ":8080/v1/graphql"
+    @classmethod
+    def from_sso(cls, server_url: str, sso: str):
+        return cls(server_url=server_url, sso=sso)
 
-    def gateway_path(self) -> str:
-        return self.server_url + ":9000"
+    @classmethod
+    def from_userpass(cls, server_url: str, username: str, password: str):
+        auth = Auth(username=username, password=password)
+        sso = cls.cls_get_sso_token(server_url, auth)
+        return cls(server_url=server_url, sso=sso)
 
-    def files_api_path(self) -> str:
-        return self.gateway_path() + "/file"
+    @classmethod
+    def cls_graphql_path(cls, server_url: str) -> str:
+        return server_url + ":8080/v1/graphql"
 
-    def login_api_path(self) -> str:
-        return self.gateway_path() + "/auth/login"
+    @classmethod
+    def cls_gateway_path(cls, server_url: str) -> str:
+        return server_url + ":9000"
 
-    def ui_path(self) -> str:
-        return self.server_url
+    @classmethod
+    def cls_files_api_path(cls, server_url: str) -> str:
+        return cls.cls_gateway_path(server_url) + "/file"
 
-    def ui_models_path(self) -> str:
-        return self.ui_path() + "/models"
+    @classmethod
+    def cls_login_api_path(cls, server_url: str) -> str:
+        return cls.cls_gateway_path(server_url) + "/auth/login"
 
-    def get_sso_token(self, auth: Auth) -> str:
+    @classmethod
+    def cls_ui_path(cls, server_url: str) -> str:
+        return server_url
+
+    @classmethod
+    def cls_ui_models_path(cls, server_url: str) -> str:
+        return cls.cls_ui_path(server_url) + "/models"
+
+    @classmethod
+    def cls_get_sso_token(cls, server_url: str, auth: Auth) -> str:
         resp = requests.post(
-            url=self.login_api_path(),
+            url=cls.cls_login_api_path(server_url),
             json={"username": auth.username, "password": auth.password},
         )
         if not resp.json()["success"]:
             sys.exit("Authentication failed. Perhaps you provided bad credentials...")
 
         return resp.json()["ssoToken"]
+
+    def graphql_path(self) -> str:
+        return self.cls_graphql_path(self.server_url)
+
+    def gateway_path(self) -> str:
+        return self.cls_gateway_path(self.server_url)
+
+    def files_api_path(self) -> str:
+        return self.cls_files_api_path(self.server_url)
+
+    def login_api_path(self) -> str:
+        return self.cls_login_api_path(self.server_url)
+
+    def ui_path(self) -> str:
+        return self.cls_ui_path(self.server_url)
+
+    def ui_models_path(self) -> str:
+        return self.cls_ui_models_path(self.server_url)
 
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
@@ -310,3 +341,41 @@ def check_response_status(
 ):
     if response.status_code != status_code:
         raise RuntimeError(f"{error_message}\nServer response: {response.json()}")
+
+
+def auth_helper(sso: str, username: str, password: str, server_url: str):
+    """Aerie client authorization; \
+    defaults to using sso token if sso & user/pass are provided."""
+    # Assuming user has not provided valid credentials during command call
+    if (sso == "") and (username == "") and (password == ""):
+        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
+        if method == 1:
+            sso = typer.prompt("SSO Token")
+            client = AerieClient.from_sso(server_url=server_url, sso=sso)
+        elif method == 2:
+            user = typer.prompt("JPL Username")
+            pwd = typer.prompt("JPL Password", hide_input=True)
+            client = AerieClient.from_userpass(
+                server_url=server_url, username=user, password=pwd
+            )
+        else:
+            print(
+                """
+                Please select one of the following login options:
+                1) SSO Token
+                2) JPL Username+Password
+                """
+            )
+            exit(1)
+    elif sso != "":
+        client = AerieClient.from_sso(server_url=server_url, sso=sso)
+    elif (username != "") and (password != ""):
+        client = AerieClient.from_userpass(
+            server_url=server_url, username=username, password=password
+        )
+    else:
+        print(
+            "Please provide either --sso flag or both --username and --password flags"
+        )
+        exit(1)
+    return client

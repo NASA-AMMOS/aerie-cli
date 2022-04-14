@@ -3,22 +3,20 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .client import AerieClient
-from .client import Auth
+from .client import auth_helper
 
 app = typer.Typer()
 
 
 @app.command()
 def upload(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
@@ -45,16 +43,9 @@ def upload(
         version = arrow.utcnow().isoformat()
 
     # Initialize Aerie client
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
 
     # Upload mission model file to Aerie server
     model_id = client.upload_mission_model(
@@ -72,14 +63,13 @@ def upload(
 
 @app.command()
 def delete(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
@@ -88,16 +78,9 @@ def delete(
     ),
 ):
     """Delete a mission model by its model id."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
 
     model_name = client.delete_mission_model(model_id)
     typer.echo(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
@@ -105,29 +88,21 @@ def delete(
 
 @app.command()
 def clean(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
 ):
     """Delete all mission models."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
 
     resp = client.get_mission_models()
     for api_mission_model in resp:
@@ -138,29 +113,21 @@ def clean(
 
 @app.command()
 def list(
-    username: str = typer.Option("", help="JPL username", prompt=True),
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
         help="JPL password",
-        prompt=True,
         hide_input=True,
     ),
-    sso: str = typer.Option("", help="SSO Token", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
 ):
     """List uploaded mission models."""
-    if username != "":
-        auth = Auth(username, password)
-        client = AerieClient(server_url=server_url, auth=auth)
-
-    elif sso != "":
-        client = client = AerieClient(server_url=server_url, auth=sso)
-
-    else:
-        print("Please provide a valid SSO token or username+password")
-        return
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
 
     resp = client.get_mission_models()
 
