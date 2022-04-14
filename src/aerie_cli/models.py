@@ -3,40 +3,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .client import AerieClient
+from .client import auth_helper
 
 app = typer.Typer()
-
-
-def auth_helper(sso: str, username: str, password: str, server_url: str):
-    # Assuming user has not provided valid credentials during command call
-    if (sso == "") and (username == ""):
-        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
-        if method == 1:
-            sso = typer.prompt("SSO Token")
-            client = AerieClient(
-                server_url=server_url, username=username, password=password, sso=sso
-            )
-        elif method == 2:
-            user = typer.prompt("JPL Username")
-            pwd = typer.prompt("JPL Password", hide_input=True)
-            client = AerieClient(
-                server_url=server_url, username=user, password=pwd, sso=sso
-            )
-        else:
-            print(
-                """
-                Please select of the following login options:
-                1) SSO Token
-                2) JPL Username+Password
-                """
-            )
-            exit(1)
-    else:
-        client = AerieClient(
-            server_url=server_url, username=username, password=password, sso=sso
-        )
-    return client
 
 
 @app.command()
