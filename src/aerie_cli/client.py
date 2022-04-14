@@ -321,6 +321,8 @@ def check_response_status(
 
 
 def auth_helper(sso: str, username: str, password: str, server_url: str):
+    """Aerie client authorization; \
+    defaults to using sso token if sso & user/pass are provided."""
     # Assuming user has not provided valid credentials during command call
     if (sso == "") and (username == "") and (password == ""):
         method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
@@ -336,7 +338,7 @@ def auth_helper(sso: str, username: str, password: str, server_url: str):
         else:
             print(
                 """
-                Please select of the following login options:
+                Please select one of the following login options:
                 1) SSO Token
                 2) JPL Username+Password
                 """
