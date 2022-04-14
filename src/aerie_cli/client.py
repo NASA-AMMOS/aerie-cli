@@ -27,49 +27,72 @@ class AerieClient:
     server_url: str
     sso_token: str
 
-    def __init__(self, server_url: str, sso="", username="", pwd="", userpass=True):
+    def __init__(self, server_url: str, sso=""):
         self.server_url = server_url
-        if userpass:
-            auth = Auth(username=username, password=pwd)
-            self.sso_token = self.get_sso_token(auth)
-        else:
-            self.sso_token = sso
+        self.sso_token = sso
 
     @classmethod
     def from_sso(cls, server_url: str, sso: str):
-        return cls(server_url=server_url, sso=sso, userpass=False)
+        return cls(server_url=server_url, sso=sso)
 
     @classmethod
-    def from_userpass(cls, server_url, username: str, password: str):
-        return cls(server_url=server_url, username=username, password=password)
+    def from_userpass(cls, server_url: str, username: str, password: str):
+        auth = Auth(username=username, password=password)
+        sso = cls.cls_get_sso_token(server_url, auth)
+        return cls(server_url=server_url, sso=sso)
 
-    def graphql_path(self) -> str:
-        return self.server_url + ":8080/v1/graphql"
+    @classmethod
+    def cls_graphql_path(cls, server_url: str) -> str:
+        return server_url + ":8080/v1/graphql"
 
-    def gateway_path(self) -> str:
-        return self.server_url + ":9000"
+    @classmethod
+    def cls_gateway_path(cls, server_url: str) -> str:
+        return server_url + ":9000"
 
-    def files_api_path(self) -> str:
-        return self.gateway_path() + "/file"
+    @classmethod
+    def cls_files_api_path(cls, server_url: str) -> str:
+        return cls.cls_gateway_path(server_url) + "/file"
 
-    def login_api_path(self) -> str:
-        return self.gateway_path() + "/auth/login"
+    @classmethod
+    def cls_login_api_path(cls, server_url: str) -> str:
+        return cls.cls_gateway_path(server_url) + "/auth/login"
 
-    def ui_path(self) -> str:
-        return self.server_url
+    @classmethod
+    def cls_ui_path(cls, server_url: str) -> str:
+        return server_url
 
-    def ui_models_path(self) -> str:
-        return self.ui_path() + "/models"
+    @classmethod
+    def cls_ui_models_path(cls, server_url: str) -> str:
+        return cls.cls_ui_path(server_url) + "/models"
 
-    def get_sso_token(self, auth: Auth) -> str:
+    @classmethod
+    def cls_get_sso_token(cls, server_url: str, auth: Auth) -> str:
         resp = requests.post(
-            url=self.login_api_path(),
+            url=cls.cls_login_api_path(server_url),
             json={"username": auth.username, "password": auth.password},
         )
         if not resp.json()["success"]:
             sys.exit("Authentication failed. Perhaps you provided bad credentials...")
 
         return resp.json()["ssoToken"]
+
+    def graphql_path(self) -> str:
+        return self.cls_graphql_path(self.server_url)
+
+    def gateway_path(self) -> str:
+        return self.cls_gateway_path(self.server_url)
+
+    def files_api_path(self) -> str:
+        return self.cls_files_api_path(self.server_url)
+
+    def login_api_path(self) -> str:
+        return self.cls_login_api_path(self.server_url)
+
+    def ui_path(self) -> str:
+        return self.cls_ui_path(self.server_url)
+
+    def ui_models_path(self) -> str:
+        return self.cls_ui_models_path(self.server_url)
 
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
