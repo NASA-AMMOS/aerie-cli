@@ -182,6 +182,40 @@ def list(
 
 
 @app.command()
+def create_config(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
+    arg_file: str = typer.Option(
+        ..., help="JSON file with configuration arguments", prompt=True
+    ),
+):
+    """Clean and Create New Configuration for a Given Plan."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    with open(arg_file) as in_file:
+        contents = in_file.read()
+
+    json_obj = json.loads(contents)
+
+    resp = client.create_config_args(plan_id=plan_id, args=json_obj)
+
+    print("Configuration Arguments for Plan ID:", plan_id)
+    for arg in resp:
+        print("(*) " + arg + ":", resp[arg])
+
+
+@app.command()
 def update_config(
     sso: str = typer.Option("", help="SSO Token"),
     username: str = typer.Option("", help="JPL username"),
@@ -210,8 +244,9 @@ def update_config(
 
     resp = client.update_config_args(plan_id=plan_id, args=json_obj)
 
-    # TODO: What information is needed from the query response?
-    print(resp)
+    print("Configuration Arguments for Plan ID:", plan_id)
+    for arg in resp:
+        print("(*) " + arg + ":", resp[arg])
 
 
 if __name__ == "__main__":

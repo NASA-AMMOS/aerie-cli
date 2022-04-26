@@ -305,6 +305,34 @@ class AerieClient:
 
         return api_mission_models
 
+    def create_config_args(self, plan_id: int, args: dict):
+
+        update_config_arg_query = """
+        mutation UpdateConfigArgument($sim_id: Int!, $args: jsonb!) {
+            updateSimulation: update_simulation_by_pk(
+            pk_columns: { id: $sim_id },
+            _set: {
+                arguments: $args
+                simulation_template_id: null
+            }) {
+                arguments
+                id
+                template: simulation_template {
+                    arguments
+                    description
+                    id
+                }
+            }
+        }
+        """
+
+        plan = self.get_activity_plan_by_id(plan_id)
+        sim_id = plan.sim_id
+
+        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=args)
+
+        return resp["arguments"]
+
     def update_config_args(self, plan_id: int, args: dict):
 
         update_config_arg_query = """
@@ -328,9 +356,43 @@ class AerieClient:
         plan = self.get_activity_plan_by_id(plan_id)
         sim_id = plan.sim_id
 
-        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=args)
+        # Get currently set arguments
+        curr_args_dict = self.get_config(plan_id=plan_id)
 
-        return resp
+        # Out of the current arguments, update provided value and keep
+        # previous arguments the same
+        final_args = {}
+        for arg in curr_args_dict.keys():
+            if args.get(arg) is None:
+                final_args[arg] = curr_args_dict[arg]
+            else:
+                final_args[arg] = args[arg]
+                args.pop(arg)
+
+        # Add any new arguments not previously configured
+        for arg in args:
+            final_args[arg] = args[arg]
+
+        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=final_args)
+
+        return resp["arguments"]
+
+    def get_config(self, plan_id: int):
+
+        plan = self.get_activity_plan_by_id(plan_id)
+        sim_id = plan.sim_id
+
+        get_config_query = """
+        query getConfig($sim_id: Int!) {
+            simulation_by_pk(id: $sim_id) {
+                arguments
+            }
+        }
+        """
+
+        resp = self.__gql_query(get_config_query, sim_id=sim_id)
+
+        return resp["arguments"]
 
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
