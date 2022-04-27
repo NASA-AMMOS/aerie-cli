@@ -95,6 +95,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
 class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
+    sim_id: int
     activities: list[ActivityRead]
 
     @classmethod
@@ -104,6 +105,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             id=api_plan_read.id,
             name=api_plan_read.name,
             model_id=api_plan_read.model_id,
+            sim_id=api_plan_read.simulations[0]["id"],
             start_time=plan_start,
             end_time=plan_start + api_plan_read.duration,
             activities=[

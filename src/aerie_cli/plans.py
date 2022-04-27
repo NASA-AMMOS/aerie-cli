@@ -1,3 +1,4 @@
+import json
 from typing import Union
 
 import arrow
@@ -164,6 +165,7 @@ def list(
     table.add_column("Plan Name", style="cyan")
     table.add_column("Plan Start Time", no_wrap=True)
     table.add_column("Plan End Time", no_wrap=True)
+    table.add_column("Simulation ID", no_wrap=True)
     table.add_column("Model ID", no_wrap=True)
     for activity_plan in resp:
         table.add_row(
@@ -171,11 +173,80 @@ def list(
             str(activity_plan.name),
             str(activity_plan.start_time),
             str(activity_plan.end_time),
+            str(activity_plan.sim_id),
             str(activity_plan.model_id),
         )
 
     console = Console()
     console.print(table)
+
+
+@app.command()
+def create_config(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
+    arg_file: str = typer.Option(
+        ..., help="JSON file with configuration arguments", prompt=True
+    ),
+):
+    """Clean and Create New Configuration for a Given Plan."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    with open(arg_file) as in_file:
+        contents = in_file.read()
+
+    json_obj = json.loads(contents)
+
+    resp = client.create_config_args(plan_id=plan_id, args=json_obj)
+
+    print("Configuration Arguments for Plan ID:", plan_id)
+    for arg in resp:
+        print("(*) " + arg + ":", resp[arg])
+
+
+@app.command()
+def update_config(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
+    arg_file: str = typer.Option(
+        ..., help="JSON file with configuration arguments", prompt=True
+    ),
+):
+    """Update Configuration for a Given Plan."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    with open(arg_file) as in_file:
+        contents = in_file.read()
+
+    json_obj = json.loads(contents)
+
+    resp = client.update_config_args(plan_id=plan_id, args=json_obj)
+
+    print("Configuration Arguments for Plan ID:", plan_id)
+    for arg in resp:
+        print("(*) " + arg + ":", resp[arg])
 
 
 if __name__ == "__main__":
