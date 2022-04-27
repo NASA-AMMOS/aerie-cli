@@ -68,6 +68,7 @@ class ApiActivityPlanCreate(ApiActivityPlanBase):
 @dataclass
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
+    simulations: list[int]
     activities: list[ApiActivityRead]
     duration: timedelta = field(
         metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
