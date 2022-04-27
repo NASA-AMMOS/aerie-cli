@@ -223,7 +223,8 @@ class AerieClient:
 
         resp = exec_sim_query()
 
-        while resp["status"] == "incomplete":
+        nonterminal_status = ["incomplete", "pending"]
+        while resp["status"] in nonterminal_status:
             time.sleep(poll_period)
             resp = exec_sim_query()
 
