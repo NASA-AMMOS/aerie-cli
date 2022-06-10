@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "aerie-cli"
-version = "0.11.2.0"
+version = "0.11.3.0"
 description = "aerie-cli"
 authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.jpl.nasa.gov/gavinm/aerie-cli"
-repository = "https://github.jpl.nasa.gov/gavinm/aerie-cli"
+homepage = "https://github.jpl.nasa.gov/397/aerie-cli"
+repository = "https://github.jpl.nasa.gov/397/aerie-cli"
 documentation = "https://aerie-cli.readthedocs.io"
 classifiers = [
     "Development Status :: 1 - Planning",
