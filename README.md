@@ -17,6 +17,7 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
   - [Testing](#testing)
   - [Pre-Commit Hook](#pre-commit-hook)
   - [IDE Settings](#ide-settings)
+
 ---
 
 ## Overview
@@ -273,9 +274,9 @@ This example shows that we can create an `AerieClient` object given an Aerie dep
 If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
 
 Then, you will need to run the following commands:
+
 1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
 2. `poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.
-
 
 ### Dependency Management
 
@@ -286,9 +287,23 @@ For more information on dependency and project management, see the [`poetry` doc
 ### Testing
 
 While developing, you'll need to use `poetry` when testing your updates. E.g.:
+
 ```
 poetry run aerie-cli plans simulate --output foo.json --id 42
 ```
+
+#### Unit Tests
+
+Unit tests for both `plans` and `models` commands are contained within `tests/test_cli.py`. As of `0.11.3.1`, the unit tests are setup assuming that a local deployment of Aerie is running and ready to use. **Note: All current models and plans uploaded to Aerie will be deleted during unit test execution**.
+
+To run unit tests, enter the following commands:
+
+```
+cd tests
+poetry run pytest test_cli.py
+```
+
+The tests were developed based on `Typer` testing documentation found [here](https://typer.tiangolo.com/tutorial/testing/).
 
 ### Pre-Commit Hook
 
@@ -303,6 +318,7 @@ Since you are using `poetry` for development, your system Python interpreter wil
 #### VS Code
 
 For Mac users developing in VS Code, you can achieve this by adding the following setting to your `settings.json` file:
+
 ```
 "python.venvPath": "~/Library/Caches/pypoetry/virtualenvs",
 ```
@@ -310,4 +326,3 @@ For Mac users developing in VS Code, you can achieve this by adding the followin
 After doing this, you can select a new Python interpreter by typing `Cmd + Shift + P` and selecting a Python interpreter which corresponds to your `poetry` virtualenv:
 
 <img width="601" alt="image" src="https://github.jpl.nasa.gov/storage/user/6097/files/884e5c80-9b18-11ec-9b65-63a69b606733">
-
