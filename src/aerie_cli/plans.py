@@ -294,7 +294,7 @@ def clean(
     for activity_plan in resp:
         client.delete_plan(activity_plan.id)
 
-    typer.echo(f"All activity plams at {client.ui_plans_path()} have been deleted")
+    typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
 
 
 if __name__ == "__main__":
