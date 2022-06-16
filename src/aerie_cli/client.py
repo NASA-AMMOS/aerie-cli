@@ -66,6 +66,10 @@ class AerieClient:
         return cls.cls_ui_path(server_url) + "/models"
 
     @classmethod
+    def cls_ui_plans_path(cls, server_url: str) -> str:
+        return cls.cls_ui_path(server_url) + "/plans"
+
+    @classmethod
     def cls_get_sso_token(cls, server_url: str, auth: Auth) -> str:
         resp = requests.post(
             url=cls.cls_login_api_path(server_url),
@@ -93,6 +97,9 @@ class AerieClient:
 
     def ui_models_path(self) -> str:
         return self.cls_ui_models_path(self.server_url)
+
+    def ui_plans_path(self) -> str:
+        return self.cls_ui_plans_path(self.server_url)
 
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
@@ -233,6 +240,20 @@ class AerieClient:
 
         api_sim_results = ApiSimulationResults.from_dict(resp["results"])
         return SimulationResults.from_api_sim_results(api_sim_results)
+
+    def delete_plan(self, plan_id: int) -> str:
+
+        delete_plan_mutation = """
+        mutation deletePlan($plan_id: Int!) {
+            delete_plan_by_pk(id: $plan_id){
+                name
+            }
+        }
+        """
+
+        resp = self.__gql_query(delete_plan_mutation, plan_id=plan_id)
+
+        return resp["name"]
 
     def upload_mission_model(
         self, mission_model_path: str, project_name: str, mission: str, version: str
