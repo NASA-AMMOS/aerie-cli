@@ -249,5 +249,53 @@ def update_config(
         print("(*) " + arg + ":", resp[arg])
 
 
+@app.command()
+def delete(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
+):
+    """Delete an activity plan by its id."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    plan_name = client.delete_plan(plan_id)
+    typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
+
+
+@app.command()
+def clean(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+):
+    """Delete all activity plans."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    resp = client.get_all_activity_plans()
+    for activity_plan in resp:
+        client.delete_plan(activity_plan.id)
+
+    typer.echo(f"All activity plams at {client.ui_plans_path()} have been deleted")
+
+
 if __name__ == "__main__":
     app()
