@@ -67,7 +67,7 @@ def upload(
         contents = in_file.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
     if time_tag:
-        plan_to_create.name += arrow.utcnow().isoformat()
+        plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     plan_id = client.create_activity_plan(model_id, plan_to_create)
     typer.echo(f"Created plan at: {client.ui_path()}/plans/{plan_id}")
 
