@@ -26,8 +26,8 @@ model_id = 0
 plan_json = "files/empty-2day-plan.json"
 dup_plan_name = "empty-2day-plan-v2.json"
 plan_id = 0
-args1 = "files/args1.json"
-args2 = "files/args2.json"
+args_init = "files/args1.json"
+args_update = "files/args2.json"
 
 
 def test_model_upload():
@@ -62,7 +62,7 @@ def test_model_upload():
 def test_model_delete():
     result = runner.invoke(m_app, ["delete"], input=str(model_id) + "\n" + login_str)
     assert result.exit_code == 0
-    assert f"ID: {model_id} has been removed." in result.stdout
+    assert f"ID: {model_id} has been removed" in result.stdout
 
 
 def test_model_list():
@@ -151,7 +151,9 @@ def test_plan_simulate():
 
 def test_plan_create_config():
     result = runner.invoke(
-        p_app, ["create-config"], input=str(plan_id) + "\n" + args1 + "\n" + login_str
+        p_app,
+        ["create-config"],
+        input=str(plan_id) + "\n" + args_init + "\n" + login_str,
     )
     assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
@@ -161,7 +163,9 @@ def test_plan_create_config():
 
 def test_plan_update_config():
     result = runner.invoke(
-        p_app, ["update-config"], input=str(plan_id) + "\n" + args2 + "\n" + login_str
+        p_app,
+        ["update-config"],
+        input=str(plan_id) + "\n" + args_update + "\n" + login_str,
     )
     assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
