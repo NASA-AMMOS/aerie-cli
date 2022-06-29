@@ -15,6 +15,7 @@ from .api import ApiActivityPlanCreate
 from .api import ApiActivityPlanRead
 from .api import ApiActivityRead
 from .api import ApiAsSimulatedActivity
+from .api import ApiResourceSampleResults
 from .api import ApiSimulatedResourceSample
 from .api import ApiSimulationResults
 
@@ -184,7 +185,11 @@ class SimulationResults:
     resources: list[SimulatedResourceTimeline]
 
     @classmethod
-    def from_api_sim_results(cls, api_sim_results: ApiSimulationResults):
+    def from_api_results(
+        cls,
+        api_sim_results: ApiSimulationResults,
+        api_resource_timeline: ApiResourceSampleResults,
+    ):
         plan_start = api_sim_results.start
         return SimulationResults(
             start_time=plan_start,
@@ -196,6 +201,6 @@ class SimulationResults:
                 SimulatedResourceTimeline.from_api_sim_res_timeline(
                     name, api_timeline, plan_start
                 )
-                for name, api_timeline in api_sim_results.resources.items()
+                for name, api_timeline in api_resource_timeline.resourceSamples.items()
             ],
         )
