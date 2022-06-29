@@ -171,3 +171,18 @@ def test_plan_update_config():
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "foo: arg2" in result.stdout
     assert "num: 5" in result.stdout
+
+
+def test_plan_delete():
+    result = runner.invoke(p_app, ["delete"], input=str(plan_id) + "\n" + login_str)
+    assert result.exit_code == 0
+    assert f"ID: {plan_id} has been removed." in result.stdout
+
+
+def test_plan_clean():
+    result = runner.invoke(p_app, ["clean"], input=login_str)
+    assert result.exit_code == 0
+    assert (
+        f"All activity plans at {client.ui_plans_path()} have been deleted"
+        in result.stdout
+    )
