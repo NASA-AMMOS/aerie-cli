@@ -67,7 +67,7 @@ def upload(
         contents = in_file.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
     if time_tag:
-        plan_to_create.name += arrow.utcnow().isoformat()
+        plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     plan_id = client.create_activity_plan(model_id, plan_to_create)
     typer.echo(f"Created plan at: {client.ui_path()}/plans/{plan_id}")
 
@@ -247,6 +247,54 @@ def update_config(
     print("Configuration Arguments for Plan ID:", plan_id)
     for arg in resp:
         print("(*) " + arg + ":", resp[arg])
+
+
+@app.command()
+def delete(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
+):
+    """Delete an activity plan by its id."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    plan_name = client.delete_plan(plan_id)
+    typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
+
+
+@app.command()
+def clean(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+):
+    """Delete all activity plans."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    resp = client.get_all_activity_plans()
+    for activity_plan in resp:
+        client.delete_plan(activity_plan.id)
+
+    typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
 
 
 if __name__ == "__main__":
