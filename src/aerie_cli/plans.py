@@ -8,6 +8,8 @@ from rich.table import Table
 
 from .client import auth_helper
 from .schemas.client import ActivityPlanCreate
+from .schemas.client import SimulationResults
+from aerie_cli.schemas.api import ApiResourceSampleResults
 
 app = typer.Typer()
 
@@ -130,7 +132,15 @@ def simulate(
     )
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
-    results = client.simulate_plan(id, poll_period)
+    api_sim_results = client.simulate_plan(id, poll_period)
+
+    if output:
+        api_resource_timeline = client.get_resource_timelines(id)
+    else:
+        api_resource_timeline = ApiResourceSampleResults(resourceSamples={})
+
+    results = SimulationResults.from_api_results(api_sim_results, api_resource_timeline)
+
     typer.echo(f"Simulated activity plan at: {client.ui_path()}/plans/{id}")
     if output:
         typer.echo("Writing simulation results...")

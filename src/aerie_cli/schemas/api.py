@@ -112,11 +112,17 @@ class ApiSimulatedResourceSample:
 class ApiSimulationResults:
     start: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
     activities: dict[str, ApiAsSimulatedActivity]
+    unfinishedActivities: Any
     # TODO: implement constraints
     constraints: Any
-    resources: dict[str, list[ApiSimulatedResourceSample]]
     # TODO: implement events
     events: Any
+
+
+@dataclass_json
+@dataclass
+class ApiResourceSampleResults:
+    resourceSamples: dict[str, list[ApiSimulatedResourceSample]]
 
 
 @dataclass_json
