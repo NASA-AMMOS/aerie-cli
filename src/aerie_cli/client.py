@@ -10,6 +10,7 @@ import typer
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
+from .schemas.api import ApiResourceSampleResults
 from .schemas.api import ApiSimulationResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
@@ -239,7 +240,21 @@ class AerieClient:
             sys.exit(f"Simulation failed. Response:\n{resp}")
 
         api_sim_results = ApiSimulationResults.from_dict(resp["results"])
-        return SimulationResults.from_api_sim_results(api_sim_results)
+        return api_sim_results
+
+    def get_resource_timelines(self, plan_id: int):
+
+        resource_sample_query = """
+        query ResourceSamples($plan_id: Int!) {
+            resourceSamples(planId: $plan_id){
+                resourceSamples
+            }
+        }
+        """
+        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
+
+        api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
+        return api_resource_timeline
 
     def delete_plan(self, plan_id: int) -> str:
 

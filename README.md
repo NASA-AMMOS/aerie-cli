@@ -30,19 +30,17 @@ TBD...
 
 ### Installation with `pip`
 
-Assuming you have Python installed on your system, you can install `aerie-cli` with the following command:
+First, ensure that **`Python 3.9`** is installed on your local machine as the CLI will is not compatible with older versions. Once `Python 3.9` has been installed, you can install `aerie-cli` with the following command:
 
 ```sh
-python -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
+python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
 ```
 
 If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
 
 ```sh
-$ python -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git@branchname
+$ python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git@branchname
 ```
-
-Note: if `python` points to a system-provided Python 2 installation, you should instead use `python3`.
 
 You can confirm that `aerie-cli` has been installed on your system:
 
