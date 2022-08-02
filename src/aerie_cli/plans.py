@@ -8,8 +8,9 @@ from rich.table import Table
 
 from .client import auth_helper
 from .schemas.client import ActivityPlanCreate
-from .schemas.client import SimulationResults
-from aerie_cli.schemas.api import ApiResourceSampleResults
+
+# from aerie_cli.schemas.api import ApiResourceSampleResults
+# from .schemas.client import SimulationResults
 
 app = typer.Typer()
 
@@ -132,21 +133,24 @@ def simulate(
     )
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
-    api_sim_results = client.simulate_plan(id, poll_period)
+    sim_dataset_id = client.simulate_plan(id, poll_period)
 
-    if output:
-        api_resource_timeline = client.get_resource_timelines(id)
-    else:
-        api_resource_timeline = ApiResourceSampleResults(resourceSamples={})
+    # if output:
+    #     api_resource_timeline = client.get_resource_timelines(id)
+    # else:
+    #     api_resource_timeline = ApiResourceSampleResults(resourceSamples={})
 
-    results = SimulationResults.from_api_results(api_sim_results, api_resource_timeline)
+    # TODO: Fix simulation results to include activity information
+    # results = SimulationResults.
+    # from_api_results(sim_dataset_id, api_resource_timeline)
 
     typer.echo(f"Simulated activity plan at: {client.ui_path()}/plans/{id}")
-    if output:
-        typer.echo("Writing simulation results...")
-        with open(output, "w") as out_file:
-            out_file.write(results.to_json(indent=2))
-        typer.echo(f"Wrote results to {output}")
+    typer.echo(f"SimDatasetId: {sim_dataset_id}")
+    # if output:
+    #     typer.echo("Writing simulation results...")
+    #     with open(output, "w") as out_file:
+    #         out_file.write(results.to_json(indent=2))
+    #     typer.echo(f"Wrote results to {output}")
 
 
 @app.command()
