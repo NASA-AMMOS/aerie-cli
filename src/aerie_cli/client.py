@@ -11,11 +11,12 @@ from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
-from .schemas.api import ApiSimulationResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
+
+# from .schemas.api import ApiSimulationResults
 
 
 @dataclass
@@ -221,7 +222,7 @@ class AerieClient:
             simulate(planId: $plan_id) {
                 status
                 reason
-                results
+                simulationDatasetId
             }
         }
         """
@@ -239,8 +240,8 @@ class AerieClient:
         if resp["status"] == "failed":
             sys.exit(f"Simulation failed. Response:\n{resp}")
 
-        api_sim_results = ApiSimulationResults.from_dict(resp["results"])
-        return api_sim_results
+        sim_dataset_id = resp["simulationDatasetId"]
+        return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
 
