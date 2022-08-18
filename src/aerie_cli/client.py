@@ -310,6 +310,30 @@ class AerieClient:
 
         return resp["id"]
 
+    def upload_sim_template(self, model_id: int, args: str, name: str):
+        sim_template_mutation = """
+            mutation uploadSimTemplate($model_id: Int!,
+                                    $args: jsonb!,
+                                    $name: String!) {
+                insert_simulation_template(objects:
+                    {
+                    model_id: $model_id,
+                    description: $name,
+                    arguments: $args
+                    }) {
+                    returning {
+                    id
+                    }
+                }
+            }"""
+
+        resp = self.__gql_query(
+            sim_template_mutation, model_id=model_id, args=args, name=name
+        )
+
+        # Return simulation id
+        return resp["returning"][0]["id"]
+
     def delete_mission_model(self, model_id: int) -> str:
 
         delete_model_mutation = """

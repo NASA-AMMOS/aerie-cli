@@ -42,7 +42,9 @@ def test_model_upload():
         + "\n"
         + version
         + "\n"
-        + login_str,
+        + login_str
+        + "\n"
+        + args_init,
     )
 
     # Get model_id of uploaded mission model
@@ -52,6 +54,7 @@ def test_model_upload():
     model_id = latest_model.id
 
     assert result.exit_code == 0
+    assert f"Attached simulation template to model {model_id}" in result.stdout
     assert (
         f"Created new mission model: {model_name} at \
             {client.ui_path()}/models with Model ID: {model_id}"
