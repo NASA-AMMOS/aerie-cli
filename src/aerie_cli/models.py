@@ -1,3 +1,5 @@
+import json
+
 import arrow
 import typer
 from rich.console import Console
@@ -36,6 +38,12 @@ def upload(
         show_default=True,
         prompt=True,
     ),
+    sim_template: str = typer.Option(
+        "",
+        help="Simulation template file",
+        show_default=True,
+        prompt=True,
+    ),
 ):
     """Upload a single mission model from a .jar file."""
     # Determine Aerie UI model version
@@ -54,6 +62,20 @@ def upload(
         mission=mission,
         version=version,
     )
+
+    if sim_template != "":
+        # Get file name
+        name = sim_template.split(".")[0]
+
+        # Read args as json
+        with open(sim_template) as in_file:
+            contents = in_file.read()
+
+        json_obj = json.loads(contents)
+
+        # Attach sim template to model
+        client.upload_sim_template(model_id=model_id, args=json_obj, name=name)
+        print(f"Attached simulation template to model {model_id}.")
 
     typer.echo(
         f"Created new mission model: {model_name} at \
