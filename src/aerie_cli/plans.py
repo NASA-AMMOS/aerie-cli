@@ -134,6 +134,7 @@ def simulate(
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     sim_dataset_id = client.simulate_plan(id, poll_period)
+    
 
     # if output:
     #     api_resource_timeline = client.get_resource_timelines(id)
@@ -144,13 +145,15 @@ def simulate(
     # results = SimulationResults.
     # from_api_results(sim_dataset_id, api_resource_timeline)
 
+    res = client.get_simulation_results(id)
     typer.echo(f"Simulated activity plan at: {client.ui_path()}/plans/{id}")
     typer.echo(f"SimDatasetId: {sim_dataset_id}")
-    # if output:
-    #     typer.echo("Writing simulation results...")
-    #     with open(output, "w") as out_file:
-    #         out_file.write(results.to_json(indent=2))
-    #     typer.echo(f"Wrote results to {output}")
+            
+    if output:
+        typer.echo("Writing simulation results...")
+        with open(output, "w") as out_file:
+            out_file.write(json.dumps(res, indent=2))
+        typer.echo(f"Wrote results to {output}")
 
 
 @app.command()
