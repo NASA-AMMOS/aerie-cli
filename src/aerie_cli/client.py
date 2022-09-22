@@ -103,28 +103,6 @@ class AerieClient:
     def ui_plans_path(self) -> str:
         return self.cls_ui_plans_path(self.server_url)
         
-    def query_gql_api(self, query:str, variables:dict=None) -> dict:
-        """Query the GraphQL API."""
-
-        if variables is None:
-            variables = {}
-
-        resp = requests.post(
-            url=self.server_url + GQL_SUFFIX,
-            json={"query": query, "variables": variables}
-            #,
-            #headers=self.header
-        )
-        respDict = resp.json()
-        if not resp.ok or 'errors' in respDict:
-            print("ERROR: The API call was unsuccessful!\n")
-            if "password" not in variables:
-                print(f"Variables: {variables}\n")
-            sys.exit(f"Query: {query}\n Response: {resp.text}")
-
-        return respDict['data']
-    # End function query_gql_api
-
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
         query get_plans ($plan_id: Int!) {
@@ -237,7 +215,7 @@ class AerieClient:
         )
         return resp["id"]
 
-    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> SimulationResults:
+    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
         query Simulate($plan_id: Int!) {
@@ -280,20 +258,11 @@ class AerieClient:
         return api_resource_timeline
         
         
-    def get_simulation_results(self, plan_id: int):
-        SIMULATE_QUERY = """
-          query Simulate($planId: Int!) {
-            simulate(planId: $planId) {
-              reason
-              status
-              simulationDatasetId
-            }
-          }
-        """
+    def get_simulation_results(self, plan_id: int, sim_dataset_id: int) -> str:
 
-        SIMULATION_QUERY = """
-          query Simulation($planId: Int!, $simulationDatasetId: Int!) {
-            simulated_activity(where: {simulation_dataset_id: {_eq: $simulationDatasetId}}) {
+        sim_result_query = """
+          query Simulation($plan_id: Int!, $sim_dataset_id: Int!) {
+            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
               activity_type_name
               attributes
               directive_id
@@ -304,43 +273,20 @@ class AerieClient:
               start_time
               simulation_dataset_id
             }
-            resourceSamples(planId: $planId) {
+            resourceSamples(planId: $plan_id) {
               resourceSamples
             }
-            constraintViolations(planId: $planId) {
+            constraintViolations(planId: $plan_id) {
               constraintViolations
             }
-            plan_by_pk(id: $planId) {
+            plan_by_pk(id: $plan_id) {
               name
               start_time
             }
           }
         """
-        def execute_sim_query():
-            resp = self.query_gql_api(
-                SIMULATE_QUERY,
-                variables={"planId":plan_id},
-            )
-            return resp['simulate']
-        sim_response = execute_sim_query()
-        nonterminal_status = [ "pending", "incomplete" ]
-        while sim_response["status"] in nonterminal_status:
-            time.sleep(5)
-            sim_response = execute_sim_query()
-
-        if sim_response["status"] == "failed":
-            print(f"Simulation failed. Response:\n{sim_response}")
-            exit()
-
-        simulationDatasetId = int(sim_response['simulationDatasetId'])
-        sim_response = self.query_gql_api(
-            SIMULATION_QUERY,
-            variables={
-                "planId": plan_id,
-                "simulationDatasetId": simulationDatasetId
-            },
-        )
-        return sim_response
+        resp = self.__gql_query(sim_result_query, plan_id=plan_id, sim_dataset_id=sim_dataset_id)
+        return resp
 
     def delete_plan(self, plan_id: int) -> str:
 
