@@ -18,6 +18,7 @@ from .schemas.client import SimulationResults
 
 # from .schemas.api import ApiSimulationResults
 
+
 @dataclass
 class Auth:
     username: str
@@ -537,10 +538,10 @@ def check_response_status(
 def auth_helper(sso: str, username: str, password: str, server_url: str):
     """Aerie client authorization; \
     defaults to using sso token if sso & user/pass are provided."""
-    if (server_url == "http://127.0.0.1" or server_url == "http://localhost" or server_url == "localhost" or server_url == "local"):
-        if "http" not in server_url:
-            server_url = "http://"+server_url
-        client = AerieClient.from_local(server_url=server_url)
+    
+    LOCAL_URLS = ["local", "localhost", "http://localhost", "http://127.0.0.1"]
+    if (server_url in LOCAL_URLS):
+        client = AerieClient.from_local(server_url="http://localhost")
     # Assuming user has not provided valid credentials during command call
     elif (sso == "") and (username == "") and (password == ""):
         method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
