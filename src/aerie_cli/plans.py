@@ -140,9 +140,10 @@ def simulate(
     #typer.echo(f"SimDatasetId: {sim_dataset_id}")
             
     if output:
-        typer.echo("Writing simulation results to {output}")
         with open(output, "w") as out_file:
             out_file.write(json.dumps(res, indent=2))
+        typer.echo(f"Wrote simulation results to {output}")
+        
 
 
 @app.command()

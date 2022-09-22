@@ -17,7 +17,6 @@ from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
 
 # from .schemas.api import ApiSimulationResults
-GQL_SUFFIX = ":8080/v1/graphql"
 
 @dataclass
 class Auth:
@@ -32,6 +31,10 @@ class AerieClient:
     def __init__(self, server_url: str, sso=""):
         self.server_url = server_url
         self.sso_token = sso
+
+    @classmethod
+    def from_local(cls, server_url: str):
+        return cls(server_url=server_url)
 
     @classmethod
     def from_sso(cls, server_url: str, sso: str):
@@ -534,8 +537,12 @@ def check_response_status(
 def auth_helper(sso: str, username: str, password: str, server_url: str):
     """Aerie client authorization; \
     defaults to using sso token if sso & user/pass are provided."""
+    if (server_url == "http://127.0.0.1" or server_url == "http://localhost" or server_url == "localhost" or server_url == "local"):
+        if "http" not in server_url:
+            server_url = "http://"+server_url
+        client = AerieClient.from_local(server_url=server_url)
     # Assuming user has not provided valid credentials during command call
-    if (sso == "") and (username == "") and (password == ""):
+    elif (sso == "") and (username == "") and (password == ""):
         method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
         if method == 1:
             sso = typer.prompt("SSO Token")
