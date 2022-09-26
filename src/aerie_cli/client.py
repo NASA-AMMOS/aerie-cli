@@ -261,6 +261,7 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
         return api_resource_timeline
         
+
         
     def get_simulation_results(self, plan_id: int, sim_dataset_id: int) -> str:
 
@@ -290,6 +291,26 @@ class AerieClient:
           }
         """
         resp = self.__gql_query(sim_result_query, plan_id=plan_id, sim_dataset_id=sim_dataset_id)
+        return resp
+        
+    def get_simulation_results_by_id(self, sim_dataset_id: int) -> str:
+        """Grab the simulation results by Simulation Dataset ID."""
+        sim_result_query = """
+          query Simulation($sim_dataset_id: Int!) {
+            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
+              activity_type_name
+              attributes
+              directive_id
+              duration
+              end_time
+              id
+              start_offset
+              start_time
+              simulation_dataset_id
+            }
+          }
+        """
+        resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
 
     def delete_plan(self, plan_id: int) -> str:
