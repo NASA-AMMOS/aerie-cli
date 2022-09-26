@@ -135,9 +135,6 @@ def simulate(
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     sim_dataset_id = client.simulate_plan(id, poll_period)
     res = client.get_simulation_results(id, sim_dataset_id)
-    
-    #typer.echo(f"Simulated activity plan at: {client.ui_path()}/plans/{id}")
-    #typer.echo(f"SimDatasetId: {sim_dataset_id}")
             
     if output:
         with open(output, "w") as out_file:
