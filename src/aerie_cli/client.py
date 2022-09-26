@@ -34,6 +34,10 @@ class AerieClient:
         self.sso_token = sso
 
     @classmethod
+    def from_local(cls, server_url: str):
+        return cls(server_url=server_url)
+
+    @classmethod
     def from_sso(cls, server_url: str, sso: str):
         return cls(server_url=server_url, sso=sso)
 
@@ -102,7 +106,7 @@ class AerieClient:
 
     def ui_plans_path(self) -> str:
         return self.cls_ui_plans_path(self.server_url)
-
+        
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
         query get_plans ($plan_id: Int!) {
@@ -215,7 +219,7 @@ class AerieClient:
         )
         return resp["id"]
 
-    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> SimulationResults:
+    def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
         query Simulate($plan_id: Int!) {
@@ -256,6 +260,58 @@ class AerieClient:
 
         api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
         return api_resource_timeline
+        
+
+        
+    def get_simulation_results(self, plan_id: int, sim_dataset_id: int) -> str:
+
+        sim_result_query = """
+          query Simulation($plan_id: Int!, $sim_dataset_id: Int!) {
+            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
+              activity_type_name
+              attributes
+              directive_id
+              duration
+              end_time
+              id
+              start_offset
+              start_time
+              simulation_dataset_id
+            }
+            resourceSamples(planId: $plan_id) {
+              resourceSamples
+            }
+            constraintViolations(planId: $plan_id) {
+              constraintViolations
+            }
+            plan_by_pk(id: $plan_id) {
+              name
+              start_time
+            }
+          }
+        """
+        resp = self.__gql_query(sim_result_query, plan_id=plan_id, sim_dataset_id=sim_dataset_id)
+        return resp
+        
+    def get_simulation_results_by_id(self, sim_dataset_id: int) -> str:
+        """Grab the simulation results by Simulation Dataset ID."""
+        sim_result_query = """
+          query Simulation($sim_dataset_id: Int!) {
+            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
+              activity_type_name
+              attributes
+              directive_id
+              duration
+              end_time
+              id
+              start_offset
+              start_time
+              simulation_dataset_id
+            }
+          }
+        """
+        resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
+        return resp
 
     def delete_plan(self, plan_id: int) -> str:
 
@@ -503,8 +559,12 @@ def check_response_status(
 def auth_helper(sso: str, username: str, password: str, server_url: str):
     """Aerie client authorization; \
     defaults to using sso token if sso & user/pass are provided."""
+    
+    LOCAL_URLS = ["local", "localhost", "http://localhost", "http://127.0.0.1"]
+    if (server_url in LOCAL_URLS):
+        client = AerieClient.from_local(server_url="http://localhost")
     # Assuming user has not provided valid credentials during command call
-    if (sso == "") and (username == "") and (password == ""):
+    elif (sso == "") and (username == "") and (password == ""):
         method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
         if method == 1:
             sso = typer.prompt("SSO Token")
