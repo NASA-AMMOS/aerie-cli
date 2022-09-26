@@ -40,6 +40,31 @@ def download(
         out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
 
+@app.command()
+def download_simulation(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    id: int = typer.Option(..., help="Simulation ID", prompt=True),
+    output: str = typer.Option(..., help="The output file destination", prompt=True),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+):
+    """Download a simulation result and save it locally as a JSON file."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    sim = client.get_simulation_results_by_id(id)
+    with open(output, "w") as out_file:
+        out_file.write(json.dumps(sim, indent=2))
+    typer.echo(f"Wrote activity plan to {output}")
+
 
 @app.command()
 def upload(
