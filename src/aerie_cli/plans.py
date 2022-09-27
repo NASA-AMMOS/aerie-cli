@@ -61,10 +61,15 @@ def download_simulation(
         sso=sso, username=username, password=password, server_url=server_url
     )
 
-    sim = client.get_simulation_results(plan_id, sim_id)
+    # get resource timelines and sim results from GraphQL
+    resources = client.get_resource_samples(plan_id)
+    sim = client.get_simulation_results(sim_id)
+    # add sim results and resources to the same dictionary
+    resources['simulationResults'] = sim
+    # write to file
     with open(output, "w") as out_file:
-        out_file.write(json.dumps(sim, indent=2))
-    typer.echo(f"Wrote activity plan to {output}")
+        out_file.write(json.dumps(resources, indent=2))
+        typer.echo(f"Wrote activity plan to {output}")
 
 
 @app.command()
