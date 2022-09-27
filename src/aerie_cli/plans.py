@@ -49,7 +49,8 @@ def download_simulation(
         help="JPL password",
         hide_input=True,
     ),
-    id: int = typer.Option(..., help="Simulation ID", prompt=True),
+    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
+    sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
@@ -60,7 +61,7 @@ def download_simulation(
         sso=sso, username=username, password=password, server_url=server_url
     )
 
-    sim = client.get_simulation_results_by_id(id)
+    sim = client.get_simulation_results(plan_id, sim_id)
     with open(output, "w") as out_file:
         out_file.write(json.dumps(sim, indent=2))
     typer.echo(f"Wrote activity plan to {output}")
