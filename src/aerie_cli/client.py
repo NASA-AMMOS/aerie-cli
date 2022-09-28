@@ -261,40 +261,20 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
         return api_resource_timeline
         
+    def get_resource_samples(self, plan_id: int):
 
-        
-    def get_simulation_results(self, plan_id: int, sim_dataset_id: int) -> str:
-
-        sim_result_query = """
-          query Simulation($plan_id: Int!, $sim_dataset_id: Int!) {
-            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
-              activity_type_name
-              attributes
-              directive_id
-              duration
-              end_time
-              id
-              start_offset
-              start_time
-              simulation_dataset_id
+        resource_sample_query = """
+        query ResourceSamples($plan_id: Int!) {
+            resourceSamples(planId: $plan_id){
+                resourceSamples
             }
-            resourceSamples(planId: $plan_id) {
-              resourceSamples
-            }
-            constraintViolations(planId: $plan_id) {
-              constraintViolations
-            }
-            plan_by_pk(id: $plan_id) {
-              name
-              start_time
-            }
-          }
+        }
         """
-        resp = self.__gql_query(sim_result_query, plan_id=plan_id, sim_dataset_id=sim_dataset_id)
+        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
         return resp
         
-    def get_simulation_results_by_id(self, sim_dataset_id: int) -> str:
-        """Grab the simulation results by Simulation Dataset ID."""
+    def get_simulation_results(self, sim_dataset_id: int) -> str:
+
         sim_result_query = """
           query Simulation($sim_dataset_id: Int!) {
             simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
@@ -312,6 +292,7 @@ class AerieClient:
         """
         resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
+        
 
     def delete_plan(self, plan_id: int) -> str:
 
