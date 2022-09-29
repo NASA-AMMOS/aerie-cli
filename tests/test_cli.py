@@ -23,7 +23,7 @@ login_str = "1\nsso\n"
 model_id = 0
 
 # Plan Variables
-plan_json = "files/empty-2day-plan.json"
+plan_json = "files/modeling-demo.json"
 dup_plan_name = "empty-2day-plan-v2.json"
 plan_id = 0
 args_init = "files/args1.json"
@@ -42,17 +42,15 @@ def test_model_upload():
         + "\n"
         + version
         + "\n"
-        + login_str
-        + "\n"
-        + args_init,
+        + plan_json,
     )
+    
 
     # Get model_id of uploaded mission model
     resp = client.get_mission_models()
     latest_model = resp[-1]
     global model_id
     model_id = latest_model.id
-
     assert result.exit_code == 0
     assert f"Attached simulation template to model {model_id}" in result.stdout
     assert (

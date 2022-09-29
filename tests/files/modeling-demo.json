@@ -1,0 +1,36 @@
+{
+  "startTimestamp": "2030-001T00:00:00",
+  "endTimestamp": "2030-001T02:00:00",
+  "activities": [
+    {
+      "startTimestamp": "2030-001T00:10:00",
+      "type": "TurnInstrumentAOn",
+      "parameters": {}
+    },
+    {
+      "startTimestamp": "2030-001T00:15:00",
+      "type": "TurnInstrumentBOn",
+      "parameters": {}
+    },
+    {
+      "startTimestamp": "2030-001T00:25:00",
+      "type": "TurnInstrumentAOff",
+      "parameters": {}
+    },
+    {
+      "startTimestamp": "2030-001T00:30:00",
+      "type": "SimpleDownlinkData",
+      "parameters": {}
+    },
+    {
+      "startTimestamp": "2030-001T00:40:00",
+      "type": "TurnInstrumentBOff",
+      "parameters": {}
+    },
+    {
+      "startTimestamp": "2030-001T01:40:00",
+      "type": "SimpleDownlinkData",
+      "parameters": {}
+    }
+  ]
+}
