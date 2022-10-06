@@ -4,25 +4,43 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
 
 ##### Table of Contents
 
-- [Overview](#overview)
-- [Installation](#installation)
-  - [Installation with `pip`](#installation-with-pip)
-  - [Installation with `poetry`](#installation-with-poetry)
-- [Usage](#usage)
-  - [CLI Usage](#cli-usage)
-  - [`AerieClient` Usage](#aerieclient-usage)
-- [Contributing](#contributing)
-  - [Contributor Installation](#contributor-installation)
-  - [Dependency Management](#dependency-management)
-  - [Testing](#testing)
-  - [Pre-Commit Hook](#pre-commit-hook)
-  - [IDE Settings](#ide-settings)
+- [Aerie CLI](#aerie-cli) - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Installation](#installation)
+    - [Installation with `pip`](#installation-with-pip)
+    - [Updating with `pip`](#updating-with-pip)
+    - [Installation with `poetry`](#installation-with-poetry)
+  - [Usage](#usage)
+    - [CLI Usage](#cli-usage)
+      - [Interactive](#interactive)
+      - [Non-Interactive](#non-interactive)
+      - [Help](#help)
+      - [Specific Sub-Commands: Plans](#specific-sub-commands-plans)
+        - [Download](#download)
+        - [Upload](#upload)
+        - [Duplication](#duplication)
+        - [Simulation](#simulation)
+      - [Specific Sub-Commands: Models](#specific-sub-commands-models)
+        - [Upload](#upload-1)
+        - [List](#list)
+        - [Prune](#prune)
+        - [Clean](#clean)
+    - [`AerieClient` Usage](#aerieclient-usage)
+  - [Contributing](#contributing)
+    - [Contributor Installation](#contributor-installation)
+    - [Deployment](#deployment)
+    - [Dependency Management](#dependency-management)
+    - [Testing](#testing)
+      - [Unit Tests](#unit-tests)
+    - [Pre-Commit Hook](#pre-commit-hook)
+    - [IDE Settings](#ide-settings)
+      - [VS Code](#vs-code)
 
 ---
 
 ## Overview
 
-TBD...
+Aerie CLI provides a command-line interface and user-extendable Python backend for interacting with an instance of Aerie.
 
 ---
 
@@ -54,8 +72,8 @@ You can confirm that `aerie-cli` has been installed on your system:
 In order to update your currently installed version of `aerie-cli`, first uninstall your local package and then reinstall from GitHub.
 
 ```sh
-$ python3 -m pip uninstall aerie_cli
-> Successfully uninstalled aerie-cli-<version>
+$ python3 -m pip uninstall eurc_gds_aerie_cli
+> Successfully uninstalled eurc-gds-aerie-cli-<version>
 ```
 
 ### Installation with `poetry`
@@ -275,6 +293,52 @@ Then, you will need to run the following commands:
 
 1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
 2. `poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.
+
+### Deployment
+
+To deploy a new version of aerie-cli:
+
+- Verify the version number in `pyproject.toml` is incremented from the current version in Artifactory
+- Clear out any previous build artifacts, if present, from the root of the repository:
+  ```sh
+  rm -rf dist/
+  ```
+- Build the project using Poetry:
+  ```sh
+  poetry build
+  ```
+
+To upload to Artifactory, you may either:
+
+1. Follow the instructions in [this Wiki](https://wiki.jpl.nasa.gov/display/jeowiki/GDS+TRR+Subsystem+Deliveries#GDSTRRSubsystemDeliveries-HowtouploadyourPyPIpackagetoArtifactory) to manually upload the tar file generated in the `dist/` directory
+
+   > _Note: The instructions here specify the `pypi-stage-local` repository, however `aerie-cli` should be deployed to `pypi-develop-local`._
+
+2. Upload via the command line
+
+To upload via the command line:
+
+- Ensure you have Artifactory credentials stored in your `.pypirc` file (one-time setup)
+
+  > _Note: Consult the [Official Documentation](https://packaging.python.org/en/latest/specifications/pypirc/) for the `.pypirc` file as necessary_
+
+  - Log in to [JPL Artifactory](https://artifactory.jpl.nasa.gov/)
+  - Navigate to the "Artifacts" page in the left panel of the page
+  - Find and select the `pypi-develop-local` repository
+  - Click "Set Me Up" in the upper-right corner of the page
+  - Enter your password
+  - Follow instructions under the "Deploy" tab to store the repository with your API key in your `.pypirc` file
+
+- Use `twine` to upload to Artifactory
+  - If not installed:
+    ```sh
+    python3 -m pip install twine
+    ```
+  - Upload:
+    ```sh
+    python3 -m twine upload -r local dist/*
+    ```
+    > _Note: "local" is the name given to the repository in your `.pypirc` file by the default text copied from Artifactory. You may change this, e.g., to manage multiple repositories._
 
 ### Dependency Management
 
