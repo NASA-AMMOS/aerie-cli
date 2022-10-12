@@ -111,7 +111,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             end_time=plan_start + api_plan_read.duration,
             activities=[
                 ActivityRead.from_api_read(api_activity, plan_start)
-                for api_activity in api_plan_read.activities
+                for api_activity in api_plan_read.activity_directives
             ],
         )
 

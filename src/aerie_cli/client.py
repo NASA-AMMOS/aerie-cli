@@ -129,7 +129,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activities {
+                activity_directives {
                     id
                     plan_id
                     type
@@ -155,7 +155,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activities {
+                activity_directives {
                     id
                     plan_id
                     type
@@ -217,8 +217,8 @@ class AerieClient:
     ) -> int:
         api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
         insert_activity_mutation = """
-        mutation CreateActivity($activity: activity_insert_input!) {
-            createActivity: insert_activity_one(object: $activity) {
+        mutation CreateActivity($activity: activity_directive_insert_input!) {
+            createActivity: insert_activity_directive_one(object: $activity) {
                 id
             }
         }
