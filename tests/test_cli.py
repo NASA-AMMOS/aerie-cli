@@ -1,3 +1,10 @@
+# in case src_path is not from aeri-cli src and from site-packages
+import os
+import sys
+
+src_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../src")
+sys.path.insert(0, src_path)
+
 from typer.testing import CliRunner
 
 from aerie_cli.client import auth_helper
@@ -34,7 +41,7 @@ def test_model_upload():
     result = runner.invoke(
         m_app,
         ["upload", "--time-tag-version"],
-        input=model_jar
+        input=model_jar 
         + "\n"
         + model_name
         + "\n"
@@ -42,9 +49,10 @@ def test_model_upload():
         + "\n"
         + version
         + "\n"
-        + login_str
+        + args_init
         + "\n"
-        + args_init,
+        + login_str,
+        catch_exceptions=False
     )
 
     # Get model_id of uploaded mission model
@@ -143,13 +151,10 @@ def test_plan_simulate():
         p_app,
         ["simulate", "--output", "temp.json"],
         input=str(plan_id) + "\n" + login_str,
+        catch_exceptions=False
     )
     assert result.exit_code == 0
-    assert (
-        f"Simulated activity plan at: {client.ui_path()}/plans/{plan_id}"
-        in result.stdout
-    )
-    # assert "Wrote results to temp.json" in result.stdout
+    assert f"Simulating activity plan at: {client.ui_path()}/plans/{plan_id}"in result.stdout
 
 
 def test_plan_create_config():
