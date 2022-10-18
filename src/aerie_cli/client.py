@@ -1,8 +1,11 @@
+import re
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-import re
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 import arrow
 import requests
@@ -502,6 +505,466 @@ class AerieClient:
         resp = self.__gql_query(get_config_query, sim_id=sim_id)
 
         return resp["arguments"]
+
+    def get_activity_interface(self, activity_name: str, model_id: int) -> str:
+        """Download Typescript interface for an activity from Aerie model
+
+        Args:
+            activity_name (str): Model name of the activity
+            model_id (int): ID of the model in Aerie
+
+        Returns:
+            str: Contents of the interface file
+        """
+
+        get_activity_interface_query = """
+        query GetActivityTypescript(
+            $activity_type_name: String!
+            $mission_model_id: Int!
+        ) {
+            getActivityTypeScript(
+                activityTypeName: $activity_type_name
+                missionModelId: $mission_model_id
+            ) {
+                typescriptFiles {
+                    content
+                }
+                reason
+                status
+            }
+        }
+        """
+        data = self.__gql_query(
+            get_activity_interface_query,
+            activity_type_name=activity_name,
+            mission_model_id=model_id,
+        )
+        return data["typescriptFiles"][0]["content"]
+
+    def create_expansion_logic(
+        self,
+        expansion_logic: str,
+        activity_name: str,
+        model_id: str,
+        command_dictionary_id: str,
+    ) -> int:
+        """Submit expansion logic to an Aerie instance
+
+        Args:
+            expansion_logic (str): String contents of the expansion file
+            activity_name (str): Name of the activity
+            model_id (str): Aerie model ID
+            command_dictionary_id (str): Aerie command dictionary ID
+
+        Returns:
+            int: Activity ID in Aerie
+        """
+
+        create_expansion_logic_query = """
+        mutation UploadExpansionLogic(
+            $activity_type_name: String!
+            $expansion_logic: String!
+            $command_dictionary_id: Int!
+            $mission_model_id: Int!
+        ) {
+            addCommandExpansionTypeScript(
+                activityTypeName: $activity_type_name
+                expansionLogic: $expansion_logic
+                authoringCommandDictionaryId: $command_dictionary_id
+                authoringMissionModelId: $mission_model_id
+            ) {
+                id
+            }
+        }
+        """
+        data = self.__gql_query(
+            create_expansion_logic_query,
+            activity_type_name=activity_name,
+            expansion_logic=expansion_logic,
+            mission_model_id=model_id,
+            command_dictionary_id=command_dictionary_id,
+        )
+
+        return data["id"]
+
+    def create_expansion_set(
+        self, command_dictionary_id: int, model_id: int, expansion_ids: List[int]
+    ) -> int:
+        """Create an Aerie expansion set given a list of activity IDs
+
+        Args:
+            command_dictionary_id (int): ID of Aerie command dictionary
+            model_id (int): ID of Aerie mission model
+            expansion_ids (List[int]): List of expansion IDs to include in the set
+
+        Returns:
+            int: Expansion set ID
+        """
+
+        create_expansion_set_query = """
+        mutation CreateExpansionSet(
+            $command_dictionary_id: Int!
+            $mission_model_id: Int!
+            $expansion_ids: [Int!]!
+        ) {
+            createExpansionSet(
+                commandDictionaryId: $command_dictionary_id
+                missionModelId: $mission_model_id
+                expansionIds: $expansion_ids
+            ) {
+                id
+            }
+        }
+        """
+        data = self.__gql_query(
+            create_expansion_set_query,
+            command_dictionary_id=command_dictionary_id,
+            mission_model_id=model_id,
+            expansion_ids=expansion_ids,
+        )
+        return data["id"]
+
+    def create_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
+        """Create a sequence on a given simulation dataset
+
+        Args:
+            seq_id (str): ID of the new sequence
+            simulation_dataset_id (int): ID of the parent simulation dataset
+        """
+
+        create_sequence_query = """
+        mutation CreateSequence(
+            $seq_id: String!
+            $simulation_dataset_id: Int!
+        ) {
+            insert_sequence_one(
+                object: {
+                    simulation_dataset_id: $simulation_dataset_id,
+                    seq_id: $seq_id
+                }
+            ) {
+                seq_id
+            }
+        }
+        """
+        self.__gql_query(
+            create_sequence_query,
+            simulation_dataset_id=simulation_dataset_id,
+            seq_id=seq_id,
+        )
+
+    def get_expansion_ids_by_activity_type(self, activity_type: str) -> List[int]:
+        """Get ID of all expansions for a given activity type
+
+        Args:
+            activity_type (str): Activity type name
+
+        Returns:
+            List[int]: Expansion IDs, in ascending order
+        """
+
+        get_expansion_ids_query = """
+        query GetExpansionLogic(
+            $activity_type: String!
+        ) {
+            expansion_rule(
+                where: {
+                    activity_type: {
+                        _eq: $activity_type
+                    }
+                }
+            ){
+                id
+            }
+            }
+        """
+        data = self.__gql_query(get_expansion_ids_query, activity_type=activity_type)
+        expansion_ids = [int(v["id"]) for v in data]
+        expansion_ids.sort()
+        return expansion_ids
+
+    def get_all_expansion_ids(self) -> Dict[str, List[int]]:
+        """Get IDs of all expansions, by activity type
+
+        Returns:
+            Dict[str, List[int]]: Lists of expansion IDs keyed by activity type name
+        """
+
+        get_all_expansion_ids_query = """
+        query GetExpansionLogic {
+        expansion_rule {
+            activity_type
+            id
+        }
+        }
+        """
+        data = self.__gql_query(get_all_expansion_ids_query)
+
+        expansion_ids = {}
+        for o in data:
+            activity_type = o["activity_type"]
+            id = int(o["id"])
+            if activity_type in expansion_ids.keys():
+                expansion_ids[activity_type].append(id)
+            else:
+                expansion_ids[activity_type] = [id]
+
+        return expansion_ids
+
+    def get_simulation_dataset_id_by_plan_id(self, plan_id: int) -> List[int]:
+        """Get the IDs of simulation datasets generated from a given plan
+
+        Args:
+            plan_id (int): ID of parent plan
+
+        Returns:
+            List[int]: IDs of simulation datasets
+        """
+
+        get_simulation_dataset_query = """
+        query GetSimulationDatasetId(
+            $plan_id: Int!
+        ) {
+            simulation(
+                where: {
+                    plan_id: {
+                        _eq: $plan_id
+                    }
+                }, order_by: {
+                    dataset: {
+                        id: desc
+                    }
+                }, limit: 1
+            ) {
+                dataset {
+                    id
+                }
+            }
+        }
+        """
+        data = self.__gql_query(get_simulation_dataset_query, plan_id=plan_id)
+        return data[0]["dataset"]["id"]
+
+    def expand_simulation(
+        self, simulation_dataset_id: int, expansion_set_id: int
+    ) -> Tuple[int, List[Dict]]:
+        """Expand simulated activities from a simulation dataset given an expansion set
+
+        Args:
+            simulation_dataset_id (int): Dataset of activities to be expanded
+            expansion_set_id (int): ID of expansion set to use
+
+        Returns:
+            int, List[Dict]: Expansion Run ID, Expanded activity instances
+        """
+
+        expand_simulation_query = """
+        mutation ExpandPlan(
+            $expansion_set_id: Int!
+            $simulation_dataset_id: Int!
+        ) {
+            expandAllActivities(
+                expansionSetId: $expansion_set_id,
+                simulationDatasetId: $simulation_dataset_id
+            ) {
+                id
+                expandedActivityInstances {
+                    commands {
+                        stem
+                    }
+                    errors {
+                        message
+                    }
+                }
+            }
+        }
+        """
+        data = self.__gql_query(
+            expand_simulation_query,
+            expansion_set_id=expansion_set_id,
+            simulation_dataset_id=simulation_dataset_id,
+        )
+
+        expansion_run_id = int(data["id"])
+        expanded_activity_instances = data["expandedActivityInstances"]
+
+        return expansion_run_id, expanded_activity_instances
+
+    def link_activities_to_sequence(
+        self, seq_id: str, simulation_dataset_id: int, simulated_activity_ids: List[int]
+    ) -> None:
+        """Link a set of simulated activities to a sequence for expansion
+
+        Take a set of simulated activities (not plan activities) of a given
+        simulation dataset and link them to an existing sequence so that
+        expansion outputs from the given activities are included in the
+        sequence.
+
+        Args:
+            seq_id (str): ID of the sequence to which activities will be linked
+            simulation_dataset_id (int): Dataset which contains the activities being linked
+            simulated_activity_ids (List[int]): IDs of simulated activities to be linked
+        """
+
+        for simulated_activity_id in simulated_activity_ids:
+
+            link_activity_to_sequence_query = """
+            mutation LinkSimulatedActivityToSequence(
+                $seq_id: String!
+                $simulation_dataset_id: Int!
+                $simulated_activity_id: Int!
+            ) {
+                insert_sequence_to_simulated_activity_one(
+                    object: {
+                        seq_id: $seq_id
+                        simulated_activity_id: $simulated_activity_id
+                        simulation_dataset_id: $simulation_dataset_id
+                    }
+                ) {
+                    seq_id
+                }
+            }
+            """
+            self.__gql_query(
+                link_activity_to_sequence_query,
+                seq_id=seq_id,
+                simulated_activity_id=simulated_activity_id,
+                simulation_dataset_id=simulation_dataset_id,
+            )
+
+    def get_simulated_activity_ids(self, simulation_dataset_id: int) -> List[int]:
+        """Get the IDs of all simulated activities in a simulation dataset
+
+        Args:
+            simulation_dataset_id (int): ID of Aerie simulation dataset
+
+        Returns:
+            List[int]: List of simulated activity IDs
+        """
+
+        get_simulated_activity_ids_query = """
+        query GetSimulatedActivities(
+            $simulation_dataset_id: Int!
+        ) {
+            simulated_activity(
+                where: {
+                    simulation_dataset_id: { _eq: $simulation_dataset_id }
+                }
+            ) {
+                id
+            }
+        }
+        """
+        data = self.__gql_query(
+            get_simulated_activity_ids_query,
+            simulation_dataset_id=simulation_dataset_id,
+        )
+        simulated_activity_ids = [int(o["id"]) for o in data]
+        return simulated_activity_ids
+
+    def get_expanded_sequence(self, seq_id: str, simulation_dataset_id: int) -> Dict:
+        """Get SeqJson from an expanded Aerie sequence
+
+        Args:
+            seq_id (str): ID of the sequence
+            simulation_dataset_id (int): ID of the simulation dataset being expanded
+
+        Returns:
+            Dict: SeqJson as Python Dictionary
+        """
+
+        get_expanded_sequence_query = """
+        query GetSequenceSeqJson(
+            $seq_id: String!
+            $simulation_dataset_id: Int!
+        ) {
+            getSequenceSeqJson(
+                seqId: $seq_id,
+                simulationDatasetId: $simulation_dataset_id
+            ) {
+                id
+                metadata
+                steps {
+                    type
+                    stem
+                    args
+                    time {
+                        tag
+                        type
+                    }
+                    metadata
+                }
+            }
+        }
+        """
+        seq_json = self.__gql_query(
+            get_expanded_sequence_query,
+            seq_id=seq_id,
+            simulation_dataset_id=simulation_dataset_id,
+        )
+        return seq_json
+
+    def get_all_expansion_run_commands(self, expansion_run_id: int) -> List:
+        """Get commands from all activity instances in an expansion run
+
+        Provides commands without linking to a particular sequence.
+
+        Args:
+            expansion_run_id (int): ID of Aerie expansion run
+
+        Returns:
+            List: SeqJson-formatted command steps
+        """
+
+        expansion_run_commands_query = """
+        query GetAllExpandedCommandsForExpansionRun(
+            $expansion_run_id: Int!
+        ) {
+            activity_instance_commands(
+                where: {
+                    expansion_run: {
+                        id: { _eq: $expansion_run_id }
+                    }
+                }
+            ) {
+                activity_instance_id
+                commands
+                errors
+            }
+        }
+        """
+        data = self.__gql_query(
+            expansion_run_commands_query, expansion_run_id=expansion_run_id
+        )
+
+        expansion_run_commands = []
+        for activity_instance in data:
+            expansion_run_commands.extend(activity_instance["commands"])
+
+        return expansion_run_commands
+
+    def get_all_activity_types(self, model_id: int) -> List[str]:
+        """Get a list of all activity types defined in a given mission model
+
+        Args:
+            model_id (int): ID of the Aerie mission model
+
+        Returns:
+            List[str]: List of activity type names
+        """
+
+        get_types_query = """
+        query GetActivityTypes(
+            $model_id: Int!
+        ) {
+            activity_type(where: { model_id: { _eq: $model_id } }) {
+                name
+            }
+        }
+        """
+        data = self.__gql_query(get_types_query, model_id=model_id)
+        activity_types = [o["name"] for o in data]
+        return activity_types
 
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
