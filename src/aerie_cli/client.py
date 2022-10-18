@@ -939,7 +939,8 @@ class AerieClient:
 
         expansion_run_commands = []
         for activity_instance in data:
-            expansion_run_commands.extend(activity_instance["commands"])
+            if activity_instance["commands"]:
+                expansion_run_commands.extend(activity_instance["commands"])
 
         return expansion_run_commands
 
