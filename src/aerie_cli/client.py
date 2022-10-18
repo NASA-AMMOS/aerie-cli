@@ -22,7 +22,10 @@ from .schemas.client import SimulationResults
 
 # from .schemas.api import ApiSimulationResults
 
-CLOUD_URL_REGEX = re.compile(r"^(?P<protocol>((http:\/\/)|(https:\/\/))?)(?P<app>aerie-ui)\.(?P<base>[^\/]+)")
+CLOUD_URL_REGEX = re.compile(
+    r"^(?P<protocol>((http:\/\/)|(https:\/\/))?)(?P<app>aerie-ui)\.(?P<base>[^\/]+)"
+)
+
 
 @dataclass
 class Auth:
@@ -54,7 +57,7 @@ class AerieClient:
 
     @classmethod
     def cls_graphql_path(cls, server_url: str) -> str:
-        m = re.match(CLOUD_URL_REGEX,server_url)
+        m = re.match(CLOUD_URL_REGEX, server_url)
         if m:
             return f"{m.group('protocol')}aerie-hasura.{m.group('base')}/v1/graphql"
         else:
@@ -62,7 +65,7 @@ class AerieClient:
 
     @classmethod
     def cls_gateway_path(cls, server_url: str) -> str:
-        m = re.match(CLOUD_URL_REGEX,server_url)
+        m = re.match(CLOUD_URL_REGEX, server_url)
         if m:
             return f"{m.group('protocol')}aerie-gateway.{m.group('base')}"
         else:
@@ -119,7 +122,7 @@ class AerieClient:
 
     def ui_plans_path(self) -> str:
         return self.cls_ui_plans_path(self.server_url)
-        
+
     def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
         query = """
         query get_plans ($plan_id: Int!) {
@@ -273,7 +276,7 @@ class AerieClient:
 
         api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
         return api_resource_timeline
-        
+
     def get_resource_samples(self, plan_id: int):
 
         resource_sample_query = """
@@ -285,7 +288,7 @@ class AerieClient:
         """
         resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
         return resp
-        
+
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
         sim_result_query = """
@@ -305,7 +308,6 @@ class AerieClient:
         """
         resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
-        
 
     def delete_plan(self, plan_id: int) -> str:
 
@@ -1014,9 +1016,9 @@ def check_response_status(
 def auth_helper(sso: str, username: str, password: str, server_url: str):
     """Aerie client authorization; \
     defaults to using sso token if sso & user/pass are provided."""
-    
+
     LOCAL_URLS = ["local", "localhost", "http://localhost", "http://127.0.0.1"]
-    if (server_url in LOCAL_URLS):
+    if server_url in LOCAL_URLS:
         client = AerieClient.from_local(server_url="http://localhost")
     # Assuming user has not provided valid credentials during command call
     elif (sso == "") and (username == "") and (password == ""):
