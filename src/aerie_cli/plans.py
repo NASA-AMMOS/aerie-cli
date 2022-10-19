@@ -4,6 +4,7 @@ from typing import Union
 
 import arrow
 import typer
+import pandas as pd
 from rich.console import Console
 from rich.table import Table
 
@@ -375,22 +376,26 @@ def download_simulation_csv(
     for time in time_dictionary:
         seconds = 0
         if time != 0:
-            seconds = time/1000
-        tempDict = {'Time (s)': seconds}
+            seconds = time/1000000
+        tempDict = {'Time': seconds}
         for activity in time_dictionary.get(time):
             tempDict[activity[0]] = activity[1]
         csv_dictionary.append(tempDict)
 
-    typer.echo(csv_dictionary)
+    # Sort the dictionary by time
+    sorted_by_time = sorted(csv_dictionary, key=lambda d: d['Time']) 
 
     # add sim results and resources to the same dictionary
     resources['simulationResults'] = sim
+
+    # use panda to fill in missing data 
+    df = pd.DataFrame(sorted_by_time)
+    # 'ffill' will fill each missing row with the value of the nearest one above it.
+    df.fillna(method='ffill', inplace=True)
     
     # write to file
     with open(output, "w") as out_file:
-        writer = csv.DictWriter(out_file, fieldnames=field_name)
-        writer.writeheader()
-        writer.writerows(csv_dictionary)
+        df.to_csv(out_file, index=False, header=field_name)
         typer.echo(f"Wrote activity plan to {output}")
         
 
