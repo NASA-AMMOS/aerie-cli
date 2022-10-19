@@ -881,30 +881,32 @@ class AerieClient:
             $simulation_dataset_id: Int!
         ) {
             getSequenceSeqJson(
-                seqId: $seq_id,
+                seqId: $seq_id, 
                 simulationDatasetId: $simulation_dataset_id
             ) {
-                id
-                metadata
-                steps {
-                    type
-                    stem
-                    args
-                    time {
-                        tag
+                seqJson {
+                    steps {
+                        args
+                        metadata
+                        stem
                         type
+                        time {
+                            tag
+                            type
+                        }
                     }
                     metadata
+                    id
                 }
             }
         }
         """
-        seq_json = self.__gql_query(
+        data = self.__gql_query(
             get_expanded_sequence_query,
             seq_id=seq_id,
             simulation_dataset_id=simulation_dataset_id,
         )
-        return seq_json
+        return data["seqJson"]
 
     def get_all_expansion_run_commands(self, expansion_run_id: int) -> List:
         """Get commands from all activity instances in an expansion run
