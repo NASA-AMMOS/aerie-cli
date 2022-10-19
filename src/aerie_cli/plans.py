@@ -1,4 +1,5 @@
 import json
+import csv
 from typing import Union
 
 import arrow
@@ -41,7 +42,7 @@ def download(
     typer.echo(f"Wrote activity plan to {output}")
 
 @app.command()
-def download_simulation(
+def download_simulation_json(
     sso: str = typer.Option("", help="SSO Token"),
     username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
@@ -331,6 +332,64 @@ def clean(
 
     typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
 
+@app.command()
+def download_simulation_csv(
+    sso: str = typer.Option("", help="SSO Token"),
+    username: str = typer.Option("", help="JPL username"),
+    password: str = typer.Option(
+        "",
+        help="JPL password",
+        hide_input=True,
+    ),
+    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
+    sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
+    output: str = typer.Option(..., help="The output file destination", prompt=True),
+    server_url: str = typer.Option(
+        "http://localhost", help="The URL of the Aerie deployment"
+    ),
+):
+    """Download a simulation result and save it locally as a CSV file."""
+    client = auth_helper(
+        sso=sso, username=username, password=password, server_url=server_url
+    )
+
+    # get resource timelines and sim results from GraphQL
+    resources : dict = client.get_resource_samples(plan_id)
+    sim = client.get_simulation_results(sim_id)
+
+    # the key is the time and the value is a list of tuples: (activity, state)
+    time_dictionary = {}
+
+    # this stores the header names for the CSV
+    field_name = ["Time"]
+
+    for activity in resources.get('resourceSamples'):
+        list = resources.get('resourceSamples').get(activity)
+        field_name.append(activity)
+        for i in list:
+            time_dictionary.setdefault(i.get('x'), []).append((activity, i.get('y')))
+    
+    # a list of dictionaries that will be fed into the DictWriter method
+    csv_dictionary = []
+
+    for time in time_dictionary:
+        tempDict = {'Time': time}
+        for activity in time_dictionary.get(time):
+            tempDict[activity[0]] = activity[1]
+        csv_dictionary.append(tempDict)
+
+    typer.echo(csv_dictionary)
+
+    # add sim results and resources to the same dictionary
+    resources['simulationResults'] = sim
+    
+    # write to file
+    with open(output, "w") as out_file:
+        writer = csv.DictWriter(out_file, fieldnames=field_name)
+        writer.writeheader()
+        writer.writerows(csv_dictionary)
+        typer.echo(f"Wrote activity plan to {output}")
+        
 
 if __name__ == "__main__":
     app()
