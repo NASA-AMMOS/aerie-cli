@@ -373,7 +373,10 @@ def download_simulation_csv(
     csv_dictionary = []
 
     for time in time_dictionary:
-        tempDict = {'Time': time}
+        seconds = 0
+        if time != 0:
+            seconds = time/1000
+        tempDict = {'Time (s)': seconds}
         for activity in time_dictionary.get(time):
             tempDict[activity[0]] = activity[1]
         csv_dictionary.append(tempDict)
