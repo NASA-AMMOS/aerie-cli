@@ -43,7 +43,7 @@ def download(
     typer.echo(f"Wrote activity plan to {output}")
 
 @app.command()
-def download_simulation_json(
+def download_simulation(
     sso: str = typer.Option("", help="SSO Token"),
     username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
@@ -51,6 +51,7 @@ def download_simulation_json(
         help="JPL password",
         hide_input=True,
     ),
+    csv: bool = typer.Option(False, "--csv/--json", help="Download as CSV (default is json): "),
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
@@ -68,10 +69,50 @@ def download_simulation_json(
     sim = client.get_simulation_results(sim_id)
     # add sim results and resources to the same dictionary
     resources['simulationResults'] = sim
+
+    if csv:
+        # the key is the time and the value is a list of tuples: (activity, state)
+        time_dictionary = {}
+
+        # this stores the header names for the CSV
+        field_name = ["Time"]
+
+        for activity in resources.get('resourceSamples'):
+            list = resources.get('resourceSamples').get(activity)
+            field_name.append(activity)
+            for i in list:
+                time_dictionary.setdefault(i.get('x'), []).append((activity, i.get('y')))
+        
+        # a list of dictionaries that will be fed into the DictWriter method
+        csv_dictionary = []
+
+        for time in time_dictionary:
+            seconds = 0
+            if time != 0:
+                seconds = time/1000000
+            tempDict = {'Time': seconds}
+            for activity in time_dictionary.get(time):
+                tempDict[activity[0]] = activity[1]
+            csv_dictionary.append(tempDict)
+
+        # Sort the dictionary by time
+        sorted_by_time = sorted(csv_dictionary, key=lambda d: d['Time'])
+
+        # use panda to fill in missing data 
+        df = pd.DataFrame(sorted_by_time)
+        # 'ffill' will fill each missing row with the value of the nearest one above it.
+        df.fillna(method='ffill', inplace=True)
+    
+        # write to file
+        with open(output, "w") as out_file:
+            df.to_csv(out_file, index=False, header=field_name)
+            typer.echo(f"Wrote activity plan to {output}") 
+
+    else:
     # write to file
-    with open(output, "w") as out_file:
-        out_file.write(json.dumps(resources, indent=2))
-        typer.echo(f"Wrote activity plan to {output}")
+        with open(output, "w") as out_file:
+            out_file.write(json.dumps(resources, indent=2))
+            typer.echo(f"Wrote activity plan to {output}")
 
 
 @app.command()
@@ -332,71 +373,6 @@ def clean(
         client.delete_plan(activity_plan.id)
 
     typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
-
-@app.command()
-def download_simulation_csv(
-    sso: str = typer.Option("", help="SSO Token"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
-    sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
-    output: str = typer.Option(..., help="The output file destination", prompt=True),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-):
-    """Download a simulation result and save it locally as a CSV file."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
-    )
-
-    # get resource timelines and sim results from GraphQL
-    resources : dict = client.get_resource_samples(plan_id)
-    sim = client.get_simulation_results(sim_id)
-
-    # the key is the time and the value is a list of tuples: (activity, state)
-    time_dictionary = {}
-
-    # this stores the header names for the CSV
-    field_name = ["Time"]
-
-    for activity in resources.get('resourceSamples'):
-        list = resources.get('resourceSamples').get(activity)
-        field_name.append(activity)
-        for i in list:
-            time_dictionary.setdefault(i.get('x'), []).append((activity, i.get('y')))
-    
-    # a list of dictionaries that will be fed into the DictWriter method
-    csv_dictionary = []
-
-    for time in time_dictionary:
-        seconds = 0
-        if time != 0:
-            seconds = time/1000000
-        tempDict = {'Time': seconds}
-        for activity in time_dictionary.get(time):
-            tempDict[activity[0]] = activity[1]
-        csv_dictionary.append(tempDict)
-
-    # Sort the dictionary by time
-    sorted_by_time = sorted(csv_dictionary, key=lambda d: d['Time']) 
-
-    # add sim results and resources to the same dictionary
-    resources['simulationResults'] = sim
-
-    # use panda to fill in missing data 
-    df = pd.DataFrame(sorted_by_time)
-    # 'ffill' will fill each missing row with the value of the nearest one above it.
-    df.fillna(method='ffill', inplace=True)
-    
-    # write to file
-    with open(output, "w") as out_file:
-        df.to_csv(out_file, index=False, header=field_name)
-        typer.echo(f"Wrote activity plan to {output}")
         
 
 if __name__ == "__main__":
