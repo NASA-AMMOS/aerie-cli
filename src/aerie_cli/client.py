@@ -2,6 +2,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 import arrow
 import requests
@@ -18,6 +19,7 @@ from .schemas.client import SimulationResults
 
 # from .schemas.api import ApiSimulationResults
 
+CLOUD_URL_REGEX = re.compile(r"^(?P<protocol>((http:\/\/)|(https:\/\/))?)(?P<app>aerie-ui)\.(?P<base>[^\/]+)")
 
 @dataclass
 class Auth:
@@ -49,11 +51,19 @@ class AerieClient:
 
     @classmethod
     def cls_graphql_path(cls, server_url: str) -> str:
-        return server_url + ":8080/v1/graphql"
+        m = re.match(CLOUD_URL_REGEX,server_url)
+        if m:
+            return f"{m.group('protocol')}aerie-hasura.{m.group('base')}/v1/graphql"
+        else:
+            return server_url + ":8080/v1/graphql"
 
     @classmethod
     def cls_gateway_path(cls, server_url: str) -> str:
-        return server_url + ":9000"
+        m = re.match(CLOUD_URL_REGEX,server_url)
+        if m:
+            return f"{m.group('protocol')}aerie-gateway.{m.group('base')}"
+        else:
+            return server_url + ":9000"
 
     @classmethod
     def cls_files_api_path(cls, server_url: str) -> str:
@@ -119,7 +129,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activities {
+                activity_directives {
                     id
                     plan_id
                     type
@@ -145,7 +155,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activities {
+                activity_directives {
                     id
                     plan_id
                     type
@@ -207,8 +217,8 @@ class AerieClient:
     ) -> int:
         api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
         insert_activity_mutation = """
-        mutation CreateActivity($activity: activity_insert_input!) {
-            createActivity: insert_activity_one(object: $activity) {
+        mutation CreateActivity($activity: activity_directive_insert_input!) {
+            createActivity: insert_activity_directive_one(object: $activity) {
                 id
             }
         }
