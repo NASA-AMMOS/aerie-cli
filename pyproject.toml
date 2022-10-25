@@ -25,6 +25,7 @@ arrow = "^1.2.2"
 requests = "^2.27.1"
 rich = "^12.6.0"
 dataclasses-json = "^0.5.6"
+pandas = "^1.5.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
