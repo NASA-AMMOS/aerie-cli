@@ -1,27 +1,29 @@
 [tool.poetry]
-name = "aerie-cli"
-version = "0.12.3.1"
+name = "eurc-gds-aerie-cli"
+version = "0.12.3.2"
 description = "aerie-cli"
-authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>", "Mihir Kamble <mihir.m.kamble@jpl.nasa.gov"]
+authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>", "Mihir Kamble <mihir.m.kamble@jpl.nasa.gov>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.jpl.nasa.gov/397/aerie-cli"
 repository = "https://github.jpl.nasa.gov/397/aerie-cli"
-documentation = "https://aerie-cli.readthedocs.io"
 classifiers = [
     "Development Status :: 1 - Planning",
 ]
+packages = [
+    { include = "aerie_cli", from = "src" }
+]
 
 [tool.poetry.urls]
-Changelog = "https://github.jpl.nasa.gov/gavinm/aerie-cli/releases"
+Changelog = "https://github.jpl.nasa.gov/397/aerie-cli/releases"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 click = "^8.0.1"
 typer = "^0.4.0"
 arrow = "^1.2.2"
 requests = "^2.27.1"
-rich = "^11.2.0"
+rich = "^12.6.0"
 dataclasses-json = "^0.5.6"
 pandas = "^1.5.1"
 
