@@ -207,8 +207,12 @@ def simulate(
     )
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
+    start_time = arrow.utcnow()
     sim_dataset_id = client.simulate_plan(id, poll_period)
+    end_time = arrow.utcnow()
     res = client.get_simulation_results(sim_dataset_id)
+    total_sim_time = end_time - start_time
+    typer.echo(f"Simulation completed in " + str(total_sim_time))
             
     if output:
         with open(output, "w") as out_file:
