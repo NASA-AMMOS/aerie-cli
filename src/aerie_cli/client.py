@@ -1002,7 +1002,18 @@ class AerieClient:
 
         return data['id']
 
-    def get_typescript_dictionary(self, command_dictionary_id: int):
+    def get_typescript_dictionary(self, command_dictionary_id: int) -> str:
+        """Download Typescript command dictionary for writing EDSL Sequences and Expansion
+
+        Prepends mission model name and command dictionary version in a comment 
+        block header of the Typescript.
+
+        Args:
+            command_dictionary_id (int): ID of command dictionary in Aerie instance
+
+        Returns:
+            str: Typescript file contents
+        """        
 
         get_command_dictionary_metadata_query = """
         query MyQuery($command_dictionary_id: Int!) {
