@@ -971,6 +971,93 @@ class AerieClient:
         activity_types = [o["name"] for o in data]
         return activity_types
 
+    def upload_command_dictionary(self, command_dictionary_string: str) -> int:
+        """Upload an AMPCS command dictionary to an Aerie instance
+
+        Args:
+            command_dictionary_string (str): Contents from XML command dictionary file (newlne-delimited)
+
+        Returns:
+            int: Command Dictionary ID
+        """        
+
+        upload_command_dictionary_query = """
+        mutation Upload(
+            $command_dictionary_string: String!
+        ) {
+            uploadDictionary(dictionary: $command_dictionary_string) {
+                id
+                command_types_typescript_path
+                mission
+                version
+                created_at
+                updated_at
+            }
+        }
+        """
+        data = self.__gql_query(
+            upload_command_dictionary_query,
+            command_dictionary_string=command_dictionary_string
+        )
+
+        return data['id']
+
+    def get_typescript_dictionary(self, command_dictionary_id: int):
+
+        get_command_dictionary_metadata_query = """
+        query MyQuery($command_dictionary_id: Int!) {
+        command_dictionary(where: { id: { _eq: $command_dictionary_id } }) {
+            mission
+            version
+        }
+        }
+        """
+
+        get_typescript_dictionary_query = """
+        query GetCommandTypescript($command_dictionary_id: Int!) {
+        getCommandTypeScript(commandDictionaryId: $command_dictionary_id) {
+            reason
+            status
+            typescriptFiles {
+                content
+                filePath
+            }
+        }
+        }
+        """
+
+        data = self.__gql_query(
+            get_command_dictionary_metadata_query,
+            command_dictionary_id=command_dictionary_id
+        )[0]
+
+        command_dictionary_mission = data["mission"]
+        command_dictionary_version = data["version"]
+
+        data = self.__gql_query(
+            get_typescript_dictionary_query,
+            command_dictionary_id=command_dictionary_id
+        )
+
+        typescript_dictionary_string = next(filter(
+            lambda x: x["filePath"].endswith("command-types.ts"),
+            data["typescriptFiles"]
+        ))["content"]
+
+        # TODO add Aerie version below once the API supports this
+        # Include metadata about command dictionary in header
+        typescript_dictionary_string = '\n'.join([
+            "/**",
+            f"* Mission:                    {command_dictionary_mission}",
+            f"* Command Dictionary Version: R{command_dictionary_version}",
+            "*/",
+            "",
+            typescript_dictionary_string
+        ])
+
+        return typescript_dictionary_string
+
+
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
             self.graphql_path(),
