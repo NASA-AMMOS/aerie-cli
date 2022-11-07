@@ -1,10 +1,10 @@
-import json
 import csv
+import json
 from typing import Union
 
 import arrow
-import typer
 import pandas as pd
+import typer
 from rich.console import Console
 from rich.table import Table
 
@@ -27,6 +27,10 @@ def download(
         hide_input=True,
     ),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
+    full_args: str = typer.Option(
+        "",
+        help="true, false, or comma separated list of activity types for which to get full arguments.  Otherwise only modified arguments are returned.  Defaults to false.",
+    ),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
@@ -37,10 +41,11 @@ def download(
         sso=sso, username=username, password=password, server_url=server_url
     )
 
-    plan = client.get_activity_plan_by_id(id)
+    plan = client.get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
+
 
 @app.command()
 def download_simulation(
@@ -51,7 +56,9 @@ def download_simulation(
         help="JPL password",
         hide_input=True,
     ),
-    csv: bool = typer.Option(False, "--csv/--json", help="Download as CSV (default is json): "),
+    csv: bool = typer.Option(
+        False, "--csv/--json", help="Download as CSV (default is json): "
+    ),
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
@@ -68,7 +75,7 @@ def download_simulation(
     resources = client.get_resource_samples(plan_id)
     sim = client.get_simulation_results(sim_id)
     # add sim results and resources to the same dictionary
-    resources['simulationResults'] = sim
+    resources["simulationResults"] = sim
 
     if csv:
         # the key is the time and the value is a list of tuples: (activity, state)
@@ -77,39 +84,41 @@ def download_simulation(
         # this stores the header names for the CSV
         field_name = ["Time (s)"]
 
-        for activity in resources.get('resourceSamples'):
-            list = resources.get('resourceSamples').get(activity)
+        for activity in resources.get("resourceSamples"):
+            list = resources.get("resourceSamples").get(activity)
             field_name.append(activity)
             for i in list:
-                time_dictionary.setdefault(i.get('x'), []).append((activity, i.get('y')))
-        
+                time_dictionary.setdefault(i.get("x"), []).append(
+                    (activity, i.get("y"))
+                )
+
         # a list of dictionaries that will be fed into the DictWriter method
         csv_dictionary = []
 
         for time in time_dictionary:
             seconds = 0
             if time != 0:
-                seconds = time/1000000
-            tempDict = {'Time (s)': seconds}
+                seconds = time / 1000000
+            tempDict = {"Time (s)": seconds}
             for activity in time_dictionary.get(time):
                 tempDict[activity[0]] = activity[1]
             csv_dictionary.append(tempDict)
 
         # Sort the dictionary by time
-        sorted_by_time = sorted(csv_dictionary, key=lambda d: d['Time (s)'])
+        sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (s)"])
 
-        # use panda to fill in missing data 
+        # use panda to fill in missing data
         df = pd.DataFrame(sorted_by_time)
         # 'ffill' will fill each missing row with the value of the nearest one above it.
-        df.fillna(method='ffill', inplace=True)
-    
+        df.fillna(method="ffill", inplace=True)
+
         # write to file
         with open(output, "w") as out_file:
             df.to_csv(out_file, index=False, header=field_name)
-            typer.echo(f"Wrote activity plan to {output}") 
+            typer.echo(f"Wrote activity plan to {output}")
 
     else:
-    # write to file
+        # write to file
         with open(output, "w") as out_file:
             out_file.write(json.dumps(resources, indent=2))
             typer.echo(f"Wrote activity plan to {output}")
@@ -213,12 +222,11 @@ def simulate(
     res = client.get_simulation_results(sim_dataset_id)
     total_sim_time = end_time - start_time
     typer.echo(f"Simulation completed in " + str(total_sim_time))
-            
+
     if output:
         with open(output, "w") as out_file:
             out_file.write(json.dumps(res, indent=2))
         typer.echo(f"Wrote simulation results to {output}")
-        
 
 
 @app.command()
@@ -377,7 +385,7 @@ def clean(
         client.delete_plan(activity_plan.id)
 
     typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
-        
+
 
 if __name__ == "__main__":
     app()
