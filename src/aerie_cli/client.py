@@ -124,12 +124,15 @@ class AerieClient:
     def ui_plans_path(self) -> str:
         return self.cls_ui_plans_path(self.server_url)
 
-    def get_activity_plan_by_id(self, plan_id: int, full_args: str) -> ActivityPlanRead:
+    def get_activity_plan_by_id(self, plan_id: int, full_args: str = None) -> ActivityPlanRead:
         """Download activity plan from Aerie
 
         Args:
             plan_id (int): ID of the plan in Aerie
-            full_args (str): comma separated list of activity types for which to get full arguments, otherwise only modified arguments are returned.  Set to "true" to get full arguments for all activity types.  Disabled if missing, None, "false", or "".
+            full_args (str): comma separated list of activity types for which to
+            get full arguments, otherwise only modified arguments are returned.
+            Set to "true" to get full arguments for all activity types.
+            Disabled if missing, None, "false", or "".
 
         Returns:
             ActivityPlanRead: the activity plan
