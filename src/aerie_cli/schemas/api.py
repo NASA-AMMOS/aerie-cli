@@ -17,6 +17,12 @@ from ..utils.serialization import timedelta_to_postgres_interval
 
 @dataclass_json
 @dataclass
+class ApiEffectiveActivityArguments:
+    arguments: dict[str, Any]
+
+
+@dataclass_json
+@dataclass
 class ApiActivityBase:
     type: str
     plan_id: int

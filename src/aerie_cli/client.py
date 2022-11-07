@@ -12,6 +12,7 @@ import requests
 import typer
 
 from .schemas.api import ApiActivityPlanRead
+from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
@@ -123,7 +124,16 @@ class AerieClient:
     def ui_plans_path(self) -> str:
         return self.cls_ui_plans_path(self.server_url)
 
-    def get_activity_plan_by_id(self, plan_id: int) -> ActivityPlanRead:
+    def get_activity_plan_by_id(self, plan_id: int, full_args: str) -> ActivityPlanRead:
+        """Download activity plan from Aerie
+
+        Args:
+            plan_id (int): ID of the plan in Aerie
+            full_args (str): comma separated list of activity types for which to get full arguments, otherwise only modified arguments are returned.  Set to "true" to get full arguments for all activity types.  Disabled if missing, None, "false", or "".
+
+        Returns:
+            ActivityPlanRead: the activity plan
+        """
         query = """
         query get_plans ($plan_id: Int!) {
             plan_by_pk(id: $plan_id) {
@@ -147,7 +157,35 @@ class AerieClient:
         """
         resp = self.__gql_query(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
-        return ActivityPlanRead.from_api_read(api_plan)
+        plan = ActivityPlanRead.from_api_read(api_plan)
+        if full_args is None or full_args == "" or full_args.lower() == "false":
+            return plan
+        expand_all = True if full_args.lower() == "true" else False
+        expand_types = {} if expand_all is True else set(full_args.split(","))
+        for activity in plan.activities:
+            if expand_all or activity.type in expand_types:
+                query = """
+                query ($args: ActivityArguments!, $act_type: String!, $model_id: ID!) {
+                    getActivityEffectiveArguments(
+                        activityArguments: $args,
+                        activityTypeName: $act_type,
+                        missionModelId: $model_id
+                    )
+                    {
+                        arguments
+                        errors
+                        success
+                    }
+                }
+                """
+                resp = self.__gql_query(
+                    query,
+                    args=activity.parameters,
+                    act_type=activity.type,
+                    model_id=plan.model_id,
+                )
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp)
+        return plan
 
     def get_all_activity_plans(self) -> list[ActivityPlanRead]:
         get_all_plans_query = """
@@ -881,7 +919,7 @@ class AerieClient:
             $simulation_dataset_id: Int!
         ) {
             getSequenceSeqJson(
-                seqId: $seq_id, 
+                seqId: $seq_id,
                 simulationDatasetId: $simulation_dataset_id
             ) {
                 seqJson {
@@ -979,7 +1017,7 @@ class AerieClient:
 
         Returns:
             int: Command Dictionary ID
-        """        
+        """
 
         upload_command_dictionary_query = """
         mutation Upload(
@@ -997,15 +1035,15 @@ class AerieClient:
         """
         data = self.__gql_query(
             upload_command_dictionary_query,
-            command_dictionary_string=command_dictionary_string
+            command_dictionary_string=command_dictionary_string,
         )
 
-        return data['id']
+        return data["id"]
 
     def get_typescript_dictionary(self, command_dictionary_id: int) -> str:
         """Download Typescript command dictionary for writing EDSL Sequences and Expansion
 
-        Prepends mission model name and command dictionary version in a comment 
+        Prepends mission model name and command dictionary version in a comment
         block header of the Typescript.
 
         Args:
@@ -1013,7 +1051,7 @@ class AerieClient:
 
         Returns:
             str: Typescript file contents
-        """        
+        """
 
         get_command_dictionary_metadata_query = """
         query MyQuery($command_dictionary_id: Int!) {
@@ -1039,35 +1077,37 @@ class AerieClient:
 
         data = self.__gql_query(
             get_command_dictionary_metadata_query,
-            command_dictionary_id=command_dictionary_id
+            command_dictionary_id=command_dictionary_id,
         )[0]
 
         command_dictionary_mission = data["mission"]
         command_dictionary_version = data["version"]
 
         data = self.__gql_query(
-            get_typescript_dictionary_query,
-            command_dictionary_id=command_dictionary_id
+            get_typescript_dictionary_query, command_dictionary_id=command_dictionary_id
         )
 
-        typescript_dictionary_string = next(filter(
-            lambda x: x["filePath"].endswith("command-types.ts"),
-            data["typescriptFiles"]
-        ))["content"]
+        typescript_dictionary_string = next(
+            filter(
+                lambda x: x["filePath"].endswith("command-types.ts"),
+                data["typescriptFiles"],
+            )
+        )["content"]
 
         # TODO add Aerie version below once the API supports this
         # Include metadata about command dictionary in header
-        typescript_dictionary_string = '\n'.join([
-            "/**",
-            f"* Mission:                    {command_dictionary_mission}",
-            f"* Command Dictionary Version: R{command_dictionary_version}",
-            "*/",
-            "",
-            typescript_dictionary_string
-        ])
+        typescript_dictionary_string = "\n".join(
+            [
+                "/**",
+                f"* Mission:                    {command_dictionary_mission}",
+                f"* Command Dictionary Version: R{command_dictionary_version}",
+                "*/",
+                "",
+                typescript_dictionary_string,
+            ]
+        )
 
         return typescript_dictionary_string
-
 
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(
