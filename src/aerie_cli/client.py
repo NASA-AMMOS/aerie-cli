@@ -163,7 +163,7 @@ class AerieClient:
         plan = ActivityPlanRead.from_api_read(api_plan)
         if full_args is None or full_args == "" or full_args.lower() == "false":
             return plan
-        expand_all = True if full_args.lower() == "true" else False
+        expand_all = full_args.lower() == "true"
         expand_types = {} if expand_all is True else set(full_args.split(","))
         for activity in plan.activities:
             if expand_all or activity.type in expand_types:
