@@ -164,7 +164,7 @@ class AerieClient:
         if full_args is None or full_args == "" or full_args.lower() == "false":
             return plan
         expand_all = full_args.lower() == "true"
-        expand_types = {} if expand_all is True else set(full_args.split(","))
+        expand_types = {} if expand_all else set(full_args.split(","))
         for activity in plan.activities:
             if expand_all or activity.type in expand_types:
                 query = """
