@@ -161,36 +161,9 @@ class AerieClient:
         resp = self.__gql_query(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
-        if full_args is None or full_args == "" or full_args.lower() == "false":
-            return plan
-        expand_all = full_args.lower() == "true"
-        expand_types = {} if expand_all else set(full_args.split(","))
-        for activity in plan.activities:
-            if expand_all or activity.type in expand_types:
-                query = """
-                query ($args: ActivityArguments!, $act_type: String!, $model_id: ID!) {
-                    getActivityEffectiveArguments(
-                        activityArguments: $args,
-                        activityTypeName: $act_type,
-                        missionModelId: $model_id
-                    )
-                    {
-                        arguments
-                        errors
-                        success
-                    }
-                }
-                """
-                resp = self.__gql_query(
-                    query,
-                    args=activity.parameters,
-                    act_type=activity.type,
-                    model_id=plan.model_id,
-                )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp)
-        return plan
-
-    def get_all_activity_plans(self) -> list[ActivityPlanRead]:
+        return self.__expand_activity_arguments(plan, full_args)
+    
+    def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
         query get__all_plans {
             plan{
@@ -213,10 +186,12 @@ class AerieClient:
         }
         """
         resp = self.__gql_query(get_all_plans_query)
-        activity_plans = [
-            ActivityPlanRead.from_api_read(ApiActivityPlanRead.from_dict(plan))
-            for plan in resp
-        ]
+        activity_plans = []
+        for plan in resp:
+            plan = ApiActivityPlanRead.from_dict(plan)
+            plan = ActivityPlanRead.from_api_read(plan)
+            plan = self.__expand_activity_arguments(plan, full_args)
+            activity_plans.append(plan)
 
         return activity_plans
 
@@ -1147,6 +1122,36 @@ class AerieClient:
 
     def __auth_header(self) -> dict[str, str]:
         return {"x-auth-sso-token": self.sso_token}
+
+    def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:
+        if full_args is None or full_args == "" or full_args.lower() == "false":
+            return plan
+        expand_all = full_args.lower() == "true"
+        expand_types = {} if expand_all else set(full_args.split(","))
+        for activity in plan.activities:
+            if expand_all or activity.type in expand_types:
+                query = """
+                query ($args: ActivityArguments!, $act_type: String!, $model_id: ID!) {
+                    getActivityEffectiveArguments(
+                        activityArguments: $args,
+                        activityTypeName: $act_type,
+                        missionModelId: $model_id
+                    )
+                    {
+                        arguments
+                        errors
+                        success
+                    }
+                }
+                """
+                resp = self.__gql_query(
+                    query,
+                    args=activity.parameters,
+                    act_type=activity.type,
+                    model_id=plan.model_id,
+                )
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp)
+        return plan
 
 
 def check_response_status(
