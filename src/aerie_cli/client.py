@@ -1150,7 +1150,7 @@ class AerieClient:
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp)
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp).arguments
         return plan
 
 
