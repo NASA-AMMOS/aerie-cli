@@ -28,6 +28,9 @@ class ActivityCreate:
         metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
     )
     parameters: dict[str, Any]
+    name: str
+    tags: list[str]
+    metadata: dict[str, str]
 
     def to_api_create(self, plan_id: int, plan_start_time: Arrow):
         return ApiActivityCreate(
@@ -35,7 +38,17 @@ class ActivityCreate:
             plan_id=plan_id,
             start_offset=self.start_time - plan_start_time,
             arguments=self.parameters,
+            name=self.name,
+            tags=self.to_api_array(self.tags),
+            metadata=self.metadata
         )
+
+    def to_api_array(self, entries: list[str]):
+      """
+      Format an array of strings as a Postgres style array.
+      """
+      vals = ",".join(entries)
+      return f"{{{vals}}}" # Wrap items in {}
 
 
 @dataclass_json
@@ -49,9 +62,12 @@ class ActivityRead(ActivityCreate):
     ) -> "ActivityRead":
         return ActivityRead(
             id=api_activity_read.id,
+            name=api_activity_read.name,
             type=api_activity_read.type,
             start_time=plan_start_time + api_activity_read.start_offset,
             parameters=api_activity_read.arguments,
+            tags=api_activity_read.tags,
+            metadata=api_activity_read.metadata,
         )
 
 

@@ -137,10 +137,13 @@ class AerieClient:
                 }
                 activity_directives {
                     id
+                    name
                     plan_id
                     type
                     start_offset
                     arguments
+                    metadata
+                    tags
                 }
             }
         }
