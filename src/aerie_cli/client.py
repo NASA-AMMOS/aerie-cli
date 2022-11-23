@@ -1119,6 +1119,104 @@ class AerieClient:
         )
 
         return typescript_dictionary_string
+    
+    def upload_scheduling_goal(self, model_id, name, definition):
+        upload_scheduling_goal_query = """
+        mutation InsertGoal($model_id: Int!, 
+                            $name: String!, 
+                            $definition: String!) {
+            insert_scheduling_goal_one(object: 
+                {
+                model_id: $model_id,
+                name: $name,
+                definition: $definition,
+                }) {
+                    id
+                }
+        }"""
+
+        resp = self.__gql_query(
+            upload_scheduling_goal_query, model_id=model_id, name=name, definition=definition
+        )
+
+        return resp["id"]
+    
+    def get_specification_for_plan(self, plan_id):
+        get_specification_for_plan_query = """
+        query GetSpecificationForPlan($plan_id: Int!) {
+            scheduling_specification(where: {plan_id: {_eq: $plan_id}}) {
+                id
+            }
+        }
+        """
+
+        resp = self.__gql_query(get_specification_for_plan_query, plan_id=plan_id)
+        return resp[0]["id"]
+
+    def add_goal_to_specification(self, specification_id, goal_id, priority):
+        add_goal_to_specification_query = """
+        mutation AddGoalToSpecification($specification_id: Int!,
+                                        $goal_id: Int!,
+                                        $priority: Int!) {
+            insert_scheduling_specification_goals_one(object: {
+                goal_id: $goal_id,
+                specification_id: $specification_id
+                priority: $priority,
+                enabled: true,
+            }) {
+                priority
+            }
+        }
+        """
+
+        resp = self.__gql_query(
+            add_goal_to_specification_query, specification_id=specification_id, goal_id=goal_id, priority=priority
+        )
+
+        return resp['priority']
+
+    def delete_scheduling_goal(self, goal_id):
+        delete_scheduling_goal_query = """
+        mutation DeleteSchedulingGoal($id: Int!) {
+            deleteSchedulingGoal: delete_scheduling_goal_by_pk(id: $id) {
+                id
+            }
+        }
+        """
+
+        resp = self.__gql_query(
+            delete_scheduling_goal_query, id=goal_id
+        )
+
+        return resp['id']
+
+    def create_specification(self, spec):
+        create_specification_query = """
+        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
+            insert_scheduling_specification_one(object: $spec) {
+                id
+            }
+        }
+        """
+
+        self.__gql_query(
+            create_specification_query, spec=spec
+        )
+
+    def get_plan_revision(self, planId):
+        get_plan_revision_query = """
+        query get_plan_revision($plan_id:Int) {
+            plan(where: {id: {_eq: $plan_id}}){
+                revision
+            }
+        }
+        """
+
+        resp = self.__gql_query(
+            get_plan_revision_query, plan_id=planId
+        )
+        
+        return resp[0]["revision"]
 
     def __gql_query(self, query: str, **kwargs):
         resp = requests.post(

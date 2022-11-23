@@ -151,10 +151,21 @@ def upload(
 
     with open(input) as in_file:
         contents = in_file.read()
+    f = open(input)
+    plan_json = json.load(f)
     plan_to_create = ActivityPlanCreate.from_json(contents)
     if time_tag:
         plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     plan_id = client.create_activity_plan(model_id, plan_to_create)
+    plan_revision = client.get_plan_revision(plan_id)
+    client.create_specification({
+        "analysis_only": False,
+        "horizon_end": plan_json["start_time"], 
+        "horizon_start": plan_json["end_time"], 
+        "plan_id": plan_id, 
+        "plan_revision": plan_revision,
+        "simulation_arguments": {},
+    })
     typer.echo(f"Created plan at: {client.ui_path()}/plans/{plan_id}")
 
 
