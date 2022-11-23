@@ -42,10 +42,9 @@ def upload(
                 goal_id = client.upload_scheduling_goal(model_id, scheduling_name, str_contents)
                 typer.echo("GOAL " + str(goal_id))
                 specification_id = client.get_specification_for_plan(plan_id)
-                typer.echo(specification_id)
                 priority = client.add_goal_to_specification(specification_id, goal_id, i)
                 i+=1
-                typer.echo("Uploaded " + sch + " as priority " + priority)
+                typer.echo("Uploaded " + line + " as priority " + str(priority))
 
 @app.command()
 def delete(
