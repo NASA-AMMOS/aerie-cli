@@ -27,6 +27,9 @@ class ApiActivityBase:
     type: str
     plan_id: int
     arguments: dict[str, Any]
+    name: str
+    tags: list[str]
+    metadata: dict[str, str]
 
 
 @dataclass_json

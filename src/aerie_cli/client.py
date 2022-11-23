@@ -150,10 +150,13 @@ class AerieClient:
                 }
                 activity_directives {
                     id
+                    name
                     plan_id
                     type
                     start_offset
                     arguments
+                    metadata
+                    tags
                 }
             }
         }
@@ -249,7 +252,37 @@ class AerieClient:
             insert_activity_mutation,
             activity=api_activity_create.to_dict(),
         )
-        return resp["id"]
+        activity_id = resp["id"]
+        # Aerie 0.13.2 has a bug that prevents setting the name during a creation.
+        # Update the activity to set the name.
+        if (activity_to_create.name is not None):
+          self.update_activity(activity_id, activity_to_create, plan_id, plan_start_time)
+
+        return activity_id
+
+    def update_activity(
+      self,
+      activity_id: int,
+      activity_to_update: ActivityCreate,
+      plan_id: int = None,
+      plan_start_time: arrow.Arrow = None,
+    ) -> int:
+      api_activity_update = activity_to_update.to_api_create(plan_id, plan_start_time)
+      update_activity_mutation = """
+      mutation UpdateActvityDirective($id: Int!, $activity: activity_directive_set_input!) {
+        updateActivity: update_activity_directive_by_pk(
+          pk_columns: { id: $id }, _set: $activity
+        ) {
+          id
+        }
+      }
+      """
+      resp = self.__gql_query(
+          update_activity_mutation,
+          id=activity_id,
+          activity=api_activity_update.to_dict(),
+      )
+      return resp["id"]
 
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
