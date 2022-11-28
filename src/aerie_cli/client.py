@@ -1,3 +1,5 @@
+from copy import deepcopy
+import json
 import re
 import sys
 import time
@@ -1143,13 +1145,39 @@ class AerieClient:
             ):
                 raise RuntimeError
 
-        except Exception:
+        except Exception as e:
+            # Re-raise with additional information
+
             print("ERROR: The API call was unsuccessful!\n")
 
-            if "password" not in kwargs:
-                print(f"Variables: {kwargs}\n")
+            if "password" in kwargs:
 
-            sys.exit(f"Query: {query}\n Response: {resp.text}")
+                # Remove password
+                kwargs = deepcopy(kwargs)
+                kwargs["password"] = None
+
+                # Raise exception with query, variables, and original exception
+                raise RuntimeError({
+                    "query": deepcopy(query),
+                    "variables": kwargs,
+                    "exception": e
+                })
+
+            else:
+
+                # Decode response text if in JSON-parsable format
+                try:
+                    resp_contents = json.loads(resp.text)
+                except json.decoder.JSONDecodeError:
+                    resp_contents = resp.text
+                
+                # Raise exception with query, variables, original exception, and response
+                raise RuntimeError({
+                    "query": deepcopy(query),
+                    "variables": deepcopy(kwargs),
+                    "exception": e,
+                    "response_text": resp_contents
+                })
 
         return data
 
