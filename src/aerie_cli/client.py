@@ -62,11 +62,15 @@ class AerieClient:
         return cls(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
 
     @classmethod
+    def from_cookie(cls, server_url: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
+        return cls(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
+
+    @classmethod
     def cls_graphql_path(cls, server_url: str, cloud_gateway: str) -> str:
-        if cloud_gateway == None: # it is local host
+        if cloud_gateway == None: # Local/on-prem installation
             return server_url + ":8080/v1/graphql"
-        else:
-            return cloud_gateway + "/hasura"
+        else: # Cloud installation
+            return cloud_gateway + "/hasura/v1/graphql"
 
     @classmethod
     def cls_gateway_path(cls, server_url: str, cloud_gateway: str) -> str:
@@ -1134,7 +1138,7 @@ class AerieClient:
         resp = requests.post(
             self.graphql_path(),
             json={"query": query, "variables": kwargs},
-            headers=self.__auth_header(),
+            **self.__get_auth_args()
         )
 
         try:
@@ -1189,11 +1193,11 @@ class AerieClient:
 
         return data
 
-    def __auth_header(self) -> dict[str, str]:
+    def __get_auth_args(self) -> Dict:
         if self.sso_cookie_name:
-            return {self.sso_cookie_name: self.sso_cookie}
+            return deepcopy({"cookies": {self.sso_cookie_name: self.sso_cookie}})
         else:
-            return {"x-auth-sso-token": self.sso_token}
+            return {"headers": {"x-auth-sso-token": self.sso_token}}
 
     def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:
         if full_args is None or full_args == "" or full_args.lower() == "false":
@@ -1241,8 +1245,12 @@ def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_g
     if server_url in LOCAL_URLS:
         client = AerieClient.from_local(server_url="http://localhost", cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
     # Assuming user has not provided valid credentials during command call
+    elif sso_cookie or sso_cookie_name:
+        if not sso_cookie and sso_cookie_name:
+            raise ValueError("For cookie authentication, enter both SSO Cookie and Cookie Name")
+        client = AerieClient.from_cookie(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
     elif (sso == "") and (username == "") and (password == ""):
-        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
+        method = int(typer.prompt("Enter (1) for SSO Login, (2) for JPL Login, or (3) for cookie login"))
         if method == 1:
             sso = typer.prompt("SSO Token")
             client = AerieClient.from_sso(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
@@ -1252,6 +1260,10 @@ def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_g
             client = AerieClient.from_userpass(
                 server_url=server_url, username=user, password=pwd, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
             )
+        elif method == 3:
+            sso_cookie_name = typer.prompt("Cookie Name")
+            sso_cookie = typer.prompt("Cookie Value")
+            client = AerieClient.from_cookie(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
         else:
             print(
                 """
