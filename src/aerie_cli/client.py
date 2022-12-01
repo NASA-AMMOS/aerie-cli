@@ -22,6 +22,7 @@ from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
+from .utils.serialization import hms_string_to_timedelta
 
 # from .schemas.api import ApiSimulationResults
 
@@ -315,30 +316,87 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-
-        resource_sample_query = """
-        query ResourceSamples($plan_id: Int!) {
-            resourceSamples(planId: $plan_id){
-                resourceSamples
-            }
-        }
-        """
-        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
-
-        api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
+        samples = self.get_resource_samples(plan_id)
+        api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int):
+    @staticmethod
+    def take_samples(
+        profiles,
+        duration
+    ):
+        resources = {}
 
-        resource_sample_query = """
-        query ResourceSamples($plan_id: Int!) {
-            resourceSamples(planId: $plan_id){
-                resourceSamples
+        for profile in sorted(profiles, key=lambda _: _["name"]):
+            name = profile["name"]
+            profile_segments = profile["profile_segments"]
+            profileType = profile["type"]
+            type_ = profileType["type"]
+            values = []
+
+            for i in range(len(profile_segments)):
+                segment = profile_segments[i]
+                segmentOffset = AerieClient.parse_microseconds(segment["start_offset"])
+                if i + 1 < len(profile_segments):
+                    nextSegmentOffset = AerieClient.parse_microseconds(profile_segments[i + 1]["start_offset"])
+                else:
+                    nextSegmentOffset = duration
+
+                dynamics = segment["dynamics"]
+
+                if type_ == 'discrete':
+                    values.append({
+                        "x": segmentOffset,
+                        "y": dynamics,
+                    })
+                    values.append({
+                        "x": nextSegmentOffset,
+                        "y": dynamics,
+                    })
+                elif type_ == 'real':
+                    values.append({
+                        "x": segmentOffset,
+                        "y": dynamics["initial"],
+                    })
+                    values.append({
+                        "x": nextSegmentOffset,
+                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1000),
+                    })
+
+            resources[name] = values
+        return {
+            "resourceSamples": resources
+        }
+
+    @staticmethod
+    def parse_microseconds(time_string):
+        return int(round(hms_string_to_timedelta(time_string).total_seconds() * (10**6)))
+
+    def get_resource_samples(self, plan_id: int):
+        resource_profile_query = """
+        query GetSimulationDataset($plan_id: Int!) {
+          simulation(where: { plan_id: { _eq: $plan_id } }, order_by: { id: desc }, limit: 1) {
+            simulation_datasets(order_by: { id: desc }, limit: 1) {
+              dataset {
+                profiles {
+                  name
+                  profile_segments(order_by: { start_offset: asc }) {
+                    dynamics
+                    start_offset
+                  }
+                  type
+                }
+              }
             }
+          }
+          plan_by_pk(id: 1) {
+            duration
+          }
         }
         """
-        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
-        return resp
+        resp = self.__gql_query(resource_profile_query, plan_id=plan_id)
+        return AerieClient.take_samples(resp["simulation"][0]["simulation_datasets"][0]["dataset"]["profiles"], AerieClient.parse_microseconds(resp["plan_by_pk"]["duration"]))
+
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
@@ -1132,7 +1190,10 @@ class AerieClient:
         try:
             if resp.ok:
                 resp_json = resp.json()["data"]
-                data = next(iter(resp_json.values()))
+                if len(resp_json.values()) == 1:
+                    data = next(iter(resp_json.values()))
+                else:
+                    data = resp_json
 
             if data is None:
                 raise RuntimeError
