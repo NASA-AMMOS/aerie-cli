@@ -36,6 +36,7 @@ def upload(
     with open(schedule) as in_file:
         i = 0
         for line in in_file:
+            line = line.strip("\n")
             with open(line) as sch:
                 contents = sch.readlines()
                 str_contents = " ".join(contents)
@@ -62,6 +63,7 @@ def delete(
         ..., help="Goal ID of goal to be deleted", prompt=True
     )
 ):
+    """Delete scheduling goal"""
     client = auth_helper(
         sso=sso, username=username, password=password, server_url=server_url
     )
