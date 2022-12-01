@@ -40,7 +40,9 @@ class AerieClient:
     sso_cookie_name: str
     sso_cookie: str
 
-    def __init__(self, server_url: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str, sso=""):
+    def __init__(self, server_url: str, sso: str=None, cloud_gateway: str=None, sso_cookie_name: str=None, sso_cookie: str=None):
+        if sso is None:
+            sso = ""
         self.server_url = server_url
         self.sso_token = sso
         self.cloud_gateway = cloud_gateway
@@ -52,8 +54,8 @@ class AerieClient:
         return cls(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
 
     @classmethod
-    def from_sso(cls, server_url: str, sso: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
-        return cls(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
+    def from_sso(cls, server_url: str, sso: str, cloud_gateway: str=None):
+        return cls(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway)
 
     @classmethod
     def from_userpass(cls, server_url: str, username: str, password: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
@@ -1237,7 +1239,7 @@ def check_response_status(
         raise RuntimeError(f"{error_message}\nServer response: {response.json()}")
 
 
-def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
+def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_gateway: str=None, sso_cookie_name: str=None, sso_cookie: str=None):
     """Aerie client authorization; \
     defaults to using sso token if sso & user/pass are provided."""
 
