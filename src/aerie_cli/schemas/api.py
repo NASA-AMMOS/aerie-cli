@@ -10,7 +10,7 @@ from dataclasses_json import config
 from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
 
-from ..utils.serialization import hms_string_to_timedelta
+from ..utils.serialization import postgres_duration_to_timedelta
 from ..utils.serialization import postgres_interval_to_timedelta
 from ..utils.serialization import timedelta_to_postgres_interval
 
@@ -48,7 +48,7 @@ class ApiActivityCreate(ApiActivityBase):
 class ApiActivityRead(ApiActivityBase):
     id: int
     start_offset: timedelta = field(
-        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
     )
 
 
@@ -80,7 +80,7 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
     simulations: list[int]
     activity_directives: list[ApiActivityRead]
     duration: timedelta = field(
-        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
     )
 
 

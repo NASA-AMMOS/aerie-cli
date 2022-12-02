@@ -8,9 +8,21 @@ POSTGRES_INTERVAL_PATTERN = re.compile(
 )
 
 
-def hms_string_to_timedelta(hms_string: str) -> timedelta:
+def postgres_duration_to_timedelta(hms_string: str) -> timedelta:
+    if ":" not in hms_string:
+        hms_string += " 00:00:00"
+    if 'days' in hms_string:
+        days, hms_string = hms_string.split(' days ')
+    elif 'day' in hms_string:
+        days, hms_string = hms_string.split(' day ')
+    else:
+        days = 0
     hours, minutes, seconds = hms_string.split(":")
-    return timedelta(hours=int(hours), minutes=int(minutes), seconds=float(seconds))
+    return timedelta(days=int(days), hours=int(hours), minutes=int(minutes), seconds=float(seconds))
+
+
+def postgres_duration_to_microseconds(hms_string: str) -> int:
+    return int(round(postgres_duration_to_timedelta(hms_string).total_seconds() * (10**6)))
 
 
 def timedelta_to_postgres_interval(delta: timedelta) -> str:

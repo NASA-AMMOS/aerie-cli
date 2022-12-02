@@ -22,9 +22,7 @@ from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import SimulationResults
-from .utils.serialization import hms_string_to_timedelta
-
-# from .schemas.api import ApiSimulationResults
+from .utils.serialization import postgres_duration_to_microseconds
 
 CLOUD_URL_REGEX = re.compile(
     r"^(?P<protocol>((http:\/\/)|(https:\/\/))?)(?P<app>aerie-ui)\.(?P<base>[^\/]+)"
@@ -320,57 +318,6 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    @staticmethod
-    def take_samples(
-        profiles,
-        duration
-    ):
-        resources = {}
-
-        for profile in sorted(profiles, key=lambda _: _["name"]):
-            name = profile["name"]
-            profile_segments = profile["profile_segments"]
-            profileType = profile["type"]
-            type_ = profileType["type"]
-            values = []
-
-            for i in range(len(profile_segments)):
-                segment = profile_segments[i]
-                segmentOffset = AerieClient.parse_microseconds(segment["start_offset"])
-                if i + 1 < len(profile_segments):
-                    nextSegmentOffset = AerieClient.parse_microseconds(profile_segments[i + 1]["start_offset"])
-                else:
-                    nextSegmentOffset = duration
-
-                dynamics = segment["dynamics"]
-
-                if type_ == 'discrete':
-                    values.append({
-                        "x": segmentOffset,
-                        "y": dynamics,
-                    })
-                    values.append({
-                        "x": nextSegmentOffset,
-                        "y": dynamics,
-                    })
-                elif type_ == 'real':
-                    values.append({
-                        "x": segmentOffset,
-                        "y": dynamics["initial"],
-                    })
-                    values.append({
-                        "x": nextSegmentOffset,
-                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1000),
-                    })
-
-            resources[name] = values
-        return {
-            "resourceSamples": resources
-        }
-
-    @staticmethod
-    def parse_microseconds(time_string):
-        return int(round(hms_string_to_timedelta(time_string).total_seconds() * (10**6)))
 
     def get_resource_samples(self, plan_id: int):
         resource_profile_query = """
@@ -389,14 +336,62 @@ class AerieClient:
               }
             }
           }
-          plan_by_pk(id: 1) {
+        }
+        """
+        resp = self.__gql_query(resource_profile_query, plan_id=plan_id)
+        profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
+
+        plan_duration_query = """
+        query GetSimulationDataset($plan_id: Int!) {
+          plan_by_pk(id: $plan_id) {
             duration
           }
         }
         """
-        resp = self.__gql_query(resource_profile_query, plan_id=plan_id)
-        return AerieClient.take_samples(resp["simulation"][0]["simulation_datasets"][0]["dataset"]["profiles"], AerieClient.parse_microseconds(resp["plan_by_pk"]["duration"]))
+        resp = self.__gql_query(plan_duration_query, plan_id=plan_id)
+        duration = postgres_duration_to_microseconds(resp["duration"])
 
+        # Parse profile segments into resource timelines
+        resources = {}
+        for profile in sorted(profiles, key=lambda _: _["name"]):
+            name = profile["name"]
+            profile_segments = profile["profile_segments"]
+            profile_type = profile["type"]["type"]
+            values = []
+
+            for i in range(len(profile_segments)):
+                segment = profile_segments[i]
+                segmentOffset = postgres_duration_to_microseconds(segment["start_offset"])
+                if i + 1 < len(profile_segments):
+                    nextSegmentOffset = postgres_duration_to_microseconds(profile_segments[i + 1]["start_offset"])
+                else:
+                    nextSegmentOffset = duration
+                
+                dynamics = segment["dynamics"]
+
+                if profile_type == 'discrete':
+                    values.append({
+                        "x": segmentOffset,
+                        "y": dynamics,
+                    })
+                    values.append({
+                        "x": nextSegmentOffset,
+                        "y": dynamics,
+                    })
+                elif profile_type == 'real':
+                    values.append({
+                        "x": segmentOffset,
+                        "y": dynamics["initial"],
+                    })
+                    values.append({
+                        "x": nextSegmentOffset,
+                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1000),
+                    })
+
+            resources[name] = values
+        return {
+            "resourceSamples": resources
+        }
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
@@ -1190,10 +1185,7 @@ class AerieClient:
         try:
             if resp.ok:
                 resp_json = resp.json()["data"]
-                if len(resp_json.values()) == 1:
-                    data = next(iter(resp_json.values()))
-                else:
-                    data = resp_json
+                data = next(iter(resp_json.values()))
 
             if data is None:
                 raise RuntimeError
