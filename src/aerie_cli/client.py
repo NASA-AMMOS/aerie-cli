@@ -1310,7 +1310,7 @@ def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_g
         method = int(typer.prompt("Enter (1) for SSO Login, (2) for JPL Login, or (3) for cookie login"))
         if method == 1:
             sso = typer.prompt("SSO Token")
-            client = AerieClient.from_sso(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
+            client = AerieClient.from_sso(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway)
         elif method == 2:
             user = typer.prompt("JPL Username")
             pwd = typer.prompt("JPL Password", hide_input=True)
