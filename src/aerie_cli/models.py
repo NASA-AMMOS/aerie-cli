@@ -13,6 +13,8 @@ app = typer.Typer()
 @app.command()
 def upload(
     sso: str = typer.Option("", help="SSO Token"),
+    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
+    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
     username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
@@ -21,6 +23,9 @@ def upload(
     ),
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
+    ),
+    cloud_gateway: str = typer.Option(
+        None, help="The Gateway URL of the Aerie deployment"
     ),
     mission_model_path: str = typer.Option(
         ..., help="The input file from which to create an Aerie model", prompt=True
@@ -52,7 +57,7 @@ def upload(
 
     # Initialize Aerie client
     client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
+        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
     )
 
     # Upload mission model file to Aerie server
@@ -87,6 +92,8 @@ def upload(
 def delete(
     sso: str = typer.Option("", help="SSO Token"),
     username: str = typer.Option("", help="JPL username"),
+    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
+    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
     password: str = typer.Option(
         "",
         help="JPL password",
@@ -95,13 +102,16 @@ def delete(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
+    cloud_gateway: str = typer.Option(
+        None, help="The Gateway URL of the Aerie deployment"
+    ),
     model_id: int = typer.Option(
         ..., help="Mission model ID to be deleted", prompt=True
     ),
 ):
     """Delete a mission model by its model id."""
     client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
+        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
     )
 
     model_name = client.delete_mission_model(model_id)
@@ -111,6 +121,8 @@ def delete(
 @app.command()
 def clean(
     sso: str = typer.Option("", help="SSO Token"),
+    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
+    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
     username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
@@ -120,10 +132,13 @@ def clean(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
+    cloud_gateway: str = typer.Option(
+        None, help="The Gateway URL of the Aerie deployment"
+    ),
 ):
     """Delete all mission models."""
     client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
+        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
     )
 
     resp = client.get_mission_models()
@@ -136,6 +151,8 @@ def clean(
 @app.command()
 def list(
     sso: str = typer.Option("", help="SSO Token"),
+    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
+    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
     username: str = typer.Option("", help="JPL username"),
     password: str = typer.Option(
         "",
@@ -145,10 +162,13 @@ def list(
     server_url: str = typer.Option(
         "http://localhost", help="The URL of the Aerie deployment"
     ),
+    cloud_gateway: str = typer.Option(
+        None, help="The Gateway URL of the Aerie deployment"
+    ),
 ):
     """List uploaded mission models."""
     client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
+        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
     )
 
     resp = client.get_mission_models()
