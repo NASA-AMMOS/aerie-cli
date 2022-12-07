@@ -139,6 +139,16 @@ def download_simulation(
             typer.echo(f"Wrote activity plan to {output}")
 
     else:
+        if absolute_time:
+            for activity in resources.get("resourceSamples"):
+                list = resources.get("resourceSamples").get(activity)
+                for i in list:
+                    milliseconds = i.get("x")
+                    seconds = 0
+                    if milliseconds != 0:
+                        seconds = milliseconds/1000000
+                    i["x"] = str(start_time.shift(seconds=seconds))
+
         # write to file
         with open(output, "w") as out_file:
             out_file.write(json.dumps(resources, indent=2))
