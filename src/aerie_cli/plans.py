@@ -72,6 +72,9 @@ def download_simulation(
     ),
     cloud_gateway: str = typer.Option(
         None, help="The Gateway URL of the Aerie deployment"
+    ),
+    absolute_time: bool = typer.Option(
+        False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
     )
 ):
     """Download a simulation result and save it locally as a JSON file."""
@@ -79,6 +82,7 @@ def download_simulation(
         sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
     )
 
+    start_time = client.get_activity_plan_by_id(plan_id, "").start_time
     # get resource timelines and sim results from GraphQL
     resources = client.get_resource_samples(plan_id)
     sim = client.get_simulation_results(sim_id)
@@ -91,6 +95,8 @@ def download_simulation(
 
         # this stores the header names for the CSV
         field_name = ["Time (s)"]
+        if absolute_time:
+            field_name = ["Time (YYYY-DDDThh:mm:ss.sss)"]
 
         for activity in resources.get("resourceSamples"):
             list = resources.get("resourceSamples").get(activity)
@@ -107,13 +113,20 @@ def download_simulation(
             seconds = 0
             if time != 0:
                 seconds = time / 1000000
-            tempDict = {"Time (s)": seconds}
+            if absolute_time:
+                formated = start_time.shift(seconds=seconds)
+                tempDict = {"Time (YYYY-DDDThh:mm:ss.sss)": formated}
+            else:
+                tempDict = {"Time (s)": seconds}
             for activity in time_dictionary.get(time):
                 tempDict[activity[0]] = activity[1]
             csv_dictionary.append(tempDict)
 
         # Sort the dictionary by time
-        sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (s)"])
+        if absolute_time:
+            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (YYYY-DDDThh:mm:ss.sss)"])
+        else:
+            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (s)"])
 
         # use panda to fill in missing data
         df = pd.DataFrame(sorted_by_time)
