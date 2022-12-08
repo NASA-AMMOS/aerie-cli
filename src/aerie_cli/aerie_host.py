@@ -1,13 +1,22 @@
+from dataclasses import dataclass
 from copy import deepcopy
 from typing import Dict
 from enum import Enum
 import requests
 import json
 
+
 class AuthMethod(Enum):
     NONE = 'None'
     AERIE_NATIVE = 'Native'
     COOKIE = 'Cookie'
+
+    @classmethod
+    def from_string(cls, string_name: str) -> 'AuthMethod':
+        try:
+            return next(filter(lambda x: x.value == string_name, cls))
+        except StopIteration:
+            raise ValueError(f"Unknown auth method: {string_name}")
 
 
 class AerieHostSession:
@@ -26,9 +35,9 @@ class AerieHostSession:
             graphql_url (str): Route to Aerie host's GraphQL API
             gateway_url (str): Route to Aerie Gateway
         """
-        self.session: session
-        self.graphql_url: graphql_url
-        self.gateway_url: gateway_url
+        self.session = session
+        self.graphql_url = graphql_url
+        self.gateway_url = gateway_url
 
     def post_to_graphql(self, query: str, **variables) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -36,7 +45,7 @@ class AerieHostSession:
         Args:
             query (str): GraphQL query text
             variables: keyword arguments for named variables for the query
-        
+
         Raises:
             RuntimeError
 
@@ -128,6 +137,17 @@ class AerieHostSession:
         else:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
+    def ping_gateway(self) -> bool:
+        # TODO if gateway health path returns well, return true. Otherwise, return false
+        resp = self.session.get(self.gateway_url + '/health')
+        try:
+            if 'uptimeMinutes' in resp.json().keys():
+                return True
+        except Exception:
+            pass
+
+        return False
+
     @classmethod
     def session_helper(
         cls,
@@ -179,3 +199,57 @@ class AerieHostSession:
 
         return cls(session, graphql_url, gateway_url)
 
+
+@dataclass
+class AerieHostConfiguration:
+    name: str
+    graphql_url: str
+    gateway_url: str
+    auth_method: AuthMethod
+    auth_url: str = None
+    username: str = None
+
+    @classmethod
+    def from_dict(cls, config: Dict) -> 'AerieHostConfiguration':
+        try:
+            name = config["name"]
+            graphql_url = config["graphql_url"]
+            gateway_url = config["gateway_url"]
+            auth_method = AuthMethod.from_string(config["auth_method"])
+
+            if auth_method == AuthMethod.NONE:
+                auth_url = None
+                username = None
+            else:
+                auth_url = config["auth_url"]
+                username = config["username"]
+
+        except KeyError as e:
+            raise ValueError(
+                f"Configuration missing required field: {e.args[0]}")
+
+        return cls(name, graphql_url, gateway_url, auth_method, auth_url, username)
+
+    def to_dict(self) -> Dict:
+        retval = {
+            'name': self.name,
+            'graphql_url': self.graphql_url,
+            'gateway_url': self.gateway_url,
+            'auth_method': self.auth_method.value
+        }
+
+        if self.auth_method != AuthMethod.NONE:
+            retval['auth_url'] = self.auth_url
+            retval['username'] = self.username
+
+        return retval
+
+    def start_session(self, password: str = None) -> AerieHostSession:
+        return AerieHostSession.session_helper(
+            self.auth_method,
+            self.graphql_url,
+            self.gateway_url,
+            self.auth_url,
+            self.username,
+            password
+        )
