@@ -74,7 +74,7 @@ def download_simulation(
         None, help="The Gateway URL of the Aerie deployment"
     ),
     absolute_time: bool = typer.Option(
-        False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
+        False, "--absolute-time", help="Change time format from seconds to YYYY-MM-DDT:hh:mm:ss.sss+TZD"
     )
 ):
     """Download a simulation result and save it locally as a JSON file."""
@@ -96,7 +96,7 @@ def download_simulation(
         # this stores the header names for the CSV
         field_name = ["Time (s)"]
         if absolute_time:
-            field_name = ["Time (YYYY-DDDThh:mm:ss.sss)"]
+            field_name = ["Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)"]
 
         for activity in resources.get("resourceSamples"):
             list = resources.get("resourceSamples").get(activity)
@@ -115,7 +115,7 @@ def download_simulation(
                 seconds = time / 1000000
             if absolute_time:
                 formated = start_time.shift(seconds=seconds)
-                tempDict = {"Time (YYYY-DDDThh:mm:ss.sss)": formated}
+                tempDict = {"Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)": formated}
             else:
                 tempDict = {"Time (s)": seconds}
             for activity in time_dictionary.get(time):
@@ -124,7 +124,7 @@ def download_simulation(
 
         # Sort the dictionary by time
         if absolute_time:
-            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (YYYY-DDDThh:mm:ss.sss)"])
+            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)"])
         else:
             sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (s)"])
 
