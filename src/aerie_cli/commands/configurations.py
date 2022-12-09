@@ -88,7 +88,10 @@ def activate_session(
 @app.command('deactivate')
 def deactivate_session():
     name = PersistentSessionManager.unset_active_session()
-    Console().print(f"Deactivated session: {name}")
+    if name is None:
+        Console().print("No active session")
+    else:
+        Console().print(f"Deactivated session: {name}")
 
 
 @app.command('list')

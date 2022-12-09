@@ -31,10 +31,16 @@ def delete_all_persistent_files():
 
 
 class PersistentConfigurationManager:
+    _initialized = False
     configurations: List[AerieHostConfiguration]
+
+    def __init__(self) -> None:
+        """Pseudo-singleton"""
+        raise NotImplementedError
 
     @classmethod
     def get_configuration_by_name(cls, configuration_name: str) -> AerieHostConfiguration:
+        cls._initialize()
         try:
             return next(filter(lambda c: c.name == configuration_name, cls.configurations))
         except StopIteration:
@@ -42,6 +48,7 @@ class PersistentConfigurationManager:
 
     @classmethod
     def create_configuration(cls, configuration: AerieHostConfiguration) -> None:
+        cls._initialize()
         if configuration.name in [c.name for c in cls.configurations]:
             raise ValueError(
                 f"Configuration already exists: {configuration.name}")
@@ -51,12 +58,14 @@ class PersistentConfigurationManager:
 
     @classmethod
     def update_configuration(cls, configuration: AerieHostConfiguration) -> None:
+        cls._initialize()
         cls.delete_configuration(configuration.name)
         cls.configurations.append(configuration)
         cls.write_configurations()
 
     @classmethod
     def delete_configuration(cls, configuration_name: str) -> None:
+        cls._initialize()
         old_configuration = cls.get_configuration_by_name(configuration_name)
         cls.configurations.remove(old_configuration)
         cls.write_configurations()
@@ -83,12 +92,19 @@ class PersistentConfigurationManager:
         else:
             cls.configurations = []
 
-
-PersistentConfigurationManager.read_configurations()
+    @classmethod
+    def _initialize(cls) -> None:
+        if not cls._initialized:
+            cls.read_configurations()
+            cls._initialized = True
 
 
 class PersistentSessionManager:
     _active_session = None
+
+    def __init__(self) -> None:
+        """Pseudo-singleton"""
+        raise NotImplementedError
 
     @classmethod
     def _load_active_session(cls) -> None:
@@ -123,11 +139,9 @@ class PersistentSessionManager:
             session: AerieHostSession = pickle.load(fid)
 
         # If gateway ping fails, mark session as inactive
-        if not session.ping_gateway():
+        if not cls.set_active_session(session):
             fn.unlink()
             raise NoActiveSessionError
-
-        cls.set_active_session(session)
 
     @classmethod
     def get_active_session(cls) -> AerieHostSession:
@@ -137,8 +151,6 @@ class PersistentSessionManager:
     @classmethod
     def set_active_session(cls, session: AerieHostSession) -> bool:
 
-        cls._active_session = session
-
         if not session.ping_gateway():
             return False
 
@@ -147,27 +159,37 @@ class PersistentSessionManager:
         for fn in fs:
             fn.unlink()
 
+        cls._active_session = session
+
         fn = datetime.utcnow().strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
         fn = SESSION_FILE_DIRECTORY.joinpath(fn)
 
         with open(fn, 'wb') as fid:
             pickle.dump(session, fid)
 
+        return True
+
     @classmethod
     def unset_active_session(cls) -> str:
-        cls._load_active_session()
+        """Unset any active session
+
+        Returns:
+            str: Name of unset session if any, otherwise None
+        """
+
+        try:
+            cls._load_active_session()
+        except NoActiveSessionError:
+            return None
 
         fs: List[Path] = [
             f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
         for fn in fs:
             fn.unlink()
 
-        if cls._active_session:
-            name = deepcopy(cls._active_session.configuration_name)
-            cls._active_session = None
-            return name
-        else:
-            return None
+        name = deepcopy(cls._active_session.configuration_name)
+        cls._active_session = None
+        return name
 
 
 class NoActiveSessionError(Exception):
