@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import List
 import json
+import shutil
 import pickle
 from datetime import datetime, timedelta
 
@@ -26,8 +27,8 @@ SESSION_TIMEOUT = timedelta(minutes=30)
 
 
 def delete_all_persistent_files():
-    # TODO write a method that will clear out all directories in-use (i.e., configurations and sessions)
-    raise NotImplementedError
+    shutil.rmtree(CONFIGURATION_FILE_DIRECTORY, ignore_errors=True)
+    shutil.rmtree(SESSION_FILE_DIRECTORY, ignore_errors=True)
 
 
 class PersistentConfigurationManager:
@@ -40,7 +41,6 @@ class PersistentConfigurationManager:
 
     @classmethod
     def get_configuration_by_name(cls, configuration_name: str) -> AerieHostConfiguration:
-        cls._initialize()
         try:
             return next(filter(lambda c: c.name == configuration_name, cls.configurations))
         except StopIteration:
@@ -48,7 +48,6 @@ class PersistentConfigurationManager:
 
     @classmethod
     def create_configuration(cls, configuration: AerieHostConfiguration) -> None:
-        cls._initialize()
         if configuration.name in [c.name for c in cls.configurations]:
             raise ValueError(
                 f"Configuration already exists: {configuration.name}")
@@ -58,14 +57,12 @@ class PersistentConfigurationManager:
 
     @classmethod
     def update_configuration(cls, configuration: AerieHostConfiguration) -> None:
-        cls._initialize()
         cls.delete_configuration(configuration.name)
         cls.configurations.append(configuration)
         cls.write_configurations()
 
     @classmethod
     def delete_configuration(cls, configuration_name: str) -> None:
-        cls._initialize()
         old_configuration = cls.get_configuration_by_name(configuration_name)
         cls.configurations.remove(old_configuration)
         cls.write_configurations()
@@ -92,11 +89,8 @@ class PersistentConfigurationManager:
         else:
             cls.configurations = []
 
-    @classmethod
-    def _initialize(cls) -> None:
-        if not cls._initialized:
-            cls.read_configurations()
-            cls._initialized = True
+
+PersistentConfigurationManager.read_configurations()
 
 
 class PersistentSessionManager:

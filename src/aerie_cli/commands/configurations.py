@@ -1,9 +1,14 @@
+"""configurations.py
+
+Commands related to persistent storage of Aerie host configurations.
+"""
+
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from aerie_cli.aerie_host import AuthMethod, AerieHostConfiguration
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError
+from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
 from aerie_cli.utils.prompts import select_from_list
 
 
@@ -29,6 +34,9 @@ def create_configuration(
         None, help='Username for authentication', metavar='USERNAME'
     )
 ):
+    """
+    Define a configuration for an Aerie host
+    """
     # Auth-only fields
     if auth_method is not AuthMethod.NONE:
         if auth_url is None:
@@ -43,11 +51,22 @@ def create_configuration(
 
 @app.command('update')
 def update_configuration(
-    name: str = typer.Option(...,
-                             prompt=True, help='Name for this configuration', metavar='NAME'
-                             )
+    name: str = typer.Option(
+        None, help='Name of the configuration to update', metavar='NAME'
+    )
 ):
+    """
+    Update an existing configuration for an Aerie host
+    """
+
+    # Give user prompt if no name is given
+    if name is None:
+        name = select_from_list(
+            [c.name for c in PersistentConfigurationManager.configurations])
+
+    # Get corresponding configuration
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
+
     conf.graphql_url = typer.prompt(
         'Url of GraphQL API endpoint', conf.graphql_url)
     conf.gateway_url = typer.prompt('Url of Aerie Gateway', conf.gateway_url)
@@ -70,6 +89,9 @@ def activate_session(
     name: str = typer.Option(
         None, help='Name for this configuration', metavar='NAME')
 ):
+    """
+    Activate a session with an Aerie host using a given configuration
+    """
     if name is None:
         name = select_from_list(
             [c.name for c in PersistentConfigurationManager.configurations])
@@ -87,6 +109,9 @@ def activate_session(
 
 @app.command('deactivate')
 def deactivate_session():
+    """
+    Deactivate any active session
+    """
     name = PersistentSessionManager.unset_active_session()
     if name is None:
         Console().print("No active session")
@@ -96,6 +121,9 @@ def deactivate_session():
 
 @app.command('list')
 def list_configurations():
+    """
+    List available Aerie host configurations
+    """
 
     # Get the name of the active session configuration, if any
     try:
@@ -103,6 +131,9 @@ def list_configurations():
         active_config = s.configuration_name
     except NoActiveSessionError:
         active_config = None
+    
+    typer.echo(f"Configuration file location: {CONFIGURATION_FILE_PATH}")
+    typer.echo()
 
     table = Table(title='Aerie Host Configurations',
                   caption='Active configuration in red')
@@ -133,6 +164,9 @@ def delete_configuration(
     name: str = typer.Option(
         "", help='Name for this configuration', metavar='NAME', show_default=False)
 ):
+    """
+    Delete an Aerie host configuration
+    """
     names = [c.name for c in PersistentConfigurationManager.configurations]
     if not name:
         name = select_from_list(names)
@@ -147,14 +181,17 @@ def delete_configuration(
         pass
 
 
-@app.command('uninstall')
+@app.command('clean')
 def delete_all_files(
     not_interactive: bool = typer.Option(
         False, help='Disable interactive prompt')
 ):
+    """
+    Remove all persistent aerie-cli files
+    """
     # Please don't flame me for this double negative, it had to be done
     if not not_interactive:
-        if not typer.confirm("Delete all persistent files associated with aerie-cli? "):
+        if not typer.confirm("Delete all persistent files associated with aerie-cli?"):
             return
 
     delete_all_persistent_files()

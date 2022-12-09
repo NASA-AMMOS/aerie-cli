@@ -148,7 +148,7 @@ class AerieHostSession:
 
         try:
             resp = self.session.get(self.gateway_url + '/health')
-        except (requests.exceptions.ConnectionError, requests.exceptions.ConnectionTimeout):
+        except requests.exceptions.ConnectionError:
             return False
         try:
             if 'uptimeMinutes' in resp.json().keys():
