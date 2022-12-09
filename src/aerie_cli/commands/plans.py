@@ -23,8 +23,7 @@ def download(
     output: str = typer.Option(..., help="The output file destination", prompt=True)
 ):
     """Download a plan and save it locally as a JSON file."""
-    client = get_active_session_client()
-    plan = client.get_activity_plan_by_id(id, full_args)
+    plan = get_active_session_client().get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
@@ -138,7 +137,7 @@ def upload(
     if time_tag:
         plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     plan_id = client.create_activity_plan(model_id, plan_to_create)
-    typer.echo(f"Created plan at: {client.ui_path()}/plans/{plan_id}")
+    typer.echo(f"Created plan ID: {plan_id}")
 
 
 @app.command()
@@ -174,7 +173,6 @@ def simulate(
     """Simulate a plan and optionally download the results."""
     client = get_active_session_client()
 
-    typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     start_time = arrow.utcnow()
     sim_dataset_id = client.simulate_plan(id, poll_period)
     end_time = arrow.utcnow()
@@ -213,43 +211,25 @@ def list():
             str(activity_plan['model_id'])
         )
 
-    console = Console()
-    console.print(table)
+    Console().print(table)
 
 
 @app.command()
 def create_config(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     arg_file: str = typer.Option(
         ..., help="JSON file with configuration arguments", prompt=True
     ),
 ):
     """Clean and Create New Configuration for a Given Plan."""
-    with open(arg_file) as in_file:
-        contents = in_file.read()
-
-    json_obj = json.loads(contents)
+    with open(arg_file) as fid:
+        json_obj = json.load(fid)
 
     resp = get_active_session_client().create_config_args(plan_id=plan_id, args=json_obj)
 
-    print("Configuration Arguments for Plan ID:", plan_id)
+    typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
-        print("(*) " + arg + ":", resp[arg])
+        typer.echo(f"(*) {arg}: {resp[arg]}")
 
 
 @app.command()
@@ -260,18 +240,15 @@ def update_config(
     ),
 ):
     """Update Configuration for a Given Plan."""
-    client = get_active_session_client()
 
-    with open(arg_file) as in_file:
-        contents = in_file.read()
+    with open(arg_file) as fid:
+        json_obj = json.load(fid)
 
-    json_obj = json.loads(contents)
+    resp = get_active_session_client().update_config_args(plan_id=plan_id, args=json_obj)
 
-    resp = client.update_config_args(plan_id=plan_id, args=json_obj)
-
-    print("Configuration Arguments for Plan ID:", plan_id)
+    typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
-        print("(*) " + arg + ":", resp[arg])
+        typer.echo(f"(*) {arg}: {resp[arg]}")
 
 
 @app.command()
@@ -279,9 +256,8 @@ def delete(
     plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
 ):
     """Delete an activity plan by its id."""
-    client = get_active_session_client()
 
-    plan_name = client.delete_plan(plan_id)
+    plan_name = get_active_session_client().delete_plan(plan_id)
     typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
@@ -296,6 +272,3 @@ def clean():
 
     typer.echo(f"All activity plans at {client.ui_plans_path()} have been deleted")
 
-
-if __name__ == "__main__":
-    app()

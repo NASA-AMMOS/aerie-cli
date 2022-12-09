@@ -5,28 +5,13 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.aerie_client import auth_helper
+from aerie_cli.utils.sessions import get_active_session_client
 
 app = typer.Typer()
 
 
 @app.command()
 def upload(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     mission_model_path: str = typer.Option(
         ..., help="The input file from which to create an Aerie model", prompt=True
     ),
@@ -56,9 +41,7 @@ def upload(
         version = arrow.utcnow().isoformat()
 
     # Initialize Aerie client
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     # Upload mission model file to Aerie server
     model_id = client.upload_mission_model(
@@ -74,104 +57,46 @@ def upload(
 
         # Read args as json
         with open(sim_template) as in_file:
-            contents = in_file.read()
-
-        json_obj = json.loads(contents)
+            json_obj = json.load(in_file)
 
         # Attach sim template to model
         client.upload_sim_template(model_id=model_id, args=json_obj, name=name)
         print(f"Attached simulation template to model {model_id}.")
 
     typer.echo(
-        f"Created new mission model: {model_name} at \
-            {client.ui_path()}/models with Model ID: {model_id}"
+        f"Created new mission model: {model_name} with Model ID: {model_id}"
     )
 
 
 @app.command()
 def delete(
-    sso: str = typer.Option("", help="SSO Token"),
-    username: str = typer.Option("", help="JPL username"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     model_id: int = typer.Option(
         ..., help="Mission model ID to be deleted", prompt=True
     ),
 ):
     """Delete a mission model by its model id."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
 
-    model_name = client.delete_mission_model(model_id)
+    model_name = get_active_session_client().delete_mission_model(model_id)
     typer.echo(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
 
 
 @app.command()
-def clean(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
-):
+def clean():
     """Delete all mission models."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     resp = client.get_mission_models()
     for api_mission_model in resp:
         client.delete_mission_model(api_mission_model.id)
 
-    typer.echo(f"All mission models at {client.ui_models_path()} have been deleted")
+    typer.echo(f"All mission models have been deleted")
 
 
 @app.command()
-def list(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
-):
+def list():
     """List uploaded mission models."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
 
-    resp = client.get_mission_models()
+    resp = get_active_session_client().get_mission_models()
 
     # Create output table
     table = Table(title="Current Mission Models")
