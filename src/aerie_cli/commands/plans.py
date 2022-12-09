@@ -7,43 +7,23 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.aerie_client import auth_helper
+from aerie_cli.utils.sessions import get_active_session_client
 from aerie_cli.schemas.client import ActivityPlanCreate
-
-# from aerie_cli.schemas.api import ApiResourceSampleResults
-# from .schemas.client import SimulationResults
 
 app = typer.Typer()
 
 
 @app.command()
 def download(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     full_args: str = typer.Option(
         "",
         help="true, false, or comma separated list of activity types for which to get full arguments.  Otherwise only modified arguments are returned.  Defaults to false.",
     ),
-    output: str = typer.Option(..., help="The output file destination", prompt=True),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    )
+    output: str = typer.Option(..., help="The output file destination", prompt=True)
 ):
     """Download a plan and save it locally as a JSON file."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
     plan = client.get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
@@ -52,35 +32,18 @@ def download(
 
 @app.command()
 def download_simulation(
-    sso: str = typer.Option("", help="SSO Token"),
-    username: str = typer.Option("", help="JPL username"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
     csv: bool = typer.Option(
         False, "--csv/--json", help="Download as CSV (default is json): "
     ),
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
     output: str = typer.Option(..., help="The output file destination", prompt=True),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     absolute_time: bool = typer.Option(
         False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
     )
 ):
     """Download a simulation result and save it locally as a JSON file."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     start_time = client.get_activity_plan_by_id(plan_id, "").start_time
     # get resource timelines and sim results from GraphQL
@@ -158,33 +121,16 @@ def download_simulation(
 
 @app.command()
 def upload(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
     input: str = typer.Option(
         ..., help="The input file from which to create an Aerie plan", prompt=True
     ),
     model_id: int = typer.Option(
         ..., help="The mission model ID to associate with the plan", prompt=True
     ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     with open(input) as in_file:
         contents = in_file.read()
@@ -197,30 +143,13 @@ def upload(
 
 @app.command()
 def duplicate(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     duplicated_plan_name: str = typer.Option(
         ..., help="The name for the duplicated plan", prompt=True
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
+    )
 ):
     """Duplicate an existing plan."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     plan = client.get_activity_plan_by_id(id)
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
@@ -233,24 +162,9 @@ def duplicate(
 
 @app.command()
 def simulate(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: Union[str, None] = typer.Option(
         None, help="The output file destination for simulation results (if desired)"
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
     ),
     poll_period: int = typer.Option(
         5,
@@ -258,9 +172,7 @@ def simulate(
     ),
 ):
     """Simulate a plan and optionally download the results."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     typer.echo(f"Simulating activity plan at: {client.ui_path()}/plans/{id}")
     start_time = arrow.utcnow()
@@ -277,29 +189,10 @@ def simulate(
 
 
 @app.command()
-def list(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
-):
+def list():
     """List uploaded plans."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
 
-    resp = client.get_all_activity_plans()
+    resp = get_active_session_client().list_all_activity_plans()
 
     # Create output table
     table = Table(title="Current Activity Plans")
@@ -310,13 +203,14 @@ def list(
     table.add_column("Simulation ID", no_wrap=True)
     table.add_column("Model ID", no_wrap=True)
     for activity_plan in resp:
+        if not len(activity_plan['simulations']):
+            activity_plan['simulations'] = [{'id': ''}]
         table.add_row(
-            str(activity_plan.id),
-            str(activity_plan.name),
-            str(activity_plan.start_time),
-            str(activity_plan.end_time),
-            str(activity_plan.sim_id),
-            str(activity_plan.model_id),
+            str(activity_plan['id']),
+            str(activity_plan['name']),
+            str(activity_plan['start_time']),
+            str(activity_plan['simulations'][0]['id']),
+            str(activity_plan['model_id'])
         )
 
     console = Console()
@@ -346,16 +240,12 @@ def create_config(
     ),
 ):
     """Clean and Create New Configuration for a Given Plan."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
-
     with open(arg_file) as in_file:
         contents = in_file.read()
 
     json_obj = json.loads(contents)
 
-    resp = client.create_config_args(plan_id=plan_id, args=json_obj)
+    resp = get_active_session_client().create_config_args(plan_id=plan_id, args=json_obj)
 
     print("Configuration Arguments for Plan ID:", plan_id)
     for arg in resp:
@@ -364,30 +254,13 @@ def create_config(
 
 @app.command()
 def update_config(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     arg_file: str = typer.Option(
         ..., help="JSON file with configuration arguments", prompt=True
     ),
 ):
     """Update Configuration for a Given Plan."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     with open(arg_file) as in_file:
         contents = in_file.read()
@@ -403,54 +276,19 @@ def update_config(
 
 @app.command()
 def delete(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
     plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
 ):
     """Delete an activity plan by its id."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     plan_name = client.delete_plan(plan_id)
     typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
 @app.command()
-def clean(
-    sso: str = typer.Option("", help="SSO Token"),
-    sso_cookie_name: str = typer.Option(None, help="SSO cookie name"),
-    sso_cookie: str = typer.Option(None, help = "SSO cookie"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
-    cloud_gateway: str = typer.Option(
-        None, help="The Gateway URL of the Aerie deployment"
-    ),
-):
+def clean():
     """Delete all activity plans."""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-    )
+    client = get_active_session_client()
 
     resp = client.get_all_activity_plans()
     for activity_plan in resp:

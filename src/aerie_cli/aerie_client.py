@@ -73,7 +73,27 @@ class AerieClient:
         api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
         return self.__expand_activity_arguments(plan, full_args)
-    
+
+
+    def list_all_activity_plans(self) -> List[Dict]:
+        list_all_plans_query = """
+        query list_all_plans {
+            plan(order_by: { id: asc }) {
+                id
+                name
+                model_id
+                start_time
+                duration
+                simulations(limit: 1, order_by: { id: desc }) {
+                    id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_plans_query)
+        return resp
+
+
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
         query get__all_plans {

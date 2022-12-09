@@ -3,7 +3,7 @@ from rich.console import Console
 from rich.table import Table
 
 from aerie_cli.aerie_host import AuthMethod, AerieHostConfiguration
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files
+from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError
 from aerie_cli.utils.prompts import select_from_list
 
 
@@ -65,11 +65,15 @@ def update_configuration(
     PersistentConfigurationManager.update_configuration(conf)
 
 
-@app.command('select')
-def select_configuration(
+@app.command('activate')
+def activate_session(
     name: str = typer.Option(
-        ..., prompt=True, help='Name for this configuration', metavar='NAME')
+        None, help='Name for this configuration', metavar='NAME')
 ):
+    if name is None:
+        name = select_from_list(
+            [c.name for c in PersistentConfigurationManager.configurations])
+
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
     if conf.auth_method != AuthMethod.NONE:
@@ -78,24 +82,44 @@ def select_configuration(
         password = None
 
     session = conf.start_session(password)
-    PersistentSessionManager.save_active_session(session)
+    PersistentSessionManager.set_active_session(session)
+
+
+@app.command('deactivate')
+def deactivate_session():
+    name = PersistentSessionManager.unset_active_session()
+    Console().print(f"Deactivated session: {name}")
 
 
 @app.command('list')
 def list_configurations():
-    table = Table(title='Aerie Host Configurations')
+
+    # Get the name of the active session configuration, if any
+    try:
+        s = PersistentSessionManager.get_active_session()
+        active_config = s.configuration_name
+    except NoActiveSessionError:
+        active_config = None
+
+    table = Table(title='Aerie Host Configurations',
+                  caption='Active configuration in red')
     table.add_column('Host Name', no_wrap=True)
     table.add_column('GraphQL API URL', no_wrap=True)
     table.add_column('Aerie Gateway URL', no_wrap=True)
     table.add_column('Authentication Method', no_wrap=True)
     table.add_column('Username', no_wrap=True)
     for c in PersistentConfigurationManager.configurations:
+        if c.name == active_config:
+            style = 'red'
+        else:
+            style = None
         table.add_row(
             c.name,
             c.graphql_url,
             c.gateway_url,
             c.auth_method.value,
-            c.username if c.username else ""
+            c.username if c.username else "",
+            style=style
         )
 
     Console().print(table)
@@ -103,12 +127,21 @@ def list_configurations():
 
 @app.command('delete')
 def delete_configuration(
-    name: str = typer.Option("", help='Name for this configuration', metavar='NAME', show_default=False)
+    name: str = typer.Option(
+        "", help='Name for this configuration', metavar='NAME', show_default=False)
 ):
     names = [c.name for c in PersistentConfigurationManager.configurations]
     if not name:
         name = select_from_list(names)
+
     PersistentConfigurationManager.delete_configuration(name)
+
+    try:
+        s = PersistentSessionManager.get_active_session()
+        if name == s.configuration_name:
+            PersistentSessionManager.unset_active_session()
+    except NoActiveSessionError:
+        pass
 
 
 @app.command('uninstall')

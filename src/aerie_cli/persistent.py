@@ -3,6 +3,7 @@
 Manage persistent storage of Aerie host configurations and active sessions
 """
 
+from copy import deepcopy
 from pathlib import Path
 from typing import List
 import json
@@ -77,7 +78,8 @@ class PersistentConfigurationManager:
                 except json.JSONDecodeError:
                     raise RuntimeError(
                         f"Unable to read configuration file: {str(CONFIGURATION_FILE_PATH)}")
-            cls.configurations = [AerieHostConfiguration.from_dict(c) for c in raw_confs]
+            cls.configurations = [
+                AerieHostConfiguration.from_dict(c) for c in raw_confs]
         else:
             cls.configurations = []
 
@@ -97,7 +99,7 @@ class PersistentSessionManager:
         # Get any/all open sessions. List in chronological order, newest first
         fs: List[Path] = [
             f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
-        fs = fs.sort(reverse=True)
+        fs.sort(reverse=True)
 
         if not len(fs):
             raise NoActiveSessionError
@@ -125,7 +127,7 @@ class PersistentSessionManager:
             fn.unlink()
             raise NoActiveSessionError
 
-        cls.save_active_session(cls._active_session)
+        cls.set_active_session(session)
 
     @classmethod
     def get_active_session(cls) -> AerieHostSession:
@@ -133,12 +135,15 @@ class PersistentSessionManager:
         return cls._active_session
 
     @classmethod
-    def set_active_session(cls, session: AerieHostSession) -> None:
+    def set_active_session(cls, session: AerieHostSession) -> bool:
 
         cls._active_session = session
 
+        if not session.ping_gateway():
+            return False
+
         fs: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie-cli.session')]
+            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
         for fn in fs:
             fn.unlink()
 
@@ -147,6 +152,22 @@ class PersistentSessionManager:
 
         with open(fn, 'wb') as fid:
             pickle.dump(session, fid)
+
+    @classmethod
+    def unset_active_session(cls) -> str:
+        cls._load_active_session()
+
+        fs: List[Path] = [
+            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+        for fn in fs:
+            fn.unlink()
+
+        if cls._active_session:
+            name = deepcopy(cls._active_session.configuration_name)
+            cls._active_session = None
+            return name
+        else:
+            return None
 
 
 class NoActiveSessionError(Exception):

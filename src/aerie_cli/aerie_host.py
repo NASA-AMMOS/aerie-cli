@@ -27,24 +27,32 @@ class AerieHostSession:
     cookie information stored in the `requests.Session` object, if necessary.
     """
 
-    def __init__(self, session: requests.Session, graphql_url: str, gateway_url: str) -> None:
+    def __init__(
+        self,
+        session: requests.Session,
+        graphql_url: str,
+        gateway_url: str,
+        configuration_name: str = None
+    ) -> None:
         """
 
         Args:
             session (requests.Session): HTTP session, with auth headers/cookies if necessary
             graphql_url (str): Route to Aerie host's GraphQL API
             gateway_url (str): Route to Aerie Gateway
+            configuration_name (str, optional): Name of configuration for this session
         """
         self.session = session
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
+        self.configuration_name = configuration_name
 
-    def post_to_graphql(self, query: str, **variables) -> Dict:
+    def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
 
         Args:
             query (str): GraphQL query text
-            variables: keyword arguments for named variables for the query
+            kwargs: keyword arguments for named variables for the query
 
         Raises:
             RuntimeError
@@ -57,7 +65,7 @@ class AerieHostSession:
 
             resp = self.session.post(
                 self.graphql_url,
-                json={"query": query, "variables": variables}
+                json={"query": query, "variables": kwargs}
             )
 
             if resp.ok:
@@ -79,10 +87,9 @@ class AerieHostSession:
 
         except Exception as e:
             # Re-raise with additional information
+            e = str(e)
 
             if "password" in kwargs:
-
-                e = str(e)
 
                 # Remove password
                 pw_sub_str = "<Password removed in aerie-cli error handling>"
@@ -94,7 +101,7 @@ class AerieHostSession:
                 raise RuntimeError({
                     "query": deepcopy(query),
                     "variables": kwargs,
-                    "exception": str(e)
+                    "exception": e
                 })
 
             else:
@@ -138,15 +145,16 @@ class AerieHostSession:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
     def ping_gateway(self) -> bool:
-        # TODO if gateway health path returns well, return true. Otherwise, return false
-        resp = self.session.get(self.gateway_url + '/health')
+
+        try:
+            resp = self.session.get(self.gateway_url + '/health')
+        except (requests.exceptions.ConnectionError, requests.exceptions.ConnectionTimeout):
+            return False
         try:
             if 'uptimeMinutes' in resp.json().keys():
                 return True
         except Exception:
-            pass
-
-        return False
+            return False
 
     @classmethod
     def session_helper(
@@ -156,7 +164,8 @@ class AerieHostSession:
         gateway_url: str,
         auth_url: str = None,
         username: str = None,
-        password: str = None
+        password: str = None,
+        configuration_name: str = None
     ) -> 'AerieHostSession':
         """Helper function to create a session with an Aerie host
 
@@ -167,6 +176,7 @@ class AerieHostSession:
             auth_url (str, optional): Route to Authentication endpoint. Ignore if no auth.
             username (str, optional): Username for Authentication. Ignore if no auth.
             password (str, optional): Password for Authentication. Ignore if no auth.
+            configuration_name (str, optional): Name of source configuration. Ignore if not instantiating from a config.
 
         Returns:
             AerieHostSession: HTTP session, with auth headers/cookies if necessary
@@ -197,7 +207,13 @@ class AerieHostSession:
             raise RuntimeError(
                 f"No logic to generate an Aerie host session for auth method: {auth_method}")
 
-        return cls(session, graphql_url, gateway_url)
+        aerie_session = cls(
+            session, graphql_url, gateway_url, configuration_name)
+
+        if not aerie_session.ping_gateway():
+            raise RuntimeError(f"Failed to open session")
+
+        return aerie_session
 
 
 @dataclass
@@ -251,5 +267,6 @@ class AerieHostConfiguration:
             self.gateway_url,
             self.auth_url,
             self.username,
-            password
+            password,
+            self.name
         )

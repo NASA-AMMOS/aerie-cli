@@ -3,7 +3,7 @@ import typer
 import sys
 from rich.console import Console
 
-from .commands import models
+# from .commands import models
 from .commands import plans
 from .commands import configurations
 
@@ -11,7 +11,7 @@ from .persistent import NoActiveSessionError
 
 app = typer.Typer()
 app.add_typer(plans.app, name="plans")
-app.add_typer(models.app, name="models")
+# app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
 
 

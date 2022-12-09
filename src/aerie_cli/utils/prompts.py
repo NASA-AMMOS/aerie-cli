@@ -6,9 +6,9 @@ import typer
 def select_from_list(options: List[str], prompt: str = 'Select an option'):
     while True:
         for i, c in enumerate(options):
-            print(f"\t{i}) {c}")
+            print(f"\t{i+1}) {c}")
         choice_id = typer.prompt(prompt)
         try:
-            return options[int(choice_id)]
+            return options[int(choice_id)-1]
         except (KeyError, ValueError):
             pass
