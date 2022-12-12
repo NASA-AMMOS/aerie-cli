@@ -62,7 +62,7 @@ def update_configuration(
     # Give user prompt if no name is given
     if name is None:
         name = select_from_list(
-            [c.name for c in PersistentConfigurationManager.configurations])
+            [c.name for c in PersistentConfigurationManager.get_configurations()])
 
     # Get corresponding configuration
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
@@ -94,7 +94,7 @@ def activate_session(
     """
     if name is None:
         name = select_from_list(
-            [c.name for c in PersistentConfigurationManager.configurations])
+            [c.name for c in PersistentConfigurationManager.get_configurations()])
 
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
@@ -142,7 +142,7 @@ def list_configurations():
     table.add_column('Aerie Gateway URL', no_wrap=True)
     table.add_column('Authentication Method', no_wrap=True)
     table.add_column('Username', no_wrap=True)
-    for c in PersistentConfigurationManager.configurations:
+    for c in PersistentConfigurationManager.get_configurations():
         if c.name == active_config:
             style = 'red'
         else:
@@ -167,7 +167,7 @@ def delete_configuration(
     """
     Delete an Aerie host configuration
     """
-    names = [c.name for c in PersistentConfigurationManager.configurations]
+    names = [c.name for c in PersistentConfigurationManager.get_configurations()]
     if not name:
         name = select_from_list(names)
 

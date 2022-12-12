@@ -32,44 +32,58 @@ def delete_all_persistent_files():
 
 
 class PersistentConfigurationManager:
-    _initialized = False
-    configurations: List[AerieHostConfiguration]
+    _configurations: List[AerieHostConfiguration] = None
 
     def __init__(self) -> None:
         """Pseudo-singleton"""
         raise NotImplementedError
 
     @classmethod
+    def _initialize(cls) -> None:
+        if cls._configurations is None:
+            cls.read_configurations()
+
+    @classmethod
+    def get_configurations(cls) -> List[AerieHostConfiguration]:
+        cls._initialize()
+        return cls._configurations
+
+    @classmethod
     def get_configuration_by_name(cls, configuration_name: str) -> AerieHostConfiguration:
+        cls._initialize()
         try:
-            return next(filter(lambda c: c.name == configuration_name, cls.configurations))
+            return next(filter(lambda c: c.name == configuration_name, cls._configurations))
         except StopIteration:
             raise ValueError(f"Unknown configuration: {configuration_name}")
 
     @classmethod
     def create_configuration(cls, configuration: AerieHostConfiguration) -> None:
-        if configuration.name in [c.name for c in cls.configurations]:
+        cls._initialize()
+        if configuration.name in [c.name for c in cls._configurations]:
             raise ValueError(
                 f"Configuration already exists: {configuration.name}")
 
-        cls.configurations.append(configuration)
+        cls._configurations.append(configuration)
         cls.write_configurations()
 
     @classmethod
     def update_configuration(cls, configuration: AerieHostConfiguration) -> None:
-        cls.delete_configuration(configuration.name)
-        cls.configurations.append(configuration)
+        cls._initialize()
+        old_configuration = cls.get_configuration_by_name(configuration.name)
+        idx = cls._configurations.index(old_configuration)
+        cls._configurations[idx] = (configuration)
         cls.write_configurations()
 
     @classmethod
     def delete_configuration(cls, configuration_name: str) -> None:
+        cls._initialize()
         old_configuration = cls.get_configuration_by_name(configuration_name)
-        cls.configurations.remove(old_configuration)
+        cls._configurations.remove(old_configuration)
         cls.write_configurations()
 
     @classmethod
     def write_configurations(cls) -> None:
-        confs = [c.to_dict() for c in cls.configurations]
+        confs = [c.to_dict() for c in cls._configurations]
         CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True)
         with open(CONFIGURATION_FILE_PATH, 'w') as fid:
             json.dump(confs, fid, indent=2)
@@ -84,13 +98,10 @@ class PersistentConfigurationManager:
                 except json.JSONDecodeError:
                     raise RuntimeError(
                         f"Unable to read configuration file: {str(CONFIGURATION_FILE_PATH)}")
-            cls.configurations = [
+            cls._configurations = [
                 AerieHostConfiguration.from_dict(c) for c in raw_confs]
         else:
-            cls.configurations = []
-
-
-PersistentConfigurationManager.read_configurations()
+            cls._configurations = []
 
 
 class PersistentSessionManager:
