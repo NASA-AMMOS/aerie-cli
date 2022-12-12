@@ -96,7 +96,7 @@ def download_simulation(
         # this stores the header names for the CSV
         field_name = ["Time (s)"]
         if absolute_time:
-            field_name = ["Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)"]
+            field_name = ["Time (YYYY-DDDThh:mm:ss.sss)"]
 
         for activity in resources.get("resourceSamples"):
             list = resources.get("resourceSamples").get(activity)
@@ -114,8 +114,9 @@ def download_simulation(
             if time != 0:
                 seconds = time / 1000000
             if absolute_time:
-                formated = start_time.shift(seconds=seconds)
-                tempDict = {"Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)": formated}
+                formatted = start_time.shift(seconds=seconds)
+                formatted = formatted.format("YYYY-DDDDTHH:mm:ss.SSs")
+                tempDict = {"Time (YYYY-DDDThh:mm:ss.sss)": formatted}
             else:
                 tempDict = {"Time (s)": seconds}
             for activity in time_dictionary.get(time):
@@ -124,7 +125,7 @@ def download_simulation(
 
         # Sort the dictionary by time
         if absolute_time:
-            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (YYYY-MM-DDT:hh:mm:ss.sss+TZD)"])
+            sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (YYYY-DDDThh:mm:ss.sss)"])
         else:
             sorted_by_time = sorted(csv_dictionary, key=lambda d: d["Time (s)"])
 
@@ -147,7 +148,7 @@ def download_simulation(
                     seconds = 0
                     if milliseconds != 0:
                         seconds = milliseconds/1000000
-                    i["x"] = str(start_time.shift(seconds=seconds))
+                    i["x"] = str(start_time.shift(seconds=seconds).format("YYYY-DDDDTHH:mm:ss.SSs"))
 
         # write to file
         with open(output, "w") as out_file:
