@@ -74,7 +74,7 @@ def download_simulation(
         None, help="The Gateway URL of the Aerie deployment"
     ),
     absolute_time: bool = typer.Option(
-        False, "--absolute-time", help="Change time format from seconds to YYYY-MM-DDT:hh:mm:ss.sss+TZD"
+        False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
     )
 ):
     """Download a simulation result and save it locally as a JSON file."""
@@ -115,7 +115,7 @@ def download_simulation(
                 seconds = time / 1000000
             if absolute_time:
                 formatted = start_time.shift(seconds=seconds)
-                formatted = formatted.format("YYYY-DDDDTHH:mm:ss.SSs")
+                formatted = formatted.format("YYYY-DDDDTHH:mm:ss.SSS")
                 tempDict = {"Time (YYYY-DDDThh:mm:ss.sss)": formatted}
             else:
                 tempDict = {"Time (s)": seconds}
@@ -148,7 +148,7 @@ def download_simulation(
                     seconds = 0
                     if milliseconds != 0:
                         seconds = milliseconds/1000000
-                    i["x"] = str(start_time.shift(seconds=seconds).format("YYYY-DDDDTHH:mm:ss.SSs"))
+                    i["x"] = str(start_time.shift(seconds=seconds).format("YYYY-DDDDTHH:mm:ss.SSS"))
 
         # write to file
         with open(output, "w") as out_file:
