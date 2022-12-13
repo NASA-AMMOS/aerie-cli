@@ -7,8 +7,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .client import auth_helper
-from .schemas.client import ActivityPlanCreate
+from aerie_cli.client import auth_helper
+from aerie_cli.schemas.client import ActivityPlanCreate
 
 # from aerie_cli.schemas.api import ApiResourceSampleResults
 # from .schemas.client import SimulationResults
