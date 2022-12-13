@@ -2,7 +2,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.client import AuthMethod, AerieHostSession, AerieClient
+from aerie_cli.aerie_client import AerieClient
+from aerie_cli.aerie_host import AuthMethod, AerieHostSession
 
 app = typer.Typer()
 

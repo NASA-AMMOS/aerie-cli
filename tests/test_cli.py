@@ -7,7 +7,7 @@ sys.path.insert(0, src_path)
 
 from typer.testing import CliRunner
 
-from aerie_cli.client import auth_helper
+from aerie_cli.aerie_client import auth_helper
 from aerie_cli.commands.models import app as m_app
 from aerie_cli.commands.plans import app as p_app
 

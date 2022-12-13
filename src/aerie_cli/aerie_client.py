@@ -1,17 +1,11 @@
-from copy import deepcopy
-import json
-import re
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 import arrow
-import requests
-import typer
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiEffectiveActivityArguments
@@ -21,119 +15,22 @@ from .schemas.api import ApiResourceSampleResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
-from .schemas.client import SimulationResults
 from .utils.serialization import postgres_duration_to_microseconds
-from urllib.parse import urlparse
-
-# from .schemas.api import ApiSimulationResults
-
-
-@dataclass
-class Auth:
-    username: str
-    password: str
-
+from .aerie_host import AerieHostSession
 
 class AerieClient:
-    server_url: str
-    sso_token: str
-    cloud_gateway: str
-    sso_cookie_name: str
-    sso_cookie: str
+    """Client-side behavior for aerie-cli
 
-    def __init__(self, server_url: str, sso: str=None, cloud_gateway: str=None, sso_cookie_name: str=None, sso_cookie: str=None):
-        if sso is None:
-            sso = ""
-        self.server_url = server_url
-        self.sso_token = sso
-        self.cloud_gateway = cloud_gateway
-        self.sso_cookie_name = sso_cookie_name
-        self.sso_cookie = sso_cookie
+    Class encapsulates logic to query and send files to a given Aerie host.
+    """
 
-    @classmethod
-    def from_local(cls, server_url: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
-        return cls(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
+    def __init__(self, host_session: AerieHostSession):
+        """Instantiate a client with an authenticated host session
 
-    @classmethod
-    def from_sso(cls, server_url: str, sso: str, cloud_gateway: str=None):
-        return cls(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway)
-
-    @classmethod
-    def from_userpass(cls, server_url: str, username: str, password: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
-        auth = Auth(username=username, password=password)
-        sso = cls.cls_get_sso_token(server_url, auth, cloud_gateway)
-        return cls(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-
-    @classmethod
-    def from_cookie(cls, server_url: str, cloud_gateway: str, sso_cookie_name: str, sso_cookie: str):
-        return cls(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-
-    @classmethod
-    def cls_graphql_path(cls, server_url: str, cloud_gateway: str) -> str:
-        if cloud_gateway == None: # Local/on-prem installation
-            return server_url + ":8080/v1/graphql"
-        else: # Cloud installation
-            return cloud_gateway + "/hasura/v1/graphql"
-
-    @classmethod
-    def cls_gateway_path(cls, server_url: str, cloud_gateway: str) -> str:
-        if cloud_gateway == None:
-            return server_url + ":9000"
-        else:
-            return cloud_gateway 
-
-    @classmethod
-    def cls_files_api_path(cls, server_url: str, cloud_gateway: str) -> str:
-        return cls.cls_gateway_path(server_url, cloud_gateway) + "/file"
-
-    @classmethod
-    def cls_login_api_path(cls, server_url: str, cloud_gateway: str) -> str:
-        return cls.cls_gateway_path(server_url, cloud_gateway) + "/auth/login"
-
-    @classmethod
-    def cls_ui_path(cls, server_url: str) -> str:
-        return server_url
-
-    @classmethod
-    def cls_ui_models_path(cls, server_url: str) -> str:
-        return cls.cls_ui_path(server_url) + "/models"
-
-    @classmethod
-    def cls_ui_plans_path(cls, server_url: str) -> str:
-        return cls.cls_ui_path(server_url) + "/plans"
-
-    @classmethod
-    def cls_get_sso_token(cls, server_url: str, auth: Auth, cloud_gateway: str) -> str:
-        resp = requests.post(
-            url=cls.cls_login_api_path(server_url, cloud_gateway),
-            json={"username": auth.username, "password": auth.password},
-            verify=False
-        )
-        if not resp.json()["success"]:
-            sys.exit("Authentication failed. Perhaps you provided bad credentials...")
-
-        return resp.json()["ssoToken"]
-
-    def graphql_path(self) -> str:
-        return self.cls_graphql_path(self.server_url, self.cloud_gateway)
-
-    def gateway_path(self) -> str:
-        return self.cls_gateway_path(self.server_url, self.cloud_gateway)
-
-    def files_api_path(self) -> str:
-        return self.cls_files_api_path(self.server_url, self.cloud_gateway)
-
-    def login_api_path(self) -> str:
-        return self.cls_login_api_path(self.server_url, self.cloud_gateway)
-
-    def ui_path(self) -> str:
-        return self.cls_ui_path(self.server_url)
-
-    def ui_models_path(self) -> str:
-        return self.cls_ui_models_path(self.server_url)
-
-    def ui_plans_path(self) -> str:
-        return self.cls_ui_plans_path(self.server_url)
+        Args:
+            host_session (AerieHostSession): Aerie host information, including authentication if necessary
+        """
+        self.host_session = host_session
 
     def get_activity_plan_by_id(self, plan_id: int, full_args: str = None) -> ActivityPlanRead:
         """Download activity plan from Aerie
@@ -172,7 +69,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.__gql_query(query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
         return self.__expand_activity_arguments(plan, full_args)
@@ -202,7 +99,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.__gql_query(get_all_plans_query)
+        resp = self.host_session.post_to_graphql(get_all_plans_query)
         activity_plans = []
         for plan in resp:
             plan = ApiActivityPlanRead.from_dict(plan)
@@ -224,7 +121,7 @@ class AerieClient:
             }
         }
         """
-        plan_resp = self.__gql_query(
+        plan_resp = self.host_session.post_to_graphql(
             create_plan_mutation,
             plan=api_plan_create.to_dict(),
         )
@@ -238,7 +135,7 @@ class AerieClient:
         }
         """
         # TODO: determine how to handle arguments--should we accept another upload?
-        _ = self.__gql_query(
+        _ = self.host_session.post_to_graphql(
             create_simulation_mutation, simulation={"arguments": {}, "plan_id": plan_id}
         )
 
@@ -262,7 +159,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             insert_activity_mutation,
             activity=api_activity_create.to_dict(),
         )
@@ -291,7 +188,7 @@ class AerieClient:
         }
       }
       """
-      resp = self.__gql_query(
+      resp = self.host_session.post_to_graphql(
           update_activity_mutation,
           id=activity_id,
           activity=api_activity_update.to_dict(),
@@ -311,7 +208,7 @@ class AerieClient:
         """
 
         def exec_sim_query():
-            return self.__gql_query(simulate_query, plan_id=plan_id)
+            return self.host_session.post_to_graphql(simulate_query, plan_id=plan_id)
 
         resp = exec_sim_query()
 
@@ -330,7 +227,6 @@ class AerieClient:
         samples = self.get_resource_samples(plan_id)
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
-
 
     def get_resource_samples(self, plan_id: int):
         resource_profile_query = """
@@ -351,7 +247,7 @@ class AerieClient:
           }
         }
         """
-        resp = self.__gql_query(resource_profile_query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id)
         profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
 
         plan_duration_query = """
@@ -361,7 +257,7 @@ class AerieClient:
           }
         }
         """
-        resp = self.__gql_query(plan_duration_query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(plan_duration_query, plan_id=plan_id)
         duration = postgres_duration_to_microseconds(resp["duration"])
 
         # Parse profile segments into resource timelines
@@ -423,7 +319,7 @@ class AerieClient:
             }
           }
         """
-        resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
+        resp = self.host_session.post_to_graphql(sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
 
     def delete_plan(self, plan_id: int) -> str:
@@ -436,7 +332,7 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(delete_plan_mutation, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(delete_plan_mutation, plan_id=plan_id)
 
         return resp["name"]
 
@@ -444,26 +340,14 @@ class AerieClient:
         self, mission_model_path: str, project_name: str, mission: str, version: str
     ) -> int:
 
-        file_api_url = self.files_api_path()
-
         # Create unique jar identifier for server side
         upload_timestamp = arrow.utcnow().isoformat()
         server_side_jar_name = (
             Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
         )
         with open(mission_model_path, "rb") as jar_file:
-            if self.sso_cookie_name:
-                resp = requests.post(
-                    file_api_url,
-                    files={"file": (server_side_jar_name, jar_file)},
-                    cookies={self.sso_cookie_name: self.sso_cookie},
-                )
-            else:
-                resp = requests.post(
-                    file_api_url,
-                    files={"file": (server_side_jar_name, jar_file)},
-                    headers={"x-auth-sso-token": self.sso_token},
-                )
+            resp = self.host_session.post_to_gateway_files(
+                server_side_jar_name, jar_file)
 
         jar_id = resp.json()["id"]
 
@@ -479,7 +363,7 @@ class AerieClient:
             name=project_name, mission=mission, version=version, jar_id=jar_id
         )
 
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             create_model_mutation, model=api_mission_model.to_dict()
         )
 
@@ -502,7 +386,7 @@ class AerieClient:
                 }
             }"""
 
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             sim_template_mutation, model_id=model_id, args=args, name=name
         )
 
@@ -519,7 +403,7 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(delete_model_mutation, model_id=model_id)
+        resp = self.host_session.post_to_graphql(delete_model_mutation, model_id=model_id)
 
         return resp["name"]
 
@@ -537,7 +421,7 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_mission_model_query)
+        resp = self.host_session.post_to_graphql(get_mission_model_query)
         api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
@@ -566,7 +450,7 @@ class AerieClient:
         plan = self.get_activity_plan_by_id(plan_id)
         sim_id = plan.sim_id
 
-        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=args)
+        resp = self.host_session.post_to_graphql(update_config_arg_query, sim_id=sim_id, args=args)
 
         return resp["arguments"]
 
@@ -610,7 +494,7 @@ class AerieClient:
         for arg in args:
             final_args[arg] = args[arg]
 
-        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=final_args)
+        resp = self.host_session.post_to_graphql(update_config_arg_query, sim_id=sim_id, args=final_args)
 
         return resp["arguments"]
 
@@ -627,7 +511,7 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_config_query, sim_id=sim_id)
+        resp = self.host_session.post_to_graphql(get_config_query, sim_id=sim_id)
 
         return resp["arguments"]
 
@@ -659,7 +543,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_activity_interface_query,
             activity_type_name=activity_name,
             mission_model_id=model_id,
@@ -702,7 +586,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             create_expansion_logic_query,
             activity_type_name=activity_name,
             expansion_logic=expansion_logic,
@@ -741,7 +625,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             create_expansion_set_query,
             command_dictionary_id=command_dictionary_id,
             mission_model_id=model_id,
@@ -772,7 +656,7 @@ class AerieClient:
             }
         }
         """
-        self.__gql_query(
+        self.host_session.post_to_graphql(
             create_sequence_query,
             simulation_dataset_id=simulation_dataset_id,
             seq_id=seq_id,
@@ -803,7 +687,7 @@ class AerieClient:
             }
             }
         """
-        data = self.__gql_query(get_expansion_ids_query, activity_type=activity_type)
+        data = self.host_session.post_to_graphql(get_expansion_ids_query, activity_type=activity_type)
         expansion_ids = [int(v["id"]) for v in data]
         expansion_ids.sort()
         return expansion_ids
@@ -823,7 +707,7 @@ class AerieClient:
         }
         }
         """
-        data = self.__gql_query(get_all_expansion_ids_query)
+        data = self.host_session.post_to_graphql(get_all_expansion_ids_query)
 
         expansion_ids = {}
         for o in data:
@@ -855,7 +739,7 @@ class AerieClient:
           }
         }
         """
-        data = self.__gql_query(get_simulation_dataset_query, plan_id=plan_id)
+        data = self.host_session.post_to_graphql(get_simulation_dataset_query, plan_id=plan_id)
         return [d["id"] for d in data[0]["simulation_datasets"]]
 
     def expand_simulation(
@@ -892,7 +776,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             expand_simulation_query,
             expansion_set_id=expansion_set_id,
             simulation_dataset_id=simulation_dataset_id,
@@ -938,7 +822,7 @@ class AerieClient:
                 }
             }
             """
-            self.__gql_query(
+            self.host_session.post_to_graphql(
                 link_activity_to_sequence_query,
                 seq_id=seq_id,
                 simulated_activity_id=simulated_activity_id,
@@ -968,7 +852,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_simulated_activity_ids_query,
             simulation_dataset_id=simulation_dataset_id,
         )
@@ -1012,7 +896,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_expanded_sequence_query,
             seq_id=seq_id,
             simulation_dataset_id=simulation_dataset_id,
@@ -1048,7 +932,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             expansion_run_commands_query, expansion_run_id=expansion_run_id
         )
 
@@ -1078,7 +962,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(get_types_query, model_id=model_id)
+        data = self.host_session.post_to_graphql(get_types_query, model_id=model_id)
         activity_types = [o["name"] for o in data]
         return activity_types
 
@@ -1106,7 +990,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             upload_command_dictionary_query,
             command_dictionary_string=command_dictionary_string,
         )
@@ -1148,7 +1032,7 @@ class AerieClient:
         }
         """
 
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_command_dictionary_metadata_query,
             command_dictionary_id=command_dictionary_id,
         )[0]
@@ -1156,7 +1040,7 @@ class AerieClient:
         command_dictionary_mission = data["mission"]
         command_dictionary_version = data["version"]
 
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_typescript_dictionary_query, command_dictionary_id=command_dictionary_id
         )
 
@@ -1182,71 +1066,6 @@ class AerieClient:
 
         return typescript_dictionary_string
 
-    def __gql_query(self, query: str, **kwargs):
-        resp = requests.post(
-            self.graphql_path(),
-            json={"query": query, "variables": kwargs},
-            **self.__get_auth_args()
-        )
-
-        try:
-            if resp.ok:
-                resp_json = resp.json()["data"]
-                data = next(iter(resp_json.values()))
-
-            if data is None:
-                raise RuntimeError
-
-            if not resp.ok or (
-                resp.ok
-                and isinstance(data, dict)
-                and "success" in data
-                and not data["success"]
-            ):
-                raise RuntimeError
-
-        except Exception as e:
-            # Re-raise with additional information
-
-            print("ERROR: The API call was unsuccessful!\n")
-
-            if "password" in kwargs:
-
-                # Remove password
-                kwargs = deepcopy(kwargs)
-                kwargs["password"] = None
-
-                # Raise exception with query, variables, and original exception
-                raise RuntimeError({
-                    "query": deepcopy(query),
-                    "variables": kwargs,
-                    "exception": e
-                })
-
-            else:
-
-                # Decode response text if in JSON-parsable format
-                try:
-                    resp_contents = json.loads(resp.text)
-                except json.decoder.JSONDecodeError:
-                    resp_contents = resp.text
-                
-                # Raise exception with query, variables, original exception, and response
-                raise RuntimeError({
-                    "query": deepcopy(query),
-                    "variables": deepcopy(kwargs),
-                    "exception": e,
-                    "response_text": resp_contents
-                })
-
-        return data
-
-    def __get_auth_args(self) -> Dict:
-        if self.sso_cookie_name:
-            return deepcopy({"cookies": {self.sso_cookie_name: self.sso_cookie}})
-        else:
-            return {"headers": {"x-auth-sso-token": self.sso_token}}
-
     def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:
         if full_args is None or full_args == "" or full_args.lower() == "false":
             return plan
@@ -1268,7 +1087,7 @@ class AerieClient:
                     }
                 }
                 """
-                resp = self.__gql_query(
+                resp = self.host_session.post_to_graphql(
                     query,
                     args=activity.parameters,
                     act_type=activity.type,
@@ -1276,60 +1095,3 @@ class AerieClient:
                 )
                 activity.parameters = ApiEffectiveActivityArguments.from_dict(resp).arguments
         return plan
-
-
-def check_response_status(
-    response: requests.Response, status_code: int, error_message: str = "Request failed"
-):
-    if response.status_code != status_code:
-        raise RuntimeError(f"{error_message}\nServer response: {response.json()}")
-
-
-def auth_helper(sso: str, username: str, password: str, server_url: str, cloud_gateway: str=None, sso_cookie_name: str=None, sso_cookie: str=None):
-    """Aerie client authorization; \
-    defaults to using sso token if sso & user/pass are provided."""
-
-    LOCAL_URLS = ["local", "localhost", "http://localhost", "http://127.0.0.1"]
-    if server_url in LOCAL_URLS:
-        client = AerieClient.from_local(server_url="http://localhost", cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-    # Assuming user has not provided valid credentials during command call
-    elif sso_cookie or sso_cookie_name:
-        if not sso_cookie and sso_cookie_name:
-            raise ValueError("For cookie authentication, enter both SSO Cookie and Cookie Name")
-        client = AerieClient.from_cookie(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-    elif (sso == "") and (username == "") and (password == ""):
-        method = int(typer.prompt("Enter (1) for SSO Login, (2) for JPL Login, or (3) for cookie login"))
-        if method == 1:
-            sso = typer.prompt("SSO Token")
-            client = AerieClient.from_sso(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway)
-        elif method == 2:
-            user = typer.prompt("JPL Username")
-            pwd = typer.prompt("JPL Password", hide_input=True)
-            client = AerieClient.from_userpass(
-                server_url=server_url, username=user, password=pwd, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-            )
-        elif method == 3:
-            sso_cookie_name = typer.prompt("Cookie Name")
-            sso_cookie = typer.prompt("Cookie Value")
-            client = AerieClient.from_cookie(server_url=server_url, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-        else:
-            print(
-                """
-                Please select one of the following login options:
-                1) SSO Token
-                2) JPL Username+Password
-                """
-            )
-            exit(1)
-    elif sso != "":
-        client = AerieClient.from_sso(server_url=server_url, sso=sso, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie)
-    elif (username != "") and (password != ""):
-        client = AerieClient.from_userpass(
-            server_url=server_url, username=username, password=password, cloud_gateway=cloud_gateway, sso_cookie_name=sso_cookie_name, sso_cookie=sso_cookie
-        )
-    else:
-        print(
-            "Please provide either --sso flag or both --username and --password flags"
-        )
-        exit(1)
-    return client

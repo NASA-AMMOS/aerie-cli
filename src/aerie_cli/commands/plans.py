@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.client import auth_helper
+from aerie_cli.aerie_client import auth_helper
 from aerie_cli.schemas.client import ActivityPlanCreate
 
 # from aerie_cli.schemas.api import ApiResourceSampleResults

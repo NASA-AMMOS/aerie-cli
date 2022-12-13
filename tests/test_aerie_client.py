@@ -1,6 +1,6 @@
 import pytest
 
-from aerie_cli.client import AerieClient
+from aerie_cli.aerie_client import AerieClient
 
 @pytest.mark.parametrize(["server_url","gql_url"],[
     (
