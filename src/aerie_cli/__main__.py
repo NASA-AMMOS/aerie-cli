@@ -23,7 +23,7 @@ def main():
             "There is no active session. Please start a session with aerie-cli configurations activate")
         sys.exit(-1)
     except Exception:
-        Console.print_exception()
+        Console().print_exception()
 
 
 if __name__ == "__main__":
