@@ -21,7 +21,7 @@ CONFIGURATION_FILE_DIRECTORY = Path(
     APP_DIRS.user_config_dir).resolve().absolute()
 CONFIGURATION_FILE_PATH = CONFIGURATION_FILE_DIRECTORY.joinpath('config.json')
 
-SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_state_dir).resolve().absolute()
+SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_config_dir).resolve().absolute()
 SESSION_TIMESTAMP_FSTRING = r'%Y-%jT%H:%M:%S.%f'
 SESSION_TIMEOUT = timedelta(minutes=30)
 
