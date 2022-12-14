@@ -836,39 +836,27 @@ class AerieClient:
 
         return expansion_ids
 
-    def get_simulation_dataset_id_by_plan_id(self, plan_id: int) -> List[int]:
-        """Get the IDs of simulation datasets generated from a given plan
+    def get_simulation_dataset_id_by_plan_id(self, plan_id: int) -> int:
+        """Get the ID of the latest simulation dataset generated from a given plan
 
         Args:
             plan_id (int): ID of parent plan
 
         Returns:
-            List[int]: IDs of simulation datasets
+            List[int]: ID of latest simulation dataset
         """
 
         get_simulation_dataset_query = """
-        query GetSimulationDatasetId(
-            $plan_id: Int!
-        ) {
-            simulation(
-                where: {
-                    plan_id: {
-                        _eq: $plan_id
-                    }
-                }, order_by: {
-                    dataset: {
-                        id: desc
-                    }
-                }, limit: 1
-            ) {
-                dataset {
-                    id
-                }
+        query GetSimulationDatasetId($plan_id: Int!) {
+          simulation(where: {plan_id: {_eq: $plan_id}}, order_by: { id: desc }, limit: 1) {
+            simulation_datasets(order_by: { id: desc }, limit: 1) {
+              id
             }
+          }
         }
         """
         data = self.__gql_query(get_simulation_dataset_query, plan_id=plan_id)
-        return data[0]["dataset"]["id"]
+        return data[0]["simulation_datasets"][0]["id"]
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
