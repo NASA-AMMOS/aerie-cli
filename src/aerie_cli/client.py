@@ -406,11 +406,18 @@ class AerieClient:
             "resourceSamples": resources
         }
 
-    def get_simulation_results(self, sim_dataset_id: int) -> str:
+    def get_simulation_results(self, sim_dataset_id: int, activity_id: int=None) -> str:
 
+        args = "$sim_dataset_id: Int!"
+        filt = "simulation_dataset_id: {_eq: $sim_dataset_id}"
+        bindings = {"sim_dataset_id": sim_dataset_id}
+        if activity_id is not None:
+            args = args + ", $act_id: Int!"
+            filt = filt + ", directive_id: {_eq: $act_id}"
+            bindings["act_id"] = activity_id
         sim_result_query = """
-          query Simulation($sim_dataset_id: Int!) {
-            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
+          query Simulation(""" + args + """) {
+            simulated_activity(where: {""" + filt + """}) {
               activity_type_name
               attributes
               directive_id
@@ -423,8 +430,8 @@ class AerieClient:
             }
           }
         """
-        resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
-        return resp
+        resp = self.__gql_query(sim_result_query, **bindings)
+        return resp if activity_id is None else resp[0]
 
     def delete_plan(self, plan_id: int) -> str:
 
