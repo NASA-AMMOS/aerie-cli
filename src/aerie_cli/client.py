@@ -431,7 +431,9 @@ class AerieClient:
           }
         """
         resp = self.__gql_query(sim_result_query, **bindings)
-        return resp if activity_id is None else resp[0]
+        if activity_id is None:
+            return resp
+        return resp[0] if len(resp) > 0 else None
 
     def delete_plan(self, plan_id: int) -> str:
 
