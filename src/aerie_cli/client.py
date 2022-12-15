@@ -850,7 +850,7 @@ class AerieClient:
             plan_id (int): ID of parent plan
 
         Returns:
-            List[int]: ID of latest simulation dataset
+            List[int]: ID of latest simulation dataset, or None
         """
 
         get_simulation_dataset_query = """
@@ -863,7 +863,12 @@ class AerieClient:
         }
         """
         data = self.__gql_query(get_simulation_dataset_query, plan_id=plan_id)
-        return data[0]["simulation_datasets"][0]["id"]
+        if len(data) == 0:
+            return None
+        simulation_datasets = data[0]["simulation_datasets"]
+        if len(simulation_datasets) == 0:
+            return None
+        return simulation_datasets[0]["id"]
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
