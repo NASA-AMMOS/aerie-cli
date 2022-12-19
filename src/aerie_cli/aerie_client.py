@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 import arrow
 
@@ -15,8 +14,11 @@ from .schemas.api import ApiResourceSampleResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
+from .schemas.client import ActivityPlanRead
+from .schemas.client import ExpansionRun
 from .utils.serialization import postgres_duration_to_microseconds
 from .aerie_host import AerieHostSession
+
 
 class AerieClient:
     """Client-side behavior for aerie-cli
@@ -74,7 +76,6 @@ class AerieClient:
         plan = ActivityPlanRead.from_api_read(api_plan)
         return self.__expand_activity_arguments(plan, full_args)
 
-
     def list_all_activity_plans(self) -> List[Dict]:
         list_all_plans_query = """
         query list_all_plans {
@@ -92,7 +93,6 @@ class AerieClient:
         """
         resp = self.host_session.post_to_graphql(list_all_plans_query)
         return resp
-
 
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
@@ -156,7 +156,8 @@ class AerieClient:
         """
         # TODO: determine how to handle arguments--should we accept another upload?
         _ = self.host_session.post_to_graphql(
-            create_simulation_mutation, simulation={"arguments": {}, "plan_id": plan_id}
+            create_simulation_mutation, simulation={
+                "arguments": {}, "plan_id": plan_id}
         )
 
         # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
@@ -171,7 +172,8 @@ class AerieClient:
         plan_id: int,
         plan_start_time: arrow.Arrow,
     ) -> int:
-        api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
+        api_activity_create = activity_to_create.to_api_create(
+            plan_id, plan_start_time)
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_directive_insert_input!) {
             createActivity: insert_activity_directive_one(object: $activity) {
@@ -187,19 +189,21 @@ class AerieClient:
         # Aerie 0.13.2 has a bug that prevents setting the name during a creation.
         # Update the activity to set the name.
         if (activity_to_create.name is not None):
-          self.update_activity(activity_id, activity_to_create, plan_id, plan_start_time)
+            self.update_activity(
+                activity_id, activity_to_create, plan_id, plan_start_time)
 
         return activity_id
 
     def update_activity(
-      self,
-      activity_id: int,
-      activity_to_update: ActivityCreate,
-      plan_id: int = None,
-      plan_start_time: arrow.Arrow = None,
+        self,
+        activity_id: int,
+        activity_to_update: ActivityCreate,
+        plan_id: int = None,
+        plan_start_time: arrow.Arrow = None,
     ) -> int:
-      api_activity_update = activity_to_update.to_api_create(plan_id, plan_start_time)
-      update_activity_mutation = """
+        api_activity_update = activity_to_update.to_api_create(
+            plan_id, plan_start_time)
+        update_activity_mutation = """
       mutation UpdateActvityDirective($id: Int!, $activity: activity_directive_set_input!) {
         updateActivity: update_activity_directive_by_pk(
           pk_columns: { id: $id }, _set: $activity
@@ -208,12 +212,12 @@ class AerieClient:
         }
       }
       """
-      resp = self.host_session.post_to_graphql(
-          update_activity_mutation,
-          id=activity_id,
-          activity=api_activity_update.to_dict(),
-      )
-      return resp["id"]
+        resp = self.host_session.post_to_graphql(
+            update_activity_mutation,
+            id=activity_id,
+            activity=api_activity_update.to_dict(),
+        )
+        return resp["id"]
 
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
@@ -267,7 +271,8 @@ class AerieClient:
           }
         }
         """
-        resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(
+            resource_profile_query, plan_id=plan_id)
         profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
 
         plan_duration_query = """
@@ -277,7 +282,8 @@ class AerieClient:
           }
         }
         """
-        resp = self.host_session.post_to_graphql(plan_duration_query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(
+            plan_duration_query, plan_id=plan_id)
         duration = postgres_duration_to_microseconds(resp["duration"])
 
         # Parse profile segments into resource timelines
@@ -290,12 +296,14 @@ class AerieClient:
 
             for i in range(len(profile_segments)):
                 segment = profile_segments[i]
-                segmentOffset = postgres_duration_to_microseconds(segment["start_offset"])
+                segmentOffset = postgres_duration_to_microseconds(
+                    segment["start_offset"])
                 if i + 1 < len(profile_segments):
-                    nextSegmentOffset = postgres_duration_to_microseconds(profile_segments[i + 1]["start_offset"])
+                    nextSegmentOffset = postgres_duration_to_microseconds(
+                        profile_segments[i + 1]["start_offset"])
                 else:
                     nextSegmentOffset = duration
-                
+
                 dynamics = segment["dynamics"]
 
                 if profile_type == 'discrete':
@@ -339,7 +347,8 @@ class AerieClient:
             }
           }
         """
-        resp = self.host_session.post_to_graphql(sim_result_query, sim_dataset_id=sim_dataset_id)
+        resp = self.host_session.post_to_graphql(
+            sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
 
     def delete_plan(self, plan_id: int) -> str:
@@ -352,7 +361,8 @@ class AerieClient:
         }
         """
 
-        resp = self.host_session.post_to_graphql(delete_plan_mutation, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(
+            delete_plan_mutation, plan_id=plan_id)
 
         return resp["name"]
 
@@ -423,7 +433,8 @@ class AerieClient:
         }
         """
 
-        resp = self.host_session.post_to_graphql(delete_model_mutation, model_id=model_id)
+        resp = self.host_session.post_to_graphql(
+            delete_model_mutation, model_id=model_id)
 
         return resp["name"]
 
@@ -442,7 +453,8 @@ class AerieClient:
         """
 
         resp = self.host_session.post_to_graphql(get_mission_model_query)
-        api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
+        api_mission_models = [
+            ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
 
@@ -470,7 +482,8 @@ class AerieClient:
         plan = self.get_activity_plan_by_id(plan_id)
         sim_id = plan.sim_id
 
-        resp = self.host_session.post_to_graphql(update_config_arg_query, sim_id=sim_id, args=args)
+        resp = self.host_session.post_to_graphql(
+            update_config_arg_query, sim_id=sim_id, args=args)
 
         return resp["arguments"]
 
@@ -514,7 +527,8 @@ class AerieClient:
         for arg in args:
             final_args[arg] = args[arg]
 
-        resp = self.host_session.post_to_graphql(update_config_arg_query, sim_id=sim_id, args=final_args)
+        resp = self.host_session.post_to_graphql(
+            update_config_arg_query, sim_id=sim_id, args=final_args)
 
         return resp["arguments"]
 
@@ -531,7 +545,8 @@ class AerieClient:
         }
         """
 
-        resp = self.host_session.post_to_graphql(get_config_query, sim_id=sim_id)
+        resp = self.host_session.post_to_graphql(
+            get_config_query, sim_id=sim_id)
 
         return resp["arguments"]
 
@@ -707,7 +722,8 @@ class AerieClient:
             }
             }
         """
-        data = self.host_session.post_to_graphql(get_expansion_ids_query, activity_type=activity_type)
+        data = self.host_session.post_to_graphql(
+            get_expansion_ids_query, activity_type=activity_type)
         expansion_ids = [int(v["id"]) for v in data]
         expansion_ids.sort()
         return expansion_ids
@@ -764,7 +780,7 @@ class AerieClient:
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
-    ) -> Tuple[int, List[Dict]]:
+    ) -> int:
         """Expand simulated activities from a simulation dataset given an expansion set
 
         Args:
@@ -772,7 +788,7 @@ class AerieClient:
             expansion_set_id (int): ID of expansion set to use
 
         Returns:
-            int, List[Dict]: Expansion Run ID, Expanded activity instances
+            int: Expansion Run ID
         """
 
         expand_simulation_query = """
@@ -785,14 +801,6 @@ class AerieClient:
                 simulationDatasetId: $simulation_dataset_id
             ) {
                 id
-                expandedActivityInstances {
-                    commands {
-                        stem
-                    }
-                    errors {
-                        message
-                    }
-                }
             }
         }
         """
@@ -802,10 +810,56 @@ class AerieClient:
             simulation_dataset_id=simulation_dataset_id,
         )
 
-        expansion_run_id = int(data["id"])
-        expanded_activity_instances = data["expandedActivityInstances"]
+        return int(data["id"])
 
-        return expansion_run_id, expanded_activity_instances
+    def list_expansion_runs(self, simulation_dataset_id: int) -> List[ExpansionRun]:
+        """
+        List all expansion runs from a given simulation dataset.
+        """
+        get_runs_query = """
+        query GetExpansionRuns($simulation_dataset_id: Int!) {
+            expansion_run(order_by: { created_at: desc }, where: { simulation_dataset_id: { _eq: $simulation_dataset_id } }) {
+                created_at
+                id
+                expansion_set_id
+                simulation_dataset_id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_runs_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return [ExpansionRun.from_dict(r) for r in resp]
+
+    def get_expansion_run(
+        self, expansion_run_id: int, include_commands: bool = False
+    ) -> ExpansionRun:
+        """
+        Get metadata about an expansion run and, optionally, all expanded 
+        activity instance commands/errors.
+        """
+        get_run_query = """
+        query GetExpansionRun($expansion_run_id: Int!, $include_commands: Boolean!) {
+            expansion_run(order_by: { created_at: desc }, where: { id: { _eq: $expansion_run_id } }) {
+                created_at
+                id
+                expansion_set_id
+                simulation_dataset_id
+                activity_instance_commands @include(if: $include_commands) {
+                    activity_instance_id
+                    commands
+                    errors
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_run_query,
+            expansion_run_id=expansion_run_id,
+            include_commands=include_commands
+        )
+        return ExpansionRun.from_dict(resp[0])
 
     def link_activities_to_sequence(
         self, seq_id: str, simulation_dataset_id: int, simulated_activity_ids: List[int]
@@ -982,7 +1036,8 @@ class AerieClient:
             }
         }
         """
-        data = self.host_session.post_to_graphql(get_types_query, model_id=model_id)
+        data = self.host_session.post_to_graphql(
+            get_types_query, model_id=model_id)
         activity_types = [o["name"] for o in data]
         return activity_types
 
@@ -1113,5 +1168,6 @@ class AerieClient:
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp).arguments
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(
+                    resp).arguments
         return plan

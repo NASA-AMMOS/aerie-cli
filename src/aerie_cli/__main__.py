@@ -6,6 +6,7 @@ from rich.console import Console
 from aerie_cli.commands import models
 from aerie_cli.commands import plans
 from aerie_cli.commands import configurations
+from aerie_cli.commands import expansion
 
 from .persistent import NoActiveSessionError
 
@@ -13,6 +14,7 @@ app = typer.Typer()
 app.add_typer(plans.app, name="plans")
 app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
+app.add_typer(expansion.app, name="expansion")
 
 
 def main():

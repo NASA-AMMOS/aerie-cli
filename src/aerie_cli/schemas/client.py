@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import Optional
 
 import arrow
@@ -220,3 +222,22 @@ class SimulationResults:
                 for name, api_timeline in api_resource_timeline.resourceSamples.items()
             ],
         )
+
+
+@dataclass_json
+@dataclass
+class ActivityInstanceCommand:
+    activity_instance_id: int
+    commands: List[Dict]
+    errors: List[Dict]
+
+
+@dataclass_json
+@dataclass
+class ExpansionRun:
+    id: int
+    expansion_set_id: int
+    simulation_dataset_id: int
+    created_at: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
+    activity_instance_commands: Optional[List[ActivityInstanceCommand]] = None
