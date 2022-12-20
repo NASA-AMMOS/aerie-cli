@@ -57,7 +57,10 @@ def test_read_configurations_multiple():
             AuthMethod.AERIE_NATIVE, 'http://c.com/auth', 'abcd'),
         AerieHostConfiguration(
             'd', 'http://d.com', 'http://d.com',
-            AuthMethod.COOKIE, 'http://d.com/auth', 'abcd')
+            AuthMethod.COOKIE, 'http://d.com/auth', 'abcd'),
+        AerieHostConfiguration(
+            'e', 'http://e.com', 'http://e.com',
+            AuthMethod.COOKIE, 'http://e.com/auth', None)
     ]
 
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
@@ -67,6 +70,50 @@ def test_read_configurations_multiple():
     PersistentConfigurationManager.read_configurations()
     read_configurations = PersistentConfigurationManager._configurations
     assert read_configurations == stored_configurations
+
+
+def test_empty_username():
+    """
+    Write and read configurations with empty/null usernames
+    """
+
+    configurations_to_write = [
+        AerieHostConfiguration(
+            'a', 'http://a.com', 'http://a.com', AuthMethod.NONE),
+        AerieHostConfiguration(
+            'b', 'http://b.com', 'http://b.com',
+            AuthMethod.AERIE_NATIVE, 'http://b.com/auth', 'abcd'),
+        AerieHostConfiguration(
+            'c', 'http://c.com', 'http://c.com',
+            AuthMethod.AERIE_NATIVE, 'http://c.com/auth'),
+        AerieHostConfiguration(
+            'd', 'http://d.com', 'http://d.com',
+            AuthMethod.COOKIE, 'http://d.com/auth', None)
+    ]
+    
+    # Expect the same as if a None type was passed
+    expected = [
+        AerieHostConfiguration(
+            'a', 'http://a.com', 'http://a.com', AuthMethod.NONE),
+        AerieHostConfiguration(
+            'b', 'http://b.com', 'http://b.com',
+            AuthMethod.AERIE_NATIVE, 'http://b.com/auth', 'abcd'),
+        AerieHostConfiguration(
+            'c', 'http://c.com', 'http://c.com',
+            AuthMethod.AERIE_NATIVE, 'http://c.com/auth', None),
+        AerieHostConfiguration(
+            'd', 'http://d.com', 'http://d.com',
+            AuthMethod.COOKIE, 'http://d.com/auth', None)
+    ]
+
+    persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
+    with open(persistent.CONFIGURATION_FILE_PATH, 'w') as fid:
+        json.dump([s.to_dict() for s in configurations_to_write], fid)
+
+    PersistentConfigurationManager.read_configurations()
+    read_configurations = PersistentConfigurationManager._configurations
+    assert read_configurations == expected
+
 
 
 def test_write_configurations_none():

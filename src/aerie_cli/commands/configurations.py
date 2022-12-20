@@ -42,7 +42,10 @@ def create_configuration(
         if auth_url is None:
             auth_url = typer.prompt('URL of Authentication endpoint')
         if username is None:
-            username = typer.prompt('Username')
+            if typer.confirm('Specify username'):
+                username = typer.prompt('Username')
+            else:
+                username = None
 
     conf = AerieHostConfiguration(
         name, graphql_url, gateway_url, auth_method, auth_url, username)
@@ -79,7 +82,10 @@ def update_configuration(
     if conf.auth_method is not AuthMethod.NONE:
         conf.auth_url = typer.prompt(
             'URL of Authentication endpoint', conf.auth_url)
-        conf.username = typer.prompt('Username', conf.username)
+        if typer.confirm('Specify username', default=(conf.username is None)):
+            conf.username = typer.prompt('Username')
+        else:
+            conf.username = None
 
     PersistentConfigurationManager.update_configuration(conf)
 
@@ -99,11 +105,16 @@ def activate_session(
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
     if conf.auth_method != AuthMethod.NONE:
+        if conf.username is None:
+            username = typer.prompt('Username')
+        else:
+            username = conf.username
         password = typer.prompt('Password', hide_input=True)
     else:
+        username = None
         password = None
 
-    session = conf.start_session(password)
+    session = conf.start_session(username, password)
     PersistentSessionManager.set_active_session(session)
 
 
@@ -131,7 +142,7 @@ def list_configurations():
         active_config = s.configuration_name
     except NoActiveSessionError:
         active_config = None
-    
+
     typer.echo(f"Configuration file location: {CONFIGURATION_FILE_PATH}")
     typer.echo()
 

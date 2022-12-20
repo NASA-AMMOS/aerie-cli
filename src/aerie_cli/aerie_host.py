@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from copy import deepcopy
-from typing import Dict
+from typing import Dict, Optional
 from enum import Enum
 import requests
 import json
@@ -223,7 +223,7 @@ class AerieHostConfiguration:
     gateway_url: str
     auth_method: AuthMethod
     auth_url: str = None
-    username: str = None
+    username: Optional[str] = None
 
     @classmethod
     def from_dict(cls, config: Dict) -> 'AerieHostConfiguration':
@@ -238,7 +238,10 @@ class AerieHostConfiguration:
                 username = None
             else:
                 auth_url = config["auth_url"]
-                username = config["username"]
+                if "username" in config.keys():
+                    username = config["username"]
+                else:
+                    username = None
 
         except KeyError as e:
             raise ValueError(
@@ -260,13 +263,22 @@ class AerieHostConfiguration:
 
         return retval
 
-    def start_session(self, password: str = None) -> AerieHostSession:
+    def start_session(self, username=None, password: str = None) -> AerieHostSession:
+        """Start an Aerie host session from this configuration
+
+        Args:
+            username (str, optional): Override stored username. Defaults to None.
+            password (str, optional): Provide a password, if necessary. Defaults to None.
+
+        Returns:
+            AerieHostSession
+        """
         return AerieHostSession.session_helper(
             self.auth_method,
             self.graphql_url,
             self.gateway_url,
             self.auth_url,
-            self.username,
+            username if username else self.username,
             password,
             self.name
         )
