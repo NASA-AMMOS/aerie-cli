@@ -15,7 +15,9 @@ from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import ActivityPlanRead
+from .schemas.client import CommandDictionaryInfo
 from .schemas.client import ExpansionRun
+from .schemas.client import ExpansionSet
 from .utils.serialization import postgres_duration_to_microseconds
 from .aerie_host import AerieHostSession
 
@@ -585,7 +587,7 @@ class AerieClient:
         )
         return data["typescriptFiles"][0]["content"]
 
-    def create_expansion_logic(
+    def create_expansion_rule(
         self,
         expansion_logic: str,
         activity_name: str,
@@ -601,7 +603,7 @@ class AerieClient:
             command_dictionary_id (str): Aerie command dictionary ID
 
         Returns:
-            int: Activity ID in Aerie
+            int: Expansion Rule ID in Aerie
         """
 
         create_expansion_logic_query = """
@@ -668,6 +670,22 @@ class AerieClient:
         )
         return data["id"]
 
+    def list_expansion_sets(self) -> List[ExpansionSet]:
+        list_sets_query = """
+        query ListExpansionSets {
+            expansion_set {
+                id
+                command_dict_id
+                created_at
+                expansion_rules {
+                    id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_sets_query)
+        return [ExpansionSet.from_dict(i) for i in resp]
+
     def create_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
         """Create a sequence on a given simulation dataset
 
@@ -697,14 +715,14 @@ class AerieClient:
             seq_id=seq_id,
         )
 
-    def get_expansion_ids_by_activity_type(self, activity_type: str) -> List[int]:
-        """Get ID of all expansions for a given activity type
+    def get_rule_ids_by_activity_type(self, activity_type: str) -> List[int]:
+        """Get ID of all expansion rules for a given activity type
 
         Args:
             activity_type (str): Activity type name
 
         Returns:
-            List[int]: Expansion IDs, in ascending order
+            List[int]: Expansion rule IDs, in ascending order
         """
 
         get_expansion_ids_query = """
@@ -724,15 +742,15 @@ class AerieClient:
         """
         data = self.host_session.post_to_graphql(
             get_expansion_ids_query, activity_type=activity_type)
-        expansion_ids = [int(v["id"]) for v in data]
-        expansion_ids.sort()
-        return expansion_ids
+        rule_ids = [int(v["id"]) for v in data]
+        rule_ids.sort()
+        return rule_ids
 
-    def get_all_expansion_ids(self) -> Dict[str, List[int]]:
-        """Get IDs of all expansions, by activity type
+    def get_all_rule_ids(self) -> Dict[str, List[int]]:
+        """Get IDs of all expansion rules, by activity type
 
         Returns:
-            Dict[str, List[int]]: Lists of expansion IDs keyed by activity type name
+            Dict[str, List[int]]: Lists of expansion rule IDs keyed by activity type name
         """
 
         get_all_expansion_ids_query = """
@@ -745,16 +763,16 @@ class AerieClient:
         """
         data = self.host_session.post_to_graphql(get_all_expansion_ids_query)
 
-        expansion_ids = {}
+        rule_ids = {}
         for o in data:
             activity_type = o["activity_type"]
             id = int(o["id"])
-            if activity_type in expansion_ids.keys():
-                expansion_ids[activity_type].append(id)
+            if activity_type in rule_ids.keys():
+                rule_ids[activity_type].append(id)
             else:
-                expansion_ids[activity_type] = [id]
+                rule_ids[activity_type] = [id]
 
-        return expansion_ids
+        return rule_ids
 
     def get_simulation_dataset_ids_by_plan_id(self, plan_id: int) -> List[int]:
         """Get the IDs of the simulation datasets generated from a given plan
@@ -775,7 +793,8 @@ class AerieClient:
           }
         }
         """
-        data = self.host_session.post_to_graphql(get_simulation_dataset_query, plan_id=plan_id)
+        data = self.host_session.post_to_graphql(
+            get_simulation_dataset_query, plan_id=plan_id)
         return [d["id"] for d in data[0]["simulation_datasets"]]
 
     def expand_simulation(
@@ -977,6 +996,49 @@ class AerieClient:
         )
         return data["seqJson"]
 
+    def list_sequences(self, simulation_dataset_id: int) -> List[str]:
+        """List all sequences tied to a simulation dataset
+
+        Args:
+            simulation_dataset_id (int): ID on the Aerie host
+
+        Returns:
+            List[str]: Sequence IDs
+        """
+
+        list_sequences_query = """
+        query MyQuery($simulation_dataset_id: Int!) {
+            sequence(where: { simulation_dataset_id: { _eq: $simulation_dataset_id } }) {
+                seq_id
+            }
+        }
+        """
+        data = self.host_session.post_to_graphql(
+            list_sequences_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return [s["seq_id"] for s in data]
+
+    def delete_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
+        """Delete a command sequence
+
+        Args:
+            seq_id (str): Sequence ID
+            simulation_dataset_id (int): ID of Simulation Dataset where the sequence exists
+        """
+        delete_sequence_query = """
+        mutation DeleteExpansionSequence($seq_id: String!, $simulation_dataset_id: Int!) {
+            deleteExpansionSequence: delete_sequence_by_pk(seq_id: $seq_id, simulation_dataset_id: $simulation_dataset_id) {
+                seq_id
+            }
+        }
+        """
+        self.host_session.post_to_graphql(
+            delete_sequence_query,
+            seq_id=seq_id,
+            simulation_dataset_id=simulation_dataset_id
+        )
+
     def get_all_expansion_run_commands(self, expansion_run_id: int) -> List:
         """Get commands from all activity instances in an expansion run
 
@@ -1040,6 +1102,25 @@ class AerieClient:
             get_types_query, model_id=model_id)
         activity_types = [o["name"] for o in data]
         return activity_types
+
+    def list_command_dictionaries(self) -> List[CommandDictionaryInfo]:
+        """List all command dictionaries on an Aerie host
+
+        Returns:
+            List[CommandDictionaryInfo]
+        """
+        list_dictionaries_query = """
+        query ListCommandDictionaries {
+            command_dictionary {
+                id
+                mission
+                version
+                created_at
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_dictionaries_query)
+        return [CommandDictionaryInfo.from_dict(i) for i in resp]
 
     def upload_command_dictionary(self, command_dictionary_string: str) -> int:
         """Upload an AMPCS command dictionary to an Aerie instance
