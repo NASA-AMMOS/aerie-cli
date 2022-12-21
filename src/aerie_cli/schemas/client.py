@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import Optional
 
 import arrow
@@ -44,11 +46,11 @@ class ActivityCreate:
         )
 
     def to_api_array(self, entries: list[str]):
-      """
-      Format an array of strings as a Postgres style array.
-      """
-      vals = ",".join(entries)
-      return f"{{{vals}}}" # Wrap items in {}
+        """
+        Format an array of strings as a Postgres style array.
+        """
+        vals = ",".join(entries)
+        return f"{{{vals}}}"  # Wrap items in {}
 
 
 @dataclass_json
@@ -78,7 +80,8 @@ class EmptyActivityPlan:
     start_time: Arrow = field(
         metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
     )
-    end_time: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
+    end_time: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
@@ -143,7 +146,8 @@ class AsSimulatedActivity:
     )
     children: list[str]
     duration: timedelta = field(
-        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
+        metadata=config(decoder=postgres_duration_to_timedelta,
+                        encoder=timedelta.__str__)
     )
     parameters: dict[str, Any]
 
@@ -165,7 +169,8 @@ class AsSimulatedActivity:
 @dataclass_json
 @dataclass
 class SimulatedResourceSample:
-    t: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
+    t: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
     v: Any
 
 
@@ -185,7 +190,8 @@ class SimulatedResourceTimeline:
         return SimulatedResourceTimeline(
             name=name,
             values=[
-                SimulatedResourceSample(t=profile_start_time + sample.x, v=sample.y)
+                SimulatedResourceSample(
+                    t=profile_start_time + sample.x, v=sample.y)
                 for sample in api_sim_res_timeline
             ],
         )
@@ -220,3 +226,54 @@ class SimulationResults:
                 for name, api_timeline in api_resource_timeline.resourceSamples.items()
             ],
         )
+
+
+@dataclass_json
+@dataclass
+class ActivityInstanceCommand:
+    activity_instance_id: int
+    commands: List[Dict]
+    errors: List[Dict]
+
+
+@dataclass_json
+@dataclass
+class ExpansionRun:
+    id: int
+    expansion_set_id: int
+    simulation_dataset_id: int
+    created_at: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
+    activity_instance_commands: Optional[List[ActivityInstanceCommand]] = None
+
+
+@dataclass_json
+@dataclass
+class ExpansionSet:
+    id: int
+    created_at: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
+    command_dictionary_id: int = field(
+        metadata=config(field_name="command_dict_id"))
+    expansion_rules: List[int] = field(metadata=config(
+        decoder=lambda x: [i['id'] for i in x], encoder=lambda x: [{'id': i} for i in x]))
+
+
+@dataclass_json
+@dataclass
+class CommandDictionaryInfo:
+    id: int
+    mission: str
+    version: str
+    created_at: Arrow = field(metadata=config(
+        decoder=arrow.get, encoder=Arrow.isoformat))
+
+
+@dataclass_json
+@dataclass
+class ExpansionRule:
+    id: int
+    activity_type: str
+    authoring_mission_model_id: int
+    authoring_command_dict_id: int
+    expansion_logic: Optional[str] = None
