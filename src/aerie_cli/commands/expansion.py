@@ -15,9 +15,9 @@ app = typer.Typer()
 sequences_app = typer.Typer()
 runs_app = typer.Typer()
 sets_app = typer.Typer()
-app.add_typer(sequences_app, name='sequences')
-app.add_typer(runs_app, name='runs')
-app.add_typer(sets_app, name='sets')
+app.add_typer(sequences_app, name='sequences', help='Commands for sequences')
+app.add_typer(runs_app, name='runs', help='Commands for expansion runs')
+app.add_typer(sets_app, name='sets', help='Commands for expansion sets')
 
 # === Commands for expansion runs ===
 
@@ -56,7 +56,7 @@ def list_expansion_runs(
     )
 ):
     """
-    List expansion runs for a given plan or simulation dataset.
+    List expansion runs for a given plan or simulation dataset
 
     Runs are listed in reverse chronological order.
     """
@@ -116,7 +116,7 @@ def list_sequences(
     )
 ):
     """
-    List sequences for a given plan or simulation dataset.
+    List sequences for a given plan or simulation dataset
 
     Sequences are listed in alphabetical order.
     """
@@ -170,6 +170,9 @@ def create_sequence(
         help='Sequence ID to download'
     )
 ):
+    """
+    Create a sequence on a simulation dataset
+    """
     client = get_active_session_client()
     existing_sequences = client.list_sequences(simulation_dataset_id)
     if seq_id in existing_sequences:
@@ -224,6 +227,9 @@ def delete_sequence(
         help='Sequence ID to download'
     )
 ):
+    """
+    Delete sequence on a simulation dataset
+    """
     get_active_session_client().delete_sequence(
         seq_id, simulation_dataset_id)
 
@@ -245,6 +251,9 @@ def download_sequence(
         help='Name of output JSON file'
     )
 ):
+    """
+    Download a SeqJson file from an Aerie sequence
+    """
     if not output_fn.endswith('.json'):
         output_fn == '.json'
     output_fn = Path(output_fn)
@@ -261,6 +270,9 @@ def download_sequence(
 
 @sets_app.command('list')
 def list_expansion_sets():
+    """
+    List all expansion sets
+    """
     client = get_active_session_client()
     sets = client.list_expansion_sets()
     cmd_dicts = client.list_command_dictionaries()
@@ -293,6 +305,9 @@ def get_expansion_set(
         help='Expansion Set ID'
     )
 ):
+    """
+    View all rules in an expansion set
+    """
     client = get_active_session_client()
     sets = client.list_expansion_sets()
     try:
@@ -331,6 +346,13 @@ def create_expansion_set(
         help='Activity types to be included in the set'
     )
 ):
+    """
+    Create an expansion set
+
+    Uses the newest expansion rules for each given activity type.
+    Filters to only use rules designated for the given mission model and 
+    command dictionary.
+    """
     client = get_active_session_client()
     expansion_rules = client.get_rules_by_type()
 
