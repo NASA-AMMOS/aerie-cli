@@ -17,6 +17,7 @@ from .schemas.client import ActivityPlanRead
 from .schemas.client import ActivityPlanRead
 from .schemas.client import CommandDictionaryInfo
 from .schemas.client import ExpansionRun
+from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
 from .utils.serialization import postgres_duration_to_microseconds
 from .aerie_host import AerieHostSession
@@ -746,33 +747,42 @@ class AerieClient:
         rule_ids.sort()
         return rule_ids
 
-    def get_all_rule_ids(self) -> Dict[str, List[int]]:
-        """Get IDs of all expansion rules, by activity type
+    def list_expansion_rules(self) -> List[ExpansionRule]:
+        """List all expansion rules
 
         Returns:
-            Dict[str, List[int]]: Lists of expansion rule IDs keyed by activity type name
+            List[ExpansionRule]
+        """
+        list_rules_query = """
+        query ListExpansionRules {
+            expansion_rule {
+                activity_type
+                id
+                authoring_mission_model_id
+                authoring_command_dict_id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_rules_query)
+        return [ExpansionRule.from_dict(r) for r in resp]
+
+    def get_rules_by_type(self) -> Dict[str, List[ExpansionRule]]:
+        """Get all expansion rules, sorted by activity type
+
+        Returns:
+            Dict[str, List[ExpansionRule]]
         """
 
-        get_all_expansion_ids_query = """
-        query GetExpansionLogic {
-        expansion_rule {
-            activity_type
-            id
-        }
-        }
-        """
-        data = self.host_session.post_to_graphql(get_all_expansion_ids_query)
+        rules = self.list_expansion_rules()
 
-        rule_ids = {}
-        for o in data:
-            activity_type = o["activity_type"]
-            id = int(o["id"])
-            if activity_type in rule_ids.keys():
-                rule_ids[activity_type].append(id)
+        rules_by_type = {}
+        for r in rules:
+            if r.activity_type in rules_by_type.keys():
+                rules_by_type[r.activity_type].append(r)
             else:
-                rule_ids[activity_type] = [id]
+                rules_by_type[r.activity_type] = [r]
 
-        return rule_ids
+        return rules_by_type
 
     def get_simulation_dataset_ids_by_plan_id(self, plan_id: int) -> List[int]:
         """Get the IDs of the simulation datasets generated from a given plan

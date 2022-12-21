@@ -258,6 +258,7 @@ class ExpansionSet:
     expansion_rules: List[int] = field(metadata=config(
         decoder=lambda x: [i['id'] for i in x], encoder=lambda x: [{'id': i} for i in x]))
 
+
 @dataclass_json
 @dataclass
 class CommandDictionaryInfo:
@@ -266,3 +267,13 @@ class CommandDictionaryInfo:
     version: str
     created_at: Arrow = field(metadata=config(
         decoder=arrow.get, encoder=Arrow.isoformat))
+
+
+@dataclass_json
+@dataclass
+class ExpansionRule:
+    id: int
+    activity_type: str
+    authoring_mission_model_id: int
+    authoring_command_dict_id: int
+    expansion_logic: Optional[str] = None
