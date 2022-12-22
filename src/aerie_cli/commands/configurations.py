@@ -4,6 +4,8 @@ Commands related to persistent storage of Aerie host configurations.
 """
 
 import typer
+import json
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
@@ -88,6 +90,50 @@ def update_configuration(
             conf.username = None
 
     PersistentConfigurationManager.update_configuration(conf)
+
+
+@app.command('load')
+def upload_configurations(
+    filename: Path = typer.Option(
+        ..., '--filename', '-i', prompt='Input filename',
+        help='Name of input JSON file'
+    ),
+    allow_overwrite: bool = typer.Option(
+        False, '--allow-overwrite',
+        help='Allow overwriting existing configurations'
+    )
+):
+    """
+    Load one or more configurations from a JSON file
+    """
+    with open(filename, 'r') as fid:
+        configurations = json.load(fid)
+
+    if isinstance(configurations, list):
+        configurations = [AerieHostConfiguration.from_dict(
+            c) for c in configurations]
+    else:
+        configurations = [AerieHostConfiguration.from_dict(configurations)]
+
+    new_confs = []
+    updated_confs = []
+
+    for c in configurations:
+        try:
+            PersistentConfigurationManager.create_configuration(c)
+            new_confs.append(c.name)
+        except ValueError as e:
+            if allow_overwrite and 'Configuration already exists' in e.args[0]:
+                PersistentConfigurationManager.update_configuration(c)
+                updated_confs.append(c.name)
+            else:
+                raise e
+
+    if len(new_confs):
+        Console().print(f"Added configurations: {', '.join(new_confs)}")
+
+    if len(updated_confs):
+        Console().print(f"Updated configurations: {', '.join(updated_confs)}")
 
 
 @app.command('activate')
