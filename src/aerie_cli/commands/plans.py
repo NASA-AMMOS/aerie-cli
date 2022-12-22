@@ -213,7 +213,8 @@ def simulate(
 def list():
     """List uploaded plans."""
 
-    resp = get_active_session_client().list_all_activity_plans()
+    client = get_active_session_client()
+    resp = client.list_all_activity_plans()
 
     # Create output table
     table = Table(title="Current Activity Plans")
@@ -221,17 +222,22 @@ def list():
     table.add_column("Plan Name", style="cyan")
     table.add_column("Plan Start Time", no_wrap=True)
     table.add_column("Plan End Time", no_wrap=True)
-    table.add_column("Simulation ID", no_wrap=True)
+    table.add_column("Latest Sim. Dataset ID", no_wrap=True)
     table.add_column("Model ID", no_wrap=True)
     for activity_plan in resp:
-        if not len(activity_plan['simulations']):
-            activity_plan['simulations'] = [{'id': ''}]
+        sim_ids = client.get_simulation_dataset_ids_by_plan_id(activity_plan.id)
+        if len(sim_ids):
+            simulation_dataset_id = str(max(sim_ids))
+        else:
+            simulation_dataset_id = ''
+            
         table.add_row(
-            str(activity_plan['id']),
-            str(activity_plan['name']),
-            str(activity_plan['start_time']),
-            str(activity_plan['simulations'][0]['id']),
-            str(activity_plan['model_id'])
+            str(activity_plan.id),
+            activity_plan.name,
+            activity_plan.start_time.format("YYYY-DDDDTHH:mm:ss.SSS"),
+            activity_plan.end_time.format("YYYY-DDDDTHH:mm:ss.SSS"),
+            simulation_dataset_id,
+            str(activity_plan.model_id)
         )
 
     Console().print(table)

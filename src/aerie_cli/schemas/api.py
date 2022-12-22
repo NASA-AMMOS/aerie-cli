@@ -3,6 +3,7 @@ from dataclasses import field
 from datetime import timedelta
 from typing import Any
 from typing import Optional
+from typing import List
 
 import arrow
 from arrow import Arrow
@@ -78,10 +79,10 @@ class ApiActivityPlanCreate(ApiActivityPlanBase):
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
     simulations: list[int]
-    activity_directives: list[ApiActivityRead]
     duration: timedelta = field(
         metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
     )
+    activity_directives: Optional[List[ApiActivityRead]] = None
 
 
 @dataclass_json

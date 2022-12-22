@@ -116,7 +116,7 @@ class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     sim_id: int
-    activities: list[ActivityRead]
+    activities: Optional[List[ActivityRead]] = None
 
     @classmethod
     def from_api_read(cls, api_plan_read: ApiActivityPlanRead) -> "ActivityPlanRead":
@@ -128,7 +128,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             sim_id=api_plan_read.simulations[0]["id"],
             start_time=plan_start,
             end_time=plan_start + api_plan_read.duration,
-            activities=[
+            activities= None if api_plan_read.activity_directives is None else [
                 ActivityRead.from_api_read(api_activity, plan_start)
                 for api_activity in api_plan_read.activity_directives
             ],
