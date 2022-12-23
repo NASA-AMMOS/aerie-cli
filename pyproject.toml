@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eurc-gds-aerie-cli"
-version = "0.13.2.2"
+version = "1.0.0.0-alpha"
 description = "aerie-cli"
 authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>", "Mihir Kamble <mihir.m.kamble@jpl.nasa.gov>"]
 license = "MIT"
