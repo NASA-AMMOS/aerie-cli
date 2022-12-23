@@ -31,25 +31,48 @@ def download(
 
 @app.command()
 def download_simulation(
+    sim_id: int = typer.Option(
+        ..., '--sim-id', '-s',
+        help="Simulation ID", prompt=True),
+    output: str = typer.Option(
+        ..., '--output', '-s',
+        help="The output file destination", prompt=True)
+):
+    """
+    Download simulated activity instances and save to a JSON file
+    """
+    client = get_active_session_client()
+    simulated_activities = client.get_simulation_results(sim_id)
+    with open(output, "w") as out_file:
+        out_file.write(json.dumps(simulated_activities, indent=2))
+        typer.echo(f"Wrote activity plan to {output}")
+
+
+@app.command()
+def download_resources(
+    sim_id: int = typer.Option(
+        ..., '--sim-id', '-s',
+        help="Simulation Dataset ID", prompt='Simulation Dataset ID'),
     csv: bool = typer.Option(
-        False, "--csv/--json", help="Download as CSV (default is json): "
+        False, "--csv/--json", help="Download as CSV (default is json)"
     ),
-    plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
-    sim_id: int = typer.Option(..., help="Simulation ID", prompt=True),
-    output: str = typer.Option(..., help="The output file destination", prompt=True),
+    output: str = typer.Option(
+        ..., '--output', '-o',
+        help="The output file destination", prompt=True),
     absolute_time: bool = typer.Option(
         False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
     )
 ):
-    """Download a simulation result and save it locally as a JSON file."""
+    """
+    Download resource timelines from a simulation and save to either JSON or CSV
+    """
     client = get_active_session_client()
 
+    # Get start time of plan
+    plan_id = client.get_plan_id_by_sim_id(sim_id)
     start_time = client.get_activity_plan_by_id(plan_id, "").start_time
-    # get resource timelines and sim results from GraphQL
+    # get resource timelines
     resources = client.get_resource_samples(plan_id)
-    sim = client.get_simulation_results(sim_id)
-    # add sim results and resources to the same dictionary
-    resources["simulationResults"] = sim
 
     if csv:
         # the key is the time and the value is a list of tuples: (activity, state)
@@ -99,7 +122,7 @@ def download_simulation(
         # write to file
         with open(output, "w") as out_file:
             df.to_csv(out_file, index=False, header=field_name)
-            typer.echo(f"Wrote activity plan to {output}")
+            typer.echo(f"Wrote resource timelines to {output}")
 
     else:
         if absolute_time:
@@ -115,7 +138,7 @@ def download_simulation(
         # write to file
         with open(output, "w") as out_file:
             out_file.write(json.dumps(resources, indent=2))
-            typer.echo(f"Wrote activity plan to {output}")
+            typer.echo(f"Wrote resource timelines to {output}")
 
 
 @app.command()
