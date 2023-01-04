@@ -3,8 +3,11 @@ from typing import Dict, List
 import json
 import re
 
+import arrow
+
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession
+from aerie_cli.schemas.client import ActivityCreate
 
 BLANK_LINE_REGEX = r'^\s*$'
 
@@ -88,3 +91,45 @@ def test_list_all_activity_plans():
         }
     ]""")
     assert client.list_all_activity_plans() == expected
+
+
+def test_create_activity():
+    host_session = MockAerieHostSession('create_activity')
+    client = AerieClient(host_session)
+
+    activity = ActivityCreate.from_dict({
+        "type": "NoOp",
+        "start_time": "2030-01-01T00:00:00+00:00",
+        "parameters": {
+            "aParameter": "2030-001T00:00:00Z"
+        },
+        "name": "My Activity",
+        "tags": [],
+        "metadata": {}
+    })
+
+    res = client.create_activity(
+        activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
+
+    assert res == 15
+
+def test_update_activity():
+    host_session = MockAerieHostSession('update_activity')
+    client = AerieClient(host_session)
+
+    activity = ActivityCreate.from_dict({
+        "type": "NoOp",
+        "start_time": "2030-01-01T00:00:00+00:00",
+        "parameters": {
+            "aParameter": "2030-001T00:00:00Z"
+        },
+        "name": "My Activity",
+        "tags": [],
+        "metadata": {}
+    })
+
+    res = client.update_activity(
+        15, activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
+
+    assert res == 15
+
