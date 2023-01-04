@@ -25,7 +25,6 @@ class ApiEffectiveActivityArguments:
 @dataclass
 class ApiActivityBase:
     type: str
-    plan_id: int
     arguments: dict[str, Any]
     name: str
     tags: list[str]
@@ -35,6 +34,7 @@ class ApiActivityBase:
 @dataclass_json
 @dataclass
 class ApiActivityCreate(ApiActivityBase):
+    plan_id: int
     start_offset: timedelta = field(
         metadata=config(
             decoder=postgres_interval_to_timedelta,

@@ -63,7 +63,6 @@ class AerieClient:
                 activity_directives {
                     id
                     name
-                    plan_id
                     type
                     start_offset
                     arguments
@@ -111,7 +110,6 @@ class AerieClient:
                 activity_directives {
                     id
                     name
-                    plan_id
                     type
                     start_offset
                     arguments
@@ -188,11 +186,6 @@ class AerieClient:
             activity=api_activity_create.to_dict(),
         )
         activity_id = resp["id"]
-        # Aerie 0.13.2 has a bug that prevents setting the name during a creation.
-        # Update the activity to set the name.
-        if (activity_to_create.name is not None):
-            self.update_activity(
-                activity_id, activity_to_create, plan_id, plan_start_time)
 
         return activity_id
 
@@ -200,24 +193,25 @@ class AerieClient:
         self,
         activity_id: int,
         activity_to_update: ActivityCreate,
-        plan_id: int = None,
-        plan_start_time: arrow.Arrow = None,
+        plan_id: int,
+        plan_start_time: arrow.Arrow,
     ) -> int:
-        api_activity_update = activity_to_update.to_api_create(
-            plan_id, plan_start_time)
+        activity_dict: Dict = activity_to_update.to_api_create(
+            plan_id, plan_start_time).to_dict()
         update_activity_mutation = """
-      mutation UpdateActvityDirective($id: Int!, $activity: activity_directive_set_input!) {
-        updateActivity: update_activity_directive_by_pk(
-          pk_columns: { id: $id }, _set: $activity
-        ) {
-          id
+        mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
+            updateActivity: update_activity_directive_by_pk(
+            pk_columns: { id: $id, plan_id: $plan_id }, _set: $activity
+            ) {
+                id
+            }
         }
-      }
-      """
+        """
         resp = self.host_session.post_to_graphql(
             update_activity_mutation,
             id=activity_id,
-            activity=api_activity_update.to_dict(),
+            plan_id=plan_id,
+            activity=activity_dict,
         )
         return resp["id"]
 
