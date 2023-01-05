@@ -375,7 +375,7 @@ class AerieClient:
             resp = self.host_session.post_to_gateway_files(
                 server_side_jar_name, jar_file)
 
-        jar_id = resp.json()["id"]
+        jar_id = resp["id"]
 
         create_model_mutation = """
         mutation CreateModel($model: mission_model_insert_input!) {
