@@ -129,6 +129,32 @@ class AerieClient:
 
         return activity_plans
 
+    def get_plan_id_by_sim_id(self, simulation_dataset_id: int) -> int:
+        """Get Plan ID by Simulation Dataset ID
+
+        Args:
+            simulation_dataset_id (int): Aerie Simulation Dataset ID
+
+        Returns:
+            int: Plan ID
+        """
+        get_plan_id_query = """
+        query PlanIdBySimDatasetId($simulation_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                simulation {
+                    plan {
+                        id
+                    }
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_plan_id_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return resp['simulation']['plan']['id']
+
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
     ) -> int:
