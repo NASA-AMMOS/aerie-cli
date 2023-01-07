@@ -6,12 +6,17 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
 
 - [Aerie CLI](#aerie-cli) - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
+  - [Getting Started](#getting-started)
   - [Installation](#installation)
     - [Installation with `pip`](#installation-with-pip)
     - [Updating with `pip`](#updating-with-pip)
     - [Installation with `poetry`](#installation-with-poetry)
   - [Usage](#usage)
-    - [CLI Usage](#cli-usage)
+    - [Setup](#setup)
+      - [With a Configuration File](#with-a-configuration-file)
+      - [Via the CLI](#via-the-cli)
+      - [Handling Authentication](#handling-authentication)
+    - [Commands](#commands)
       - [Interactive](#interactive)
       - [Non-Interactive](#non-interactive)
       - [Help](#help)
@@ -23,9 +28,12 @@ Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie 
       - [Specific Sub-Commands: Models](#specific-sub-commands-models)
         - [Upload](#upload-1)
         - [List](#list)
-        - [Prune](#prune)
+        - [Delete](#delete)
         - [Clean](#clean)
-    - [`AerieClient` Usage](#aerieclient-usage)
+    - [Python API](#python-api)
+      - [Basic Usage](#basic-usage)
+      - [Adding Methods](#adding-methods)
+      - [Advanced Authentication](#advanced-authentication)
   - [Contributing](#contributing)
     - [Contributor Installation](#contributor-installation)
     - [Deployment](#deployment)
@@ -48,58 +56,58 @@ Aerie CLI provides a command-line interface and user-extendable Python backend f
 
 This short procedure will get you up and running with the basics of Aerie CLI. Read the following sections for more information.
 
-1) Install/update to Python 3.9
+1. Install/update to Python 3.9
 
-2) Install Aerie CLI from Github:
+2. Install Aerie CLI from Github:
 
-    ```sh
-    python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
-    ```
+   ```sh
+   python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
+   ```
 
-3) Configure access to an Aerie host
+3. Configure access to an Aerie host
 
-    1) If you've been provided a Configuration JSON, reference that file
+   1. If you've been provided a Configuration JSON, reference that file
 
-    2) If you don't have already have a Configuration JSON, copy the following to a JSON file for a local Aerie deployment:
+   2. If you don't have already have a Configuration JSON, copy the following to a JSON file for a local Aerie deployment:
 
-        ```json
-        {
-          "name": "localhost",
-          "graphql_url": "http://localhost:8080/v1/graphql",
-          "gateway_url": "http://localhost:9000",
-          "auth_method": "None"
-        }
-        ```
+      ```json
+      {
+        "name": "localhost",
+        "graphql_url": "http://localhost:8080/v1/graphql",
+        "gateway_url": "http://localhost:9000",
+        "auth_method": "None"
+      }
+      ```
 
-    3) Load either your given configuration(s) or the configuration above into Aerie CLI:
+   3. Load either your given configuration(s) or the configuration above into Aerie CLI:
 
-        ```sh
-        aerie-cli configurations load -i JSON_FILE
-        ```
+      ```sh
+      aerie-cli configurations load -i JSON_FILE
+      ```
 
-4) Activate a configuration to start communicating with an Aerie host:
+4. Activate a configuration to start communicating with an Aerie host:
 
-    ```sh
-    ➜  tools aerie-cli configurations activate
-    1) localhost
-    Select an option: 1
-    ```
+   ```sh
+   ➜  tools aerie-cli configurations activate
+   1) localhost
+   Select an option: 1
+   ```
 
-5) Try out a command to list the plans in Aerie:
+5. Try out a command to list the plans in Aerie:
 
-    ```sh
-    aerie-cli plans list
-    ```
+   ```sh
+   aerie-cli plans list
+   ```
 
-6) Use the `--help` flag on any command to see available subcommands and parameters. For example:
+6. Use the `--help` flag on any command to see available subcommands and parameters. For example:
 
-    ```sh
-    aerie-cli --help
-    ...
-    aerie-cli plans --help
-    ...
-    aerie-cli plans download --help
-    ```
+   ```sh
+   aerie-cli --help
+   ...
+   aerie-cli plans --help
+   ...
+   aerie-cli plans download --help
+   ```
 
 ---
 
@@ -167,7 +175,7 @@ You can view the configurations you've loaded with the `configurations list` com
 ➜  aerie-cli configurations list
 Configuration file location: /Users/cmak/Library/Application Support/aerie_cli/config.json
 
-                                         Aerie Host Configurations                                         
+                                         Aerie Host Configurations
 ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
 ┃ Host Name ┃ GraphQL API URL                  ┃ Aerie Gateway URL     ┃ Authentication Method ┃ Username ┃
 ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
@@ -193,7 +201,7 @@ To view available configurations, use `aerie-cli configurations list`:
 ➜  aerie-cli configurations list
 Configuration file location: /Users/<username>/Library/Application Support/aerie_cli/config.json
 
-                                         Aerie Host Configurations                                         
+                                         Aerie Host Configurations
 ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
 ┃ Host Name ┃ GraphQL API URL                  ┃ Aerie Gateway URL     ┃ Authentication Method ┃ Username ┃
 ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
@@ -419,7 +427,7 @@ plan = client.get_activity_plan_by_id(42) # Pass in ID of plan in Aerie
 print(plan.name)
 ```
 
-Look through the available methods in the provided `AerieClient` class to find ones that suit your needs. 
+Look through the available methods in the provided `AerieClient` class to find ones that suit your needs.
 
 #### Adding Methods
 
