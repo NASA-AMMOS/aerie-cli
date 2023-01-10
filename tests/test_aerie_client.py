@@ -8,6 +8,8 @@ import arrow
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession
 from aerie_cli.schemas.client import ActivityCreate
+from aerie_cli.schemas.api import ApiActivityPlanRead
+from aerie_cli.schemas.client import ActivityPlanRead
 
 BLANK_LINE_REGEX = r'^\s*$'
 
@@ -90,6 +92,9 @@ def test_list_all_activity_plans():
             ]
         }
     ]""")
+    expected = [ActivityPlanRead.from_api_read(
+        ApiActivityPlanRead.from_dict(e)
+    ) for e in expected]
     assert client.list_all_activity_plans() == expected
 
 
