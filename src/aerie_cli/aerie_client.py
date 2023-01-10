@@ -60,7 +60,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activity_directives {
+                activity_directives(order_by: { start_offset: asc }) {
                     id
                     name
                     type
@@ -107,7 +107,7 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activity_directives {
+                activity_directives(order_by: { start_offset: asc }) {
                     id
                     name
                     type
@@ -355,19 +355,19 @@ class AerieClient:
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
         sim_result_query = """
-          query Simulation($sim_dataset_id: Int!) {
-            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
-              activity_type_name
-              attributes
-              directive_id
-              duration
-              end_time
-              id
-              start_offset
-              start_time
-              simulation_dataset_id
+        query Simulation($sim_dataset_id: Int!) {
+            simulated_activity(where: { simulation_dataset_id: { _eq: $sim_dataset_id } }, order_by: { start_offset: asc }) {
+                activity_type_name
+                attributes
+                directive_id
+                duration
+                end_time
+                id
+                start_offset
+                start_time
+                simulation_dataset_id
             }
-          }
+        }
         """
         resp = self.host_session.post_to_graphql(
             sim_result_query, sim_dataset_id=sim_dataset_id)

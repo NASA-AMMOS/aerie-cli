@@ -191,6 +191,6 @@ def test_plan_clean():
     result = runner.invoke(p_app, ["clean"], input=login_str)
     assert result.exit_code == 0
     assert (
-        f"All activity plans at {client.ui_plans_path()} have been deleted"
+        f"All activity plans have been deleted"
         in result.stdout
     )
