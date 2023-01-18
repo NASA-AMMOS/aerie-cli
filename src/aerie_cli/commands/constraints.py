@@ -39,6 +39,8 @@ def upload(
 def delete(
     id: int = typer.Option(..., help="The constraint id to be deleted", prompt=True)
 ):
+    """Delete a constraint"""
+
     client = get_active_session_client()
     client.delete_constraint(id)
     typer.echo(f"Successfully deleted constraint {id}")
@@ -48,6 +50,8 @@ def update(
     id: int = typer.Option(..., help="The constraint id to be modifyed", prompt=True),
     constraint_file: str = typer.Option(..., help="The new constraint for the id", prompt=True)
 ):
+    """Update a constraint"""
+    
     client = get_active_session_client()
     constraint = client.get_constraint_by_id(id)
     with open(constraint_file) as in_file:

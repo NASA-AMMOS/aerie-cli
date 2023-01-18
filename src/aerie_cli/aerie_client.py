@@ -1326,7 +1326,6 @@ class AerieClient:
         return resp["id"]
     
     def get_constraint_by_id(self, id):
-
         get_constraint_by_id_query = """
         query get_constraint($id: Int!) {
             constraint_by_pk(id: $id) {
