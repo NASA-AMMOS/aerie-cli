@@ -1286,3 +1286,60 @@ class AerieClient:
                 activity.parameters = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
+
+    def upload_constraint(self, constraint):
+        upload_constraint_query = """
+        mutation CreateConstraint($constraint: constraint_insert_input!) {
+            createConstraint: insert_constraint_one(object: $constraint) {
+                id
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(upload_constraint_query, constraint=constraint)
+        return resp["id"]
+    
+    def delete_constraint(self, id):
+        delete_constraint_query = """
+        mutation DeleteConstraint($id: Int!) {
+            deleteConstraint: delete_constraint_by_pk(id: $id) {
+                id
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(delete_constraint_query, id=id)
+        return resp["id"]
+    
+    def update_constraint(self, id, constraint):
+        update_constraint_query = """
+        mutation UpdateConstraint($id: Int!, $constraint: constraint_set_input!) {
+            updateConstraint: update_constraint_by_pk(
+                pk_columns: { id: $id }, _set: $constraint
+            ) {
+                id
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(update_constraint_query, id=id, constraint=constraint)
+        return resp["id"]
+    
+    def get_constraint_by_id(self, id):
+
+        get_constraint_by_id_query = """
+        query get_constraint($id: Int!) {
+            constraint_by_pk(id: $id) {
+                model_id
+                plan_id
+                name
+                summary
+                definition
+                description
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(get_constraint_by_id_query, id=id)
+        return resp
+
