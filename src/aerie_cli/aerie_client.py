@@ -275,58 +275,54 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-        samples = self.get_resource_samples(plan_id)
+        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int, state_names: List=None):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
 
         # checks to see if user inputted specific states. If so, use this query.
         if state_names:
             resource_profile_query = """
-            query GetSimulationDataset($plan_id: Int!, $state_names: [String!]) {
-            simulation(where: {plan_id: {_eq: $plan_id}}, order_by: {id: desc}, limit: 1) {
-                simulation_datasets(order_by: {id: desc}, limit: 1) {
-                dataset {
-                    profiles(where: {name: {_in: $state_names}}) {
-                    name
-                    profile_segments(order_by: {start_offset: asc}) {
-                        dynamics
-                        start_offset
-                    }
-                    type
+            query GetSimulationDataset($simulation_dataset_id: Int!, $state_names: [String!]) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles(where: { name: { _in: $state_names } }) {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
                     }
                 }
-                }
-            }
             }
             """
 
-            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id, state_names=state_names)
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id, state_names=state_names)
 
         else:
             resource_profile_query = """
-            query GetSimulationDataset($plan_id: Int!) {
-            simulation(where: { plan_id: { _eq: $plan_id } }, order_by: { id: desc }, limit: 1) {
-                simulation_datasets(order_by: { id: desc }, limit: 1) {
-                dataset {
-                    profiles {
-                    name
-                    profile_segments(order_by: { start_offset: asc }) {
-                        dynamics
-                        start_offset
-                    }
-                    type
+            query GetSimulationDataset($simulation_dataset_id: Int!) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
                     }
                 }
-                }
-            }
             }
             """
-            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id)
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id)
         
         
-        profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
+        profiles = resp[0]["dataset"]["profiles"]
 
         plan_duration_query = """
         query GetSimulationDataset($plan_id: Int!) {
@@ -336,7 +332,7 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(
-            plan_duration_query, plan_id=plan_id)
+            plan_duration_query, plan_id=self.get_plan_id_by_sim_id(simulation_dataset_id))
         duration = postgres_duration_to_microseconds(resp["duration"])
 
         # Parse profile segments into resource timelines

@@ -82,7 +82,7 @@ def download_resources(
     plan_id = client.get_plan_id_by_sim_id(sim_id)
     start_time = client.get_activity_plan_by_id(plan_id, "").start_time
     # get resource timelines
-    resources = client.get_resource_samples(plan_id, contents)
+    resources = client.get_resource_samples(sim_id, contents)
 
     if csv:
         # the key is the time and the value is a list of tuples: (activity, state)
