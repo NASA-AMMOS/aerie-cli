@@ -61,6 +61,9 @@ def download_resources(
         help="The output file destination", prompt=True),
     absolute_time: bool = typer.Option(
         False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
+    ),
+    specific_states: str = typer.Option(
+        None, help="The file with the specific states (defaults to all resource timelines)"
     )
 ):
     """
@@ -68,11 +71,18 @@ def download_resources(
     """
     client = get_active_session_client()
 
+    # reads the states
+    contents = []
+    if specific_states:
+        with open(specific_states) as in_file:
+            for line in in_file:
+                contents.append(line.strip("\n"))
+
     # Get start time of plan
     plan_id = client.get_plan_id_by_sim_id(sim_id)
     start_time = client.get_activity_plan_by_id(plan_id, "").start_time
     # get resource timelines
-    resources = client.get_resource_samples(plan_id)
+    resources = client.get_resource_samples(plan_id, contents)
 
     if csv:
         # the key is the time and the value is a list of tuples: (activity, state)

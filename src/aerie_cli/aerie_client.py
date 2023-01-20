@@ -279,27 +279,53 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int):
-        resource_profile_query = """
-        query GetSimulationDataset($plan_id: Int!) {
-          simulation(where: { plan_id: { _eq: $plan_id } }, order_by: { id: desc }, limit: 1) {
-            simulation_datasets(order_by: { id: desc }, limit: 1) {
-              dataset {
-                profiles {
-                  name
-                  profile_segments(order_by: { start_offset: asc }) {
-                    dynamics
-                    start_offset
-                  }
-                  type
+    def get_resource_samples(self, plan_id: int, state_names: list):
+
+        # checks to see if user inputted specific states. If so, use this query.
+        if len(state_names) > 0:
+            resource_profile_query = """
+            query GetSimulationDataset($plan_id: Int!, $state_names: [String!]) {
+            simulation(where: {plan_id: {_eq: $plan_id}}, order_by: {id: desc}, limit: 1) {
+                simulation_datasets(order_by: {id: desc}, limit: 1) {
+                dataset {
+                    profiles(where: {name: {_in: $state_names}}) {
+                    name
+                    profile_segments(order_by: {start_offset: asc}) {
+                        dynamics
+                        start_offset
+                    }
+                    type
+                    }
                 }
-              }
+                }
             }
-          }
-        }
-        """
-        resp = self.host_session.post_to_graphql(
-            resource_profile_query, plan_id=plan_id)
+            }
+            """
+
+            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id, state_names=state_names)
+
+        else:
+            resource_profile_query = """
+            query GetSimulationDataset($plan_id: Int!) {
+            simulation(where: { plan_id: { _eq: $plan_id } }, order_by: { id: desc }, limit: 1) {
+                simulation_datasets(order_by: { id: desc }, limit: 1) {
+                dataset {
+                    profiles {
+                    name
+                    profile_segments(order_by: { start_offset: asc }) {
+                        dynamics
+                        start_offset
+                    }
+                    type
+                    }
+                }
+                }
+            }
+            }
+            """
+            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id)
+        
+        
         profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
 
         plan_duration_query = """
