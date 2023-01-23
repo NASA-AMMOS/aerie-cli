@@ -279,10 +279,10 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int, state_names: list):
+    def get_resource_samples(self, plan_id: int, state_names: List=None):
 
         # checks to see if user inputted specific states. If so, use this query.
-        if len(state_names) > 0:
+        if state_names:
             resource_profile_query = """
             query GetSimulationDataset($plan_id: Int!, $state_names: [String!]) {
             simulation(where: {plan_id: {_eq: $plan_id}}, order_by: {id: desc}, limit: 1) {
