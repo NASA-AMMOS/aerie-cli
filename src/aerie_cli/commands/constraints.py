@@ -11,14 +11,17 @@ app = typer.Typer()
 
 @app.command()
 def upload(
-    model_id: int = typer.Option(..., help="The model id associated with the constraint", prompt=True),
-    plan_id: int = typer.Option(None, help="The plan id associated with the constraint"), # optional
+    model_id: int = typer.Option(None, help="The model id associated with the constraint (do not input plan id)"),
+    plan_id: int = typer.Option(None, help="The plan id associated with the constraint (do not input model id)"),
     name: str = typer.Option(..., help="The name of the constraint", prompt=True),
     summary: str = typer.Option("", help="The summary of the constraint"), # optional
     description: str = typer.Option("", help="The description of the constraint"), # optional
     constraint_file: str = typer.Option(..., help="The file that holds the constraint", prompt=True)
 ):
     """Upload a constraint"""
+
+    if model_id is None and plan_id is None:
+        model_id = typer.prompt("Model id")
 
     client = get_active_session_client()
     with open(constraint_file) as in_file:
