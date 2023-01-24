@@ -393,6 +393,7 @@ class AerieClient:
                 start_offset
                 start_time
                 simulation_dataset_id
+                parent_id
             }
         }
         """
