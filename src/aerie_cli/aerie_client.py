@@ -1367,4 +1367,16 @@ class AerieClient:
 
         resp = self.host_session.post_to_graphql(get_constraint_by_id_query, id=id)
         return resp
+    
+    def get_constraint_violations(self, plan_id):
+        get_violations_query = """
+        query ($plan_id: Int!){
+            constraintViolations(planId: $plan_id) {
+                constraintViolations
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(get_violations_query, plan_id=plan_id)
+        return resp["constraintViolations"]
 

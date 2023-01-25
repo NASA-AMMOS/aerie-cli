@@ -71,7 +71,14 @@ def update(
     constraint_id = client.update_constraint(id, constraint)
     typer.echo(f"Updated constraint: {constraint_id}")
     
-    
+@app.command()
+def violations(
+    plan_id: int = typer.Option(..., help="The plan id for the violation", prompt=True)
+):
+
+    client = get_active_session_client()
+    constraint_violations = client.get_constraint_violations(plan_id)
+    typer.echo(f"Constraint violations: {constraint_violations}")
     
 
 
