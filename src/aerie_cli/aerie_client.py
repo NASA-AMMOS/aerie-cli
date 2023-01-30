@@ -322,7 +322,7 @@ class AerieClient:
             resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id)
         
         
-        profiles = resp[0]["dataset"]["profiles"]
+        profiles = resp["dataset"]["profiles"]
 
         plan_duration_query = """
         query GetSimulationDataset($plan_id: Int!) {
