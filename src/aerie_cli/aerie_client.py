@@ -169,6 +169,7 @@ class AerieClient:
         mutation CreatePlan($plan: plan_insert_input!) {
             createPlan: insert_plan_one(object: $plan) {
                 id
+                revision
             }
         }
         """
@@ -177,6 +178,7 @@ class AerieClient:
             plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
+        plan_revision = plan_resp["revision"]
 
         create_simulation_mutation = """
         mutation CreateSimulation($simulation: simulation_insert_input!) {
@@ -194,6 +196,27 @@ class AerieClient:
         # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
         for activity in plan_to_create.activities:
             self.create_activity(activity, plan_id, plan_to_create.start_time)
+
+        create_scheduling_spec_mutation = """
+        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
+            insert_scheduling_specification_one(object: $spec) {
+                id
+            }
+        }
+        """
+
+        spec = {
+            "plan_id": plan_id,
+            "analysis_only": False,
+            "horizon_end": plan_to_create.end_time.isoformat(),
+            "horizon_start": plan_to_create.start_time.isoformat(),
+            "plan_revision": plan_revision,
+            "simulation_arguments": {}
+        }
+
+        self.host_session.post_to_graphql(
+            create_scheduling_spec_mutation, spec=spec
+        )
 
         return plan_id
 
