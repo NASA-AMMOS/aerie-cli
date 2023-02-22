@@ -394,7 +394,7 @@ class AerieClient:
                     })
                     values.append({
                         "x": nextSegmentOffset,
-                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1000),
+                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1e6),
                     })
 
             resources[name] = values
