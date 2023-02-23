@@ -25,17 +25,21 @@ class MockAerieHostSession(AerieHostSession):
     Mock Aerie host listens for test queries and returns a mocked response.
 
     Responses are stored in ./files/mock_responses. Each JSON file should 
-    contain two objects, called "request" and "response". The former should 
-    be the JSON data for a GraphQL query. The response should be the JSON 
-    expected to be returned by `AerieHostSession.post_to_graphql()`.
+    contain a list of entries, each with two objects called "request" and 
+    "response". The former should be the JSON data for a GraphQL query. The 
+    response should be the JSON expected to be returned by 
+    `AerieHostSession.post_to_graphql()`.
 
-    {
-        "request": {
-            "query": query, 
-            "variables": variables
+    [
+        {
+            "request": {
+                "query": query, 
+                "variables": variables
+            },
+            "response": {<populate>}
         },
-        "response": {<populate>}
-    }
+        ...
+    ]
 
     Pass the name of the mock query file to the constructor.
     """
@@ -47,18 +51,21 @@ class MockAerieHostSession(AerieHostSession):
         mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
             f"{mock_query_name}.json")
         with open(mock_query_fn, 'r') as fid:
-            self.mock_data = json.load(fid)
+            self.mock_data: List = json.load(fid)
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
 
+        # Get the next transaction being mocked
+        mock_transaction = self.mock_data.pop(0)
+
         # Check that queries match, excepting whitespace mismatches
         assert _preprocess_query(query) == _preprocess_query(
-            self.mock_data["request"]["query"])
+            mock_transaction["request"]["query"])
 
         # Check that variables match
-        assert kwargs == self.mock_data["request"]["variables"]
+        assert kwargs == mock_transaction["request"]["variables"]
 
-        return self.mock_data["response"]
+        return mock_transaction["response"]
 
 
 def test_list_all_activity_plans():
@@ -118,6 +125,7 @@ def test_create_activity():
 
     assert res == 15
 
+
 def test_update_activity():
     host_session = MockAerieHostSession('update_activity')
     client = AerieClient(host_session)
@@ -137,4 +145,3 @@ def test_update_activity():
         15, activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
 
     assert res == 15
-

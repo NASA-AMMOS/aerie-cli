@@ -1,21 +1,23 @@
-{
-    "request": {
-        "query": "mutation CreateActivity($activity: activity_directive_insert_input!) { createActivity: insert_activity_directive_one(object: $activity) { id } }",
-        "variables": {
-            "activity": {
-                "type": "NoOp",
-                "arguments": {
-                    "aParameter": "2030-001T00:00:00Z"
-                },
-                "name": "My Activity",
-                "tags": "{}",
-                "metadata": {},
-                "plan_id": 1,
-                "start_offset": "0 seconds 0 milliseconds"
+[
+    {
+        "request": {
+            "query": "mutation CreateActivity($activity: activity_directive_insert_input!) { createActivity: insert_activity_directive_one(object: $activity) { id } }",
+            "variables": {
+                "activity": {
+                    "type": "NoOp",
+                    "arguments": {
+                        "aParameter": "2030-001T00:00:00Z"
+                    },
+                    "name": "My Activity",
+                    "tags": "{}",
+                    "metadata": {},
+                    "plan_id": 1,
+                    "start_offset": "0 seconds 0 milliseconds"
+                }
             }
+        },
+        "response": {
+            "id": 15
         }
-    },
-    "response": {
-        "id": 15
     }
-}
+]

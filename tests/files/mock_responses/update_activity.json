@@ -1,23 +1,25 @@
-{
-    "request": {
-        "query": "mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) { updateActivity: update_activity_directive_by_pk( pk_columns: { id: $id, plan_id: $plan_id }, _set: $activity ) { id } }",
-        "variables": {
-            "id": 15,
-            "plan_id": 1,
-            "activity": {
-                "type": "NoOp",
-                "arguments": {
-                    "aParameter": "2030-001T00:00:00Z"
-                },
-                "name": "My Activity",
-                "tags": "{}",
-                "metadata": {},
+[
+    {
+        "request": {
+            "query": "mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) { updateActivity: update_activity_directive_by_pk( pk_columns: { id: $id, plan_id: $plan_id }, _set: $activity ) { id } }",
+            "variables": {
+                "id": 15,
                 "plan_id": 1,
-                "start_offset": "0 seconds 0 milliseconds"
+                "activity": {
+                    "type": "NoOp",
+                    "arguments": {
+                        "aParameter": "2030-001T00:00:00Z"
+                    },
+                    "name": "My Activity",
+                    "tags": "{}",
+                    "metadata": {},
+                    "plan_id": 1,
+                    "start_offset": "0 seconds 0 milliseconds"
+                }
             }
+        },
+        "response": {
+            "id": 15
         }
-    },
-    "response": {
-        "id": 15
     }
-}
+]
