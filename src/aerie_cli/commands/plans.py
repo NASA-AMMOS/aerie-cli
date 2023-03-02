@@ -54,20 +54,26 @@ def download_resources(
         ..., '--sim-id', '-s',
         help="Simulation Dataset ID", prompt='Simulation Dataset ID'),
     csv: bool = typer.Option(
-        False, "--csv/--json", help="Download as CSV (default is json)"
+        False, "--csv/--json", help="Download as CSV"
     ),
     output: str = typer.Option(
         ..., '--output', '-o',
         help="The output file destination", prompt=True),
     absolute_time: bool = typer.Option(
-        False, "--absolute-time", help="Change time format from seconds to YYYY-DDDThh:mm:ss.sss"
+        False, "--absolute-time", help="Change relative timestamps to absolute"
     ),
     specific_states: str = typer.Option(
-        None, help="The file with the specific states (defaults to all resource timelines)"
+        None, help="The file with the specific states [defaults to all]"
     )
 ):
     """
-    Download resource timelines from a simulation and save to either JSON or CSV
+    Download resource timelines from a simulation and save to either JSON or CSV.
+
+    JSON resource timelines are formatted as lists of time-value pairs. Relative timestamps are milliseconds since 
+    plan start time. Absolute timestamps are of the form YYYY-DDDTh:mm:ss.sss
+
+    CSV resource timeline relative timestamps are seconds since plan start time. Absolute timestamps are formatted the 
+    same as the JSON outputs.
     """
     client = get_active_session_client()
 

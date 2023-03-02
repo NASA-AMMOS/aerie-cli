@@ -12,6 +12,8 @@ from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
 
 BLANK_LINE_REGEX = r'^\s*$'
+EXPECTED_RESULTS_DIRECTORY = Path(
+    __file__).parent.joinpath('files', 'expected_results')
 
 
 def _preprocess_query(q) -> str:
@@ -145,3 +147,28 @@ def test_update_activity():
         15, activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
 
     assert res == 15
+
+
+def test_get_resource_samples():
+
+    # CASE 1: Get all states
+    host_session = MockAerieHostSession('get_resource_samples_1')
+    client = AerieClient(host_session)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_1.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1)
+    print(json.dumps(res, indent=2))
+    assert res == expected
+
+    # CASE 2: Get only speicifc states
+    host_session = MockAerieHostSession('get_resource_samples_2')
+    client = AerieClient(host_session)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_2.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1, ["hardwareState"])
+    print(json.dumps(res, indent=2))
+    assert res == expected

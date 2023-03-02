@@ -303,6 +303,22 @@ class AerieClient:
         return api_resource_timeline
 
     def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
+        """Pull resource samples from a simulatino dataset, optionally filtering for specific states
+
+        Each resource's values are returned in a list of points {x: <time>, y: <value>}.
+        
+        Times are provided in microseconds from plan start.
+
+        Numeric resources can be either discrete-valued or vary linearly between samples. Samples are processed such 
+        that a linear interpolation between samples will always return a correct value.
+
+        Args:
+            simulation_dataset_id (int)
+            state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+
+        Returns:
+            Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
+        """        
 
         # checks to see if user inputted specific states. If so, use this query.
         if state_names:
@@ -348,7 +364,7 @@ class AerieClient:
         profiles = resp["dataset"]["profiles"]
 
         plan_duration_query = """
-        query GetSimulationDataset($plan_id: Int!) {
+        query GetPlanDuration($plan_id: Int!) {
           plan_by_pk(id: $plan_id) {
             duration
           }
@@ -368,34 +384,68 @@ class AerieClient:
 
             for i in range(len(profile_segments)):
                 segment = profile_segments[i]
-                segmentOffset = postgres_duration_to_microseconds(
+
+                # The segment offset is the offset from plan start to the beginning of this segment
+                segment_start_time = postgres_duration_to_microseconds(
                     segment["start_offset"])
+
+                # If this is *not* the last segment, then this segment ends where the next segment starts
                 if i + 1 < len(profile_segments):
-                    nextSegmentOffset = postgres_duration_to_microseconds(
+                    segment_end_time = postgres_duration_to_microseconds(
                         profile_segments[i + 1]["start_offset"])
+                
+                # If this is the last segment, then this segment ends at the end of the plan
                 else:
-                    nextSegmentOffset = duration
+                    segment_end_time = duration
 
                 dynamics = segment["dynamics"]
 
+                # Discrete profiles don't have rates
                 if profile_type == 'discrete':
-                    values.append({
-                        "x": segmentOffset,
+
+                    # Define points at the start and end of this profile segment
+                    start_value = {
+                        "x": segment_start_time,
                         "y": dynamics,
-                    })
-                    values.append({
-                        "x": nextSegmentOffset,
+                    }
+                    end_value = {
+                        "x": segment_end_time,
                         "y": dynamics,
-                    })
+                    }
+
+                    # Check if the previous point is identical to this one
+                    if len(values) and (values[-1] == start_value):
+
+                        # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
+                        values.pop()
+                        values.append(end_value)
+
+                    else:
+
+                        # If the value has changed, add points at the boundaries of this segment
+                        values.append(start_value)
+                        values.append(end_value)
+
+                # Real profiles can have rates over time
                 elif profile_type == 'real':
-                    values.append({
-                        "x": segmentOffset,
+
+                    start_value = {
+                        "x": segment_start_time,
                         "y": dynamics["initial"],
-                    })
+                    }
+
+                    # If the last value is not identical to this segment's start, then add the start
+                    if (len(values) and values[-1] != start_value) or (len(values) == 0):
+                        values.append(start_value)
+
+                    # Add a value at the end of this segment
                     values.append({
-                        "x": nextSegmentOffset,
-                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1e6),
+                        "x": segment_end_time,
+                        "y": dynamics["initial"] + dynamics["rate"] * ((segment_end_time - segment_start_time) / 1e6),
                     })
+                
+                else:
+                    raise ValueError(f"Unknown resource profile type: {profile_type}")
 
             resources[name] = values
         return {
