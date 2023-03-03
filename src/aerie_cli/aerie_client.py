@@ -303,14 +303,15 @@ class AerieClient:
         return api_resource_timeline
 
     def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
-        """Pull resource samples from a simulatino dataset, optionally filtering for specific states
+        """Pull resource samples from a simulation dataset, optionally filtering for specific states
 
         Each resource's values are returned in a list of points {x: <time>, y: <value>}.
         
         Times are provided in microseconds from plan start.
 
         Numeric resources can be either discrete-valued or vary linearly between samples. Samples are processed such 
-        that a linear interpolation between samples will always return a correct value.
+        that a linear interpolation between samples will always return a correct value. Two points at the same 
+        timestamp indicate a discontinuity.
 
         Args:
             simulation_dataset_id (int)
