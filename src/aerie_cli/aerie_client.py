@@ -1423,19 +1423,6 @@ class AerieClient:
 
         return resp['id']
 
-    def create_specification(self, spec):
-        create_specification_query = """
-        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
-            insert_scheduling_specification_one(object: $spec) {
-                id
-            }
-        }
-        """
-
-        self.__gql_query(
-            create_specification_query, spec=spec
-        )
-
     def get_plan_revision(self, planId):
         get_plan_revision_query = """
         query get_plan_revision($plan_id:Int) {
