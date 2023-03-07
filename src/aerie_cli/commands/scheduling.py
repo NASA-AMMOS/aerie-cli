@@ -25,7 +25,7 @@ def upload(
     scheduling_name: str = typer.Option(..., help="Name of scheduling goal", prompt=True
     ),
     schedule: str = typer.Option(
-        ..., help="The input file from which to create the Aerie goal(s)", prompt=True
+        ..., help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=True
     )
 ): 
     """Upload scheduling goal"""
