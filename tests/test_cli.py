@@ -22,7 +22,7 @@ client = auth_helper(
 )
 
 # Model Variables
-model_jar = "files/data-simple.jar"
+model_jar = "TODO"
 model_name = "data-simple"
 mission_name = "eurc"
 version = "0.11.2"
