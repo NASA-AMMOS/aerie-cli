@@ -140,7 +140,7 @@ class ActivityPlanRead(EmptyActivityPlan):
 class AsSimulatedActivity:
     type: str
     id: str
-    parent: Optional[str]
+    parent_id: Optional[str]
     start_time: Arrow = field(
         metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
     )
@@ -158,7 +158,7 @@ class AsSimulatedActivity:
         return AsSimulatedActivity(
             type=api_as_simulated_activity.type,
             id=id,
-            parent=api_as_simulated_activity.parent,
+            parent_id=api_as_simulated_activity.parent_id,
             start_time=api_as_simulated_activity.start_timestamp,
             children=api_as_simulated_activity.children,
             duration=api_as_simulated_activity.duration,

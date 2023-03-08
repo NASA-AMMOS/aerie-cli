@@ -89,7 +89,7 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
 @dataclass
 class ApiAsSimulatedActivity:
     type: str
-    parent: Optional[str]
+    parent_id: Optional[str]
     start_timestamp: Arrow = field(
         metadata=config(
             letter_case=LetterCase.CAMEL, decoder=arrow.get, encoder=Arrow.isoformat

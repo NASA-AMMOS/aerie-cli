@@ -1,0 +1,145 @@
+[
+    {
+        "request": {
+            "query": "query GetSimulationDataset($simulation_dataset_id: Int!) { simulation_dataset_by_pk(id: $simulation_dataset_id) { dataset { profiles { name profile_segments(order_by: { start_offset: asc }) { dynamics start_offset } type } } } }",
+            "variables": {
+                "simulation_dataset_id": 1
+            }
+        },
+        "response": {
+            "dataset": {
+                "profiles": [
+                    {
+                        "name": "dataVolume",
+                        "profile_segments": [
+                            {
+                                "dynamics": {
+                                    "rate": 0.0,
+                                    "initial": 0.0
+                                },
+                                "start_offset": "00:00:00"
+                            },
+                            {
+                                "dynamics": {
+                                    "rate": 184320000,
+                                    "initial": 0.0
+                                },
+                                "start_offset": "00:10:00"
+                            },
+                            {
+                                "dynamics": {
+                                    "rate": 0.0,
+                                    "initial": 55296000000
+                                },
+                                "start_offset": "00:15:00"
+                            },
+                            {
+                                "dynamics": {
+                                    "rate": 0.0,
+                                    "initial": 65296000000
+                                },
+                                "start_offset": "00:20:00"
+                            }
+                        ],
+                        "type": {
+                            "type": "real",
+                            "schema": {
+                                "type": "struct",
+                                "items": {
+                                    "rate": {
+                                        "type": "real"
+                                    },
+                                    "initial": {
+                                        "type": "real"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "totalRate",
+                        "profile_segments": [
+                            {
+                                "dynamics": 0.0,
+                                "start_offset": "00:00:00"
+                            },
+                            {
+                                "dynamics": 184320000,
+                                "start_offset": "00:10:00"
+                            },
+                            {
+                                "dynamics": 0.0,
+                                "start_offset": "00:15:00"
+                            }
+                        ],
+                        "type": {
+                            "type": "discrete",
+                            "schema": {
+                                "type": "real"
+                            }
+                        }
+                    },
+                    {
+                        "name": "hardwareState",
+                        "profile_segments": [
+                            {
+                                "dynamics": "OFF",
+                                "start_offset": "00:00:00"
+                            },
+                            {
+                                "dynamics": "ON",
+                                "start_offset": "00:10:00"
+                            },
+                            {
+                                "dynamics": "OFF",
+                                "start_offset": "00:15:00"
+                            }
+                        ],
+                        "type": {
+                            "type": "discrete",
+                            "schema": {
+                                "type": "variant",
+                                "variants": [
+                                    {
+                                        "key": "OFF",
+                                        "label": "OFF"
+                                    },
+                                    {
+                                        "key": "ON",
+                                        "label": "ON"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "request": {
+            "query": "query PlanIdBySimDatasetId($simulation_dataset_id: Int!) { simulation_dataset_by_pk(id: $simulation_dataset_id) { simulation { plan { id } } } }",
+            "variables": {
+                "simulation_dataset_id": 1
+            }
+        },
+        "response": {
+            "simulation": {
+                "plan": {
+                    "id": 2
+                }
+            }
+        }
+    },
+    {
+        "request": {
+            "query": "query GetPlanDuration($plan_id: Int!) { plan_by_pk(id: $plan_id) { duration } }",
+            "variables": {
+                "plan_id": 2
+            }
+        },
+        "response": {
+            "duration": "00:30:00"
+        }
+    }
+]

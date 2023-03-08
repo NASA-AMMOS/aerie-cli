@@ -169,6 +169,7 @@ class AerieClient:
         mutation CreatePlan($plan: plan_insert_input!) {
             createPlan: insert_plan_one(object: $plan) {
                 id
+                revision
             }
         }
         """
@@ -177,6 +178,7 @@ class AerieClient:
             plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
+        plan_revision = plan_resp["revision"]
 
         create_simulation_mutation = """
         mutation CreateSimulation($simulation: simulation_insert_input!) {
@@ -194,6 +196,27 @@ class AerieClient:
         # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
         for activity in plan_to_create.activities:
             self.create_activity(activity, plan_id, plan_to_create.start_time)
+
+        create_scheduling_spec_mutation = """
+        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
+            insert_scheduling_specification_one(object: $spec) {
+                id
+            }
+        }
+        """
+
+        spec = {
+            "plan_id": plan_id,
+            "analysis_only": False,
+            "horizon_end": plan_to_create.end_time.isoformat(),
+            "horizon_start": plan_to_create.start_time.isoformat(),
+            "plan_revision": plan_revision,
+            "simulation_arguments": {}
+        }
+
+        self.host_session.post_to_graphql(
+            create_scheduling_spec_mutation, spec=spec
+        )
 
         return plan_id
 
@@ -275,68 +298,81 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-        samples = self.get_resource_samples(plan_id)
+        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int, state_names: List=None):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
+        """Pull resource samples from a simulation dataset, optionally filtering for specific states
+
+        Each resource's values are returned in a list of points {x: <time>, y: <value>}.
+        
+        Times are provided in microseconds from plan start.
+
+        Numeric resources can be either discrete-valued or vary linearly between samples. Samples are processed such 
+        that a linear interpolation between samples will always return a correct value. Two points at the same 
+        timestamp indicate a discontinuity.
+
+        Args:
+            simulation_dataset_id (int)
+            state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+
+        Returns:
+            Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
+        """        
 
         # checks to see if user inputted specific states. If so, use this query.
         if state_names:
             resource_profile_query = """
-            query GetSimulationDataset($plan_id: Int!, $state_names: [String!]) {
-            simulation(where: {plan_id: {_eq: $plan_id}}, order_by: {id: desc}, limit: 1) {
-                simulation_datasets(order_by: {id: desc}, limit: 1) {
-                dataset {
-                    profiles(where: {name: {_in: $state_names}}) {
-                    name
-                    profile_segments(order_by: {start_offset: asc}) {
-                        dynamics
-                        start_offset
-                    }
-                    type
+            query GetSimulationDataset($simulation_dataset_id: Int!, $state_names: [String!]) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles(where: { name: { _in: $state_names } }) {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
                     }
                 }
-                }
-            }
             }
             """
 
-            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id, state_names=state_names)
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id, state_names=state_names)
 
         else:
             resource_profile_query = """
-            query GetSimulationDataset($plan_id: Int!) {
-            simulation(where: { plan_id: { _eq: $plan_id } }, order_by: { id: desc }, limit: 1) {
-                simulation_datasets(order_by: { id: desc }, limit: 1) {
-                dataset {
-                    profiles {
-                    name
-                    profile_segments(order_by: { start_offset: asc }) {
-                        dynamics
-                        start_offset
-                    }
-                    type
+            query GetSimulationDataset($simulation_dataset_id: Int!) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
                     }
                 }
-                }
-            }
             }
             """
-            resp = self.host_session.post_to_graphql(resource_profile_query, plan_id=plan_id)
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id)
         
         
-        profiles = resp[0]["simulation_datasets"][0]["dataset"]["profiles"]
+        profiles = resp["dataset"]["profiles"]
 
         plan_duration_query = """
-        query GetSimulationDataset($plan_id: Int!) {
+        query GetPlanDuration($plan_id: Int!) {
           plan_by_pk(id: $plan_id) {
             duration
           }
         }
         """
         resp = self.host_session.post_to_graphql(
-            plan_duration_query, plan_id=plan_id)
+            plan_duration_query, plan_id=self.get_plan_id_by_sim_id(simulation_dataset_id))
         duration = postgres_duration_to_microseconds(resp["duration"])
 
         # Parse profile segments into resource timelines
@@ -349,34 +385,68 @@ class AerieClient:
 
             for i in range(len(profile_segments)):
                 segment = profile_segments[i]
-                segmentOffset = postgres_duration_to_microseconds(
+
+                # The segment offset is the offset from plan start to the beginning of this segment
+                segment_start_time = postgres_duration_to_microseconds(
                     segment["start_offset"])
+
+                # If this is *not* the last segment, then this segment ends where the next segment starts
                 if i + 1 < len(profile_segments):
-                    nextSegmentOffset = postgres_duration_to_microseconds(
+                    segment_end_time = postgres_duration_to_microseconds(
                         profile_segments[i + 1]["start_offset"])
+                
+                # If this is the last segment, then this segment ends at the end of the plan
                 else:
-                    nextSegmentOffset = duration
+                    segment_end_time = duration
 
                 dynamics = segment["dynamics"]
 
+                # Discrete profiles don't have rates
                 if profile_type == 'discrete':
-                    values.append({
-                        "x": segmentOffset,
+
+                    # Define points at the start and end of this profile segment
+                    start_value = {
+                        "x": segment_start_time,
                         "y": dynamics,
-                    })
-                    values.append({
-                        "x": nextSegmentOffset,
+                    }
+                    end_value = {
+                        "x": segment_end_time,
                         "y": dynamics,
-                    })
+                    }
+
+                    # Check if the previous point is identical to this one
+                    if len(values) and (values[-1] == start_value):
+
+                        # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
+                        values.pop()
+                        values.append(end_value)
+
+                    else:
+
+                        # If the value has changed, add points at the boundaries of this segment
+                        values.append(start_value)
+                        values.append(end_value)
+
+                # Real profiles can have rates over time
                 elif profile_type == 'real':
-                    values.append({
-                        "x": segmentOffset,
+
+                    start_value = {
+                        "x": segment_start_time,
                         "y": dynamics["initial"],
-                    })
+                    }
+
+                    # If the last value is not identical to this segment's start, then add the start
+                    if (len(values) and values[-1] != start_value) or (len(values) == 0):
+                        values.append(start_value)
+
+                    # Add a value at the end of this segment
                     values.append({
-                        "x": nextSegmentOffset,
-                        "y": dynamics["initial"] + dynamics["rate"] * ((nextSegmentOffset - segmentOffset) / 1000),
+                        "x": segment_end_time,
+                        "y": dynamics["initial"] + dynamics["rate"] * ((segment_end_time - segment_start_time) / 1e6),
                     })
+                
+                else:
+                    raise ValueError(f"Unknown resource profile type: {profile_type}")
 
             resources[name] = values
         return {
@@ -397,6 +467,7 @@ class AerieClient:
                 start_offset
                 start_time
                 simulation_dataset_id
+                parent_id
             }
         }
         """

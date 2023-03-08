@@ -12,6 +12,8 @@ from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
 
 BLANK_LINE_REGEX = r'^\s*$'
+EXPECTED_RESULTS_DIRECTORY = Path(
+    __file__).parent.joinpath('files', 'expected_results')
 
 
 def _preprocess_query(q) -> str:
@@ -25,17 +27,21 @@ class MockAerieHostSession(AerieHostSession):
     Mock Aerie host listens for test queries and returns a mocked response.
 
     Responses are stored in ./files/mock_responses. Each JSON file should 
-    contain two objects, called "request" and "response". The former should 
-    be the JSON data for a GraphQL query. The response should be the JSON 
-    expected to be returned by `AerieHostSession.post_to_graphql()`.
+    contain a list of entries, each with two objects called "request" and 
+    "response". The former should be the JSON data for a GraphQL query. The 
+    response should be the JSON expected to be returned by 
+    `AerieHostSession.post_to_graphql()`.
 
-    {
-        "request": {
-            "query": query, 
-            "variables": variables
+    [
+        {
+            "request": {
+                "query": query, 
+                "variables": variables
+            },
+            "response": {<populate>}
         },
-        "response": {<populate>}
-    }
+        ...
+    ]
 
     Pass the name of the mock query file to the constructor.
     """
@@ -47,18 +53,21 @@ class MockAerieHostSession(AerieHostSession):
         mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
             f"{mock_query_name}.json")
         with open(mock_query_fn, 'r') as fid:
-            self.mock_data = json.load(fid)
+            self.mock_data: List = json.load(fid)
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
 
+        # Get the next transaction being mocked
+        mock_transaction = self.mock_data.pop(0)
+
         # Check that queries match, excepting whitespace mismatches
         assert _preprocess_query(query) == _preprocess_query(
-            self.mock_data["request"]["query"])
+            mock_transaction["request"]["query"])
 
         # Check that variables match
-        assert kwargs == self.mock_data["request"]["variables"]
+        assert kwargs == mock_transaction["request"]["variables"]
 
-        return self.mock_data["response"]
+        return mock_transaction["response"]
 
 
 def test_list_all_activity_plans():
@@ -118,6 +127,7 @@ def test_create_activity():
 
     assert res == 15
 
+
 def test_update_activity():
     host_session = MockAerieHostSession('update_activity')
     client = AerieClient(host_session)
@@ -138,3 +148,27 @@ def test_update_activity():
 
     assert res == 15
 
+
+def test_get_resource_samples():
+
+    # CASE 1: Get all states
+    host_session = MockAerieHostSession('get_resource_samples_1')
+    client = AerieClient(host_session)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_1.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1)
+    print(json.dumps(res, indent=2))
+    assert res == expected
+
+    # CASE 2: Get only speicifc states
+    host_session = MockAerieHostSession('get_resource_samples_2')
+    client = AerieClient(host_session)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_2.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1, ["hardwareState"])
+    print(json.dumps(res, indent=2))
+    assert res == expected
