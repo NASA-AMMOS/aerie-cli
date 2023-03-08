@@ -1,21 +1,21 @@
 [tool.poetry]
-name = "eurc-gds-aerie-cli"
+name = "aerie-cli"
 version = "1.0.2"
 description = "aerie-cli"
 authors = ["Gavin Martin <gavin.c.martin@jpl.nasa.gov>", "Mihir Kamble <mihir.m.kamble@jpl.nasa.gov>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.jpl.nasa.gov/397/aerie-cli"
-repository = "https://github.jpl.nasa.gov/397/aerie-cli"
+homepage = "https://github.com/NASA-AMMOS/aerie-cli"
+repository = "https://github.com/NASA-AMMOS/aerie-cli"
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 4 - Beta",
 ]
 packages = [
     { include = "aerie_cli", from = "src" }
 ]
 
 [tool.poetry.urls]
-Changelog = "https://github.jpl.nasa.gov/397/aerie-cli/releases"
+Changelog = "https://github.com/NASA-AMMOS/aerie-cli/releases"
 
 [tool.poetry.dependencies]
 python = "^3.9"

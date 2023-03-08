@@ -61,7 +61,7 @@ This short procedure will get you up and running with the basics of Aerie CLI. R
 2. Install Aerie CLI from Github:
 
    ```sh
-   python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
+   python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git#main
    ```
 
 3. Configure access to an Aerie host
@@ -118,13 +118,13 @@ This short procedure will get you up and running with the basics of Aerie CLI. R
 First, ensure that **`Python 3.9`** is installed on your local machine as the CLI will is not compatible with older versions. Once `Python 3.9` has been installed, you can install `aerie-cli` with the following command:
 
 ```sh
-python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
+python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git#main
 ```
 
 If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
 
 ```sh
-$ python3 -m pip install git+https://github.jpl.nasa.gov/397/aerie-cli.git@branchname
+$ python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@branchname
 ```
 
 You can confirm that `aerie-cli` has been installed on your system:
@@ -139,8 +139,8 @@ You can confirm that `aerie-cli` has been installed on your system:
 In order to update your currently installed version of `aerie-cli`, first uninstall your local package and then reinstall from GitHub.
 
 ```sh
-$ python3 -m pip uninstall eurc_gds_aerie_cli
-> Successfully uninstalled eurc-gds-aerie-cli-<version>
+$ python3 -m pip uninstall aerie_cli
+> Successfully uninstalled aerie-cli-<version>
 ```
 
 ### Installation with `poetry`
@@ -148,7 +148,7 @@ $ python3 -m pip uninstall eurc_gds_aerie_cli
 If you use `poetry` for your dependency management and intend to use this package in another Python project, you can install this package to an existing `poetry` project with:
 
 ```sh
-poetry add git+https://github.jpl.nasa.gov/397/aerie-cli.git#main
+poetry add git+https://github.com/NASA-AMMOS/aerie-cli.git#main
 ```
 
 For more info on `poetry`, see the [Contributing](#contributing) section below.
@@ -173,7 +173,7 @@ You can view the configurations you've loaded with the `configurations list` com
 
 ```sh
 ➜  aerie-cli configurations list
-Configuration file location: /Users/cmak/Library/Application Support/aerie_cli/config.json
+Configuration file location: /Users/<username>/Library/Application Support/aerie_cli/config.json
 
                                          Aerie Host Configurations
 ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
@@ -502,7 +502,7 @@ Then, you will need to run the following commands:
 
 To deploy a new version of aerie-cli:
 
-- Verify the version number in `pyproject.toml` is incremented from the current version in Artifactory
+- Verify the version number in `pyproject.toml` is incremented from the current version in PyPI
 - Clear out any previous build artifacts, if present, from the root of the repository:
   ```sh
   rm -rf dist/
@@ -512,37 +512,13 @@ To deploy a new version of aerie-cli:
   poetry build
   ```
 
-To upload to Artifactory, you may either:
+To upload to PyPI, use twine:
 
-1. Follow the instructions in [this Wiki](https://wiki.jpl.nasa.gov/display/jeowiki/GDS+TRR+Subsystem+Deliveries#GDSTRRSubsystemDeliveries-HowtouploadyourPyPIpackagetoArtifactory) to manually upload the tar file generated in the `dist/` directory
+```sh
+python3 -m twine upload dist/*
+```
 
-   > _Note: The instructions here specify the `pypi-stage-local` repository, however `aerie-cli` should be deployed to `pypi-develop-local`._
-
-2. Upload via the command line
-
-To upload via the command line:
-
-- Ensure you have Artifactory credentials stored in your `.pypirc` file (one-time setup)
-
-  > _Note: Consult the [Official Documentation](https://packaging.python.org/en/latest/specifications/pypirc/) for the `.pypirc` file as necessary_
-
-  - Log in to [JPL Artifactory](https://artifactory.jpl.nasa.gov/)
-  - Navigate to the "Artifacts" page in the left panel of the page
-  - Find and select the `pypi-develop-local` repository
-  - Click "Set Me Up" in the upper-right corner of the page
-  - Enter your password
-  - Follow instructions under the "Deploy" tab to store the repository with your API key in your `.pypirc` file
-
-- Use `twine` to upload to Artifactory
-  - If not installed:
-    ```sh
-    python3 -m pip install twine
-    ```
-  - Upload:
-    ```sh
-    python3 -m twine upload -r local dist/*
-    ```
-    > _Note: "local" is the name given to the repository in your `.pypirc` file by the default text copied from Artifactory. You may change this, e.g., to manage multiple repositories._
+Details can be found in the [twine documentation](https://twine.readthedocs.io/en/stable/index.html).
 
 ### Dependency Management
 
@@ -591,4 +567,4 @@ For Mac users developing in VS Code, you can achieve this by adding the followin
 
 After doing this, you can select a new Python interpreter by typing `Cmd + Shift + P` and selecting a Python interpreter which corresponds to your `poetry` virtualenv:
 
-<img width="601" alt="image" src="https://github.jpl.nasa.gov/storage/user/6097/files/884e5c80-9b18-11ec-9b65-63a69b606733">
+<img width="601" alt="image" src="https://user-images.githubusercontent.com/7908658/201275707-00caca06-5e2b-4258-b5c4-f0548134af2f.png">
