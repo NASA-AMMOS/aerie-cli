@@ -1368,12 +1368,15 @@ class AerieClient:
                 }
         }"""
 
-        resp = self.__gql_query(
-            upload_scheduling_goal_query, model_id=model_id, name=name, definition=definition
+        resp = self.host_session.post_to_graphql(
+            upload_scheduling_goal_query, 
+            model_id=model_id, 
+            name=name, 
+            definition=definition
         )
 
         return resp["id"]
-    
+
     def get_specification_for_plan(self, plan_id):
         get_specification_for_plan_query = """
         query GetSpecificationForPlan($plan_id: Int!) {
@@ -1383,7 +1386,10 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_specification_for_plan_query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(
+            get_specification_for_plan_query, 
+            plan_id=plan_id
+        )
         return resp[0]["id"]
 
     def add_goal_to_specification(self, specification_id, goal_id, priority):
@@ -1402,8 +1408,11 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(
-            add_goal_to_specification_query, specification_id=specification_id, goal_id=goal_id, priority=priority
+        resp = self.host_session.post_to_graphql(
+            add_goal_to_specification_query, 
+            specification_id=specification_id, 
+            goal_id=goal_id, 
+            priority=priority
         )
 
         return resp['priority']
@@ -1417,8 +1426,9 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(
-            delete_scheduling_goal_query, id=goal_id
+        resp = self.host_session.post_to_graphql(
+            delete_scheduling_goal_query, 
+            id=goal_id
         )
 
         return resp['id']
@@ -1432,10 +1442,11 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(
-            get_plan_revision_query, plan_id=planId
+        resp = self.host_session.post_to_graphql(
+            get_plan_revision_query, 
+            plan_id=planId
         )
-        
+
         return resp[0]["revision"]
 
     def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:

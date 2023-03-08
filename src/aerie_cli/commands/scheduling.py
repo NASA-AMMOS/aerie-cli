@@ -1,21 +1,11 @@
 import typer
 
-from .client import auth_helper
+from aerie_cli.utils.sessions import get_active_session_client
 
 app = typer.Typer()
 
 @app.command()
 def upload(
-    sso: str = typer.Option("", help="SSO Token"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
     model_id: int = typer.Option(
         ..., help="The mission model ID to associate with the scheduling goal", prompt=True
     ),
@@ -29,9 +19,7 @@ def upload(
     )
 ): 
     """Upload scheduling goal"""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
-    )
+    client = get_active_session_client()
 
     with open(schedule) as in_file:
         i = 0
@@ -43,33 +31,19 @@ def upload(
                 goal_id = client.upload_scheduling_goal(model_id, scheduling_name, str_contents)
                 typer.echo("GOAL " + str(goal_id))
                 specification_id = client.get_specification_for_plan(plan_id)
+                typer.echo("SPEC " + str(specification_id))
                 priority = client.add_goal_to_specification(specification_id, goal_id, i)
                 i+=1
                 typer.echo("Uploaded " + line + " as priority " + str(priority))
 
 @app.command()
 def delete(
-    sso: str = typer.Option("", help="SSO Token"),
-    username: str = typer.Option("", help="JPL username"),
-    password: str = typer.Option(
-        "",
-        help="JPL password",
-        hide_input=True,
-    ),
-    server_url: str = typer.Option(
-        "http://localhost", help="The URL of the Aerie deployment"
-    ),
     goal_id: int = typer.Option(
         ..., help="Goal ID of goal to be deleted", prompt=True
     )
 ):
     """Delete scheduling goal"""
-    client = auth_helper(
-        sso=sso, username=username, password=password, server_url=server_url
-    )
+    client = get_active_session_client()
 
     resp = client.delete_scheduling_goal(goal_id)
     typer.echo("Successfully deleted Goal ID: " + str(resp))
-
-    
-       
