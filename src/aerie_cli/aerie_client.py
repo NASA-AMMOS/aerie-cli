@@ -1,15 +1,10 @@
-import re
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 import arrow
-import requests
-import typer
 
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiEffectiveActivityArguments
@@ -19,110 +14,27 @@ from .schemas.api import ApiResourceSampleResults
 from .schemas.client import ActivityCreate
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
-from .schemas.client import SimulationResults
-
-# from .schemas.api import ApiSimulationResults
-
-CLOUD_URL_REGEX = re.compile(
-    r"^(?P<protocol>((http:\/\/)|(https:\/\/))?)(?P<app>aerie-ui)\.(?P<base>[^\/]+)"
-)
-
-
-@dataclass
-class Auth:
-    username: str
-    password: str
+from .schemas.client import CommandDictionaryInfo
+from .schemas.client import ExpansionRun
+from .schemas.client import ExpansionRule
+from .schemas.client import ExpansionSet
+from .utils.serialization import postgres_duration_to_microseconds
+from .aerie_host import AerieHostSession
 
 
 class AerieClient:
-    server_url: str
-    sso_token: str
+    """Client-side behavior for aerie-cli
 
-    def __init__(self, server_url: str, sso=""):
-        self.server_url = server_url
-        self.sso_token = sso
+    Class encapsulates logic to query and send files to a given Aerie host.
+    """
 
-    @classmethod
-    def from_local(cls, server_url: str):
-        return cls(server_url=server_url)
+    def __init__(self, host_session: AerieHostSession):
+        """Instantiate a client with an authenticated host session
 
-    @classmethod
-    def from_sso(cls, server_url: str, sso: str):
-        return cls(server_url=server_url, sso=sso)
-
-    @classmethod
-    def from_userpass(cls, server_url: str, username: str, password: str):
-        auth = Auth(username=username, password=password)
-        sso = cls.cls_get_sso_token(server_url, auth)
-        return cls(server_url=server_url, sso=sso)
-
-    @classmethod
-    def cls_graphql_path(cls, server_url: str) -> str:
-        m = re.match(CLOUD_URL_REGEX, server_url)
-        if m:
-            return f"{m.group('protocol')}aerie-hasura.{m.group('base')}/v1/graphql"
-        else:
-            return server_url + ":8080/v1/graphql"
-
-    @classmethod
-    def cls_gateway_path(cls, server_url: str) -> str:
-        m = re.match(CLOUD_URL_REGEX, server_url)
-        if m:
-            return f"{m.group('protocol')}aerie-gateway.{m.group('base')}"
-        else:
-            return server_url + ":9000"
-
-    @classmethod
-    def cls_files_api_path(cls, server_url: str) -> str:
-        return cls.cls_gateway_path(server_url) + "/file"
-
-    @classmethod
-    def cls_login_api_path(cls, server_url: str) -> str:
-        return cls.cls_gateway_path(server_url) + "/auth/login"
-
-    @classmethod
-    def cls_ui_path(cls, server_url: str) -> str:
-        return server_url
-
-    @classmethod
-    def cls_ui_models_path(cls, server_url: str) -> str:
-        return cls.cls_ui_path(server_url) + "/models"
-
-    @classmethod
-    def cls_ui_plans_path(cls, server_url: str) -> str:
-        return cls.cls_ui_path(server_url) + "/plans"
-
-    @classmethod
-    def cls_get_sso_token(cls, server_url: str, auth: Auth) -> str:
-        resp = requests.post(
-            url=cls.cls_login_api_path(server_url),
-            json={"username": auth.username, "password": auth.password},
-        )
-        if not resp.json()["success"]:
-            sys.exit("Authentication failed. Perhaps you provided bad credentials...")
-
-        return resp.json()["ssoToken"]
-
-    def graphql_path(self) -> str:
-        return self.cls_graphql_path(self.server_url)
-
-    def gateway_path(self) -> str:
-        return self.cls_gateway_path(self.server_url)
-
-    def files_api_path(self) -> str:
-        return self.cls_files_api_path(self.server_url)
-
-    def login_api_path(self) -> str:
-        return self.cls_login_api_path(self.server_url)
-
-    def ui_path(self) -> str:
-        return self.cls_ui_path(self.server_url)
-
-    def ui_models_path(self) -> str:
-        return self.cls_ui_models_path(self.server_url)
-
-    def ui_plans_path(self) -> str:
-        return self.cls_ui_plans_path(self.server_url)
+        Args:
+            host_session (AerieHostSession): Aerie host information, including authentication if necessary
+        """
+        self.host_session = host_session
 
     def get_activity_plan_by_id(self, plan_id: int, full_args: str = None) -> ActivityPlanRead:
         """Download activity plan from Aerie
@@ -148,10 +60,9 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activity_directives {
+                activity_directives(order_by: { start_offset: asc }) {
                     id
                     name
-                    plan_id
                     type
                     start_offset
                     arguments
@@ -161,11 +72,34 @@ class AerieClient:
             }
         }
         """
-        resp = self.__gql_query(query, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
         return self.__expand_activity_arguments(plan, full_args)
-    
+
+    def list_all_activity_plans(self) -> List[ActivityPlanRead]:
+        list_all_plans_query = """
+        query list_all_plans {
+            plan(order_by: { id: asc }) {
+                id
+                model_id
+                name
+                start_time
+                duration
+                simulations{
+                    id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_plans_query)
+        activity_plans = []
+        for plan in resp:
+            plan = ApiActivityPlanRead.from_dict(plan)
+            plan = ActivityPlanRead.from_api_read(plan)
+            activity_plans.append(plan)
+        return activity_plans
+
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
         query get__all_plans {
@@ -178,17 +112,19 @@ class AerieClient:
                 simulations{
                     id
                 }
-                activity_directives {
+                activity_directives(order_by: { start_offset: asc }) {
                     id
-                    plan_id
+                    name
                     type
                     start_offset
                     arguments
+                    metadata
+                    tags
                 }
             }
         }
         """
-        resp = self.__gql_query(get_all_plans_query)
+        resp = self.host_session.post_to_graphql(get_all_plans_query)
         activity_plans = []
         for plan in resp:
             plan = ApiActivityPlanRead.from_dict(plan)
@@ -197,6 +133,32 @@ class AerieClient:
             activity_plans.append(plan)
 
         return activity_plans
+
+    def get_plan_id_by_sim_id(self, simulation_dataset_id: int) -> int:
+        """Get Plan ID by Simulation Dataset ID
+
+        Args:
+            simulation_dataset_id (int): Aerie Simulation Dataset ID
+
+        Returns:
+            int: Plan ID
+        """
+        get_plan_id_query = """
+        query PlanIdBySimDatasetId($simulation_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                simulation {
+                    plan {
+                        id
+                    }
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_plan_id_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return resp['simulation']['plan']['id']
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
@@ -207,14 +169,16 @@ class AerieClient:
         mutation CreatePlan($plan: plan_insert_input!) {
             createPlan: insert_plan_one(object: $plan) {
                 id
+                revision
             }
         }
         """
-        plan_resp = self.__gql_query(
+        plan_resp = self.host_session.post_to_graphql(
             create_plan_mutation,
             plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
+        plan_revision = plan_resp["revision"]
 
         create_simulation_mutation = """
         mutation CreateSimulation($simulation: simulation_insert_input!) {
@@ -224,13 +188,35 @@ class AerieClient:
         }
         """
         # TODO: determine how to handle arguments--should we accept another upload?
-        _ = self.__gql_query(
-            create_simulation_mutation, simulation={"arguments": {}, "plan_id": plan_id}
+        _ = self.host_session.post_to_graphql(
+            create_simulation_mutation, simulation={
+                "arguments": {}, "plan_id": plan_id}
         )
 
         # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
         for activity in plan_to_create.activities:
             self.create_activity(activity, plan_id, plan_to_create.start_time)
+
+        create_scheduling_spec_mutation = """
+        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
+            insert_scheduling_specification_one(object: $spec) {
+                id
+            }
+        }
+        """
+
+        spec = {
+            "plan_id": plan_id,
+            "analysis_only": False,
+            "horizon_end": plan_to_create.end_time.isoformat(),
+            "horizon_start": plan_to_create.start_time.isoformat(),
+            "plan_revision": plan_revision,
+            "simulation_arguments": {}
+        }
+
+        self.host_session.post_to_graphql(
+            create_scheduling_spec_mutation, spec=spec
+        )
 
         return plan_id
 
@@ -240,7 +226,8 @@ class AerieClient:
         plan_id: int,
         plan_start_time: arrow.Arrow,
     ) -> int:
-        api_activity_create = activity_to_create.to_api_create(plan_id, plan_start_time)
+        api_activity_create = activity_to_create.to_api_create(
+            plan_id, plan_start_time)
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_directive_insert_input!) {
             createActivity: insert_activity_directive_one(object: $activity) {
@@ -248,41 +235,39 @@ class AerieClient:
             }
         }
         """
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             insert_activity_mutation,
             activity=api_activity_create.to_dict(),
         )
         activity_id = resp["id"]
-        # Aerie 0.13.2 has a bug that prevents setting the name during a creation.
-        # Update the activity to set the name.
-        if (activity_to_create.name is not None):
-          self.update_activity(activity_id, activity_to_create, plan_id, plan_start_time)
 
         return activity_id
 
     def update_activity(
-      self,
-      activity_id: int,
-      activity_to_update: ActivityCreate,
-      plan_id: int = None,
-      plan_start_time: arrow.Arrow = None,
+        self,
+        activity_id: int,
+        activity_to_update: ActivityCreate,
+        plan_id: int,
+        plan_start_time: arrow.Arrow,
     ) -> int:
-      api_activity_update = activity_to_update.to_api_create(plan_id, plan_start_time)
-      update_activity_mutation = """
-      mutation UpdateActvityDirective($id: Int!, $activity: activity_directive_set_input!) {
-        updateActivity: update_activity_directive_by_pk(
-          pk_columns: { id: $id }, _set: $activity
-        ) {
-          id
+        activity_dict: Dict = activity_to_update.to_api_create(
+            plan_id, plan_start_time).to_dict()
+        update_activity_mutation = """
+        mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
+            updateActivity: update_activity_directive_by_pk(
+            pk_columns: { id: $id, plan_id: $plan_id }, _set: $activity
+            ) {
+                id
+            }
         }
-      }
-      """
-      resp = self.__gql_query(
-          update_activity_mutation,
-          id=activity_id,
-          activity=api_activity_update.to_dict(),
-      )
-      return resp["id"]
+        """
+        resp = self.host_session.post_to_graphql(
+            update_activity_mutation,
+            id=activity_id,
+            plan_id=plan_id,
+            activity=activity_dict,
+        )
+        return resp["id"]
 
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
@@ -297,7 +282,7 @@ class AerieClient:
         """
 
         def exec_sim_query():
-            return self.__gql_query(simulate_query, plan_id=plan_id)
+            return self.host_session.post_to_graphql(simulate_query, plan_id=plan_id)
 
         resp = exec_sim_query()
 
@@ -313,49 +298,181 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-
-        resource_sample_query = """
-        query ResourceSamples($plan_id: Int!) {
-            resourceSamples(planId: $plan_id){
-                resourceSamples
-            }
-        }
-        """
-        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
-
-        api_resource_timeline = ApiResourceSampleResults.from_dict(resp)
+        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
+        api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, plan_id: int):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
+        """Pull resource samples from a simulation dataset, optionally filtering for specific states
 
-        resource_sample_query = """
-        query ResourceSamples($plan_id: Int!) {
-            resourceSamples(planId: $plan_id){
-                resourceSamples
+        Each resource's values are returned in a list of points {x: <time>, y: <value>}.
+        
+        Times are provided in microseconds from plan start.
+
+        Numeric resources can be either discrete-valued or vary linearly between samples. Samples are processed such 
+        that a linear interpolation between samples will always return a correct value. Two points at the same 
+        timestamp indicate a discontinuity.
+
+        Args:
+            simulation_dataset_id (int)
+            state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+
+        Returns:
+            Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
+        """        
+
+        # checks to see if user inputted specific states. If so, use this query.
+        if state_names:
+            resource_profile_query = """
+            query GetSimulationDataset($simulation_dataset_id: Int!, $state_names: [String!]) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles(where: { name: { _in: $state_names } }) {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
+                    }
+                }
             }
+            """
+
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id, state_names=state_names)
+
+        else:
+            resource_profile_query = """
+            query GetSimulationDataset($simulation_dataset_id: Int!) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles {
+                            name
+                            profile_segments(order_by: { start_offset: asc }) {
+                                dynamics
+                                start_offset
+                            }
+                            type
+                        }
+                    }
+                }
+            }
+            """
+            resp = self.host_session.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id)
+        
+        
+        profiles = resp["dataset"]["profiles"]
+
+        plan_duration_query = """
+        query GetPlanDuration($plan_id: Int!) {
+          plan_by_pk(id: $plan_id) {
+            duration
+          }
         }
         """
-        resp = self.__gql_query(resource_sample_query, plan_id=plan_id)
-        return resp
+        resp = self.host_session.post_to_graphql(
+            plan_duration_query, plan_id=self.get_plan_id_by_sim_id(simulation_dataset_id))
+        duration = postgres_duration_to_microseconds(resp["duration"])
+
+        # Parse profile segments into resource timelines
+        resources = {}
+        for profile in sorted(profiles, key=lambda _: _["name"]):
+            name = profile["name"]
+            profile_segments = profile["profile_segments"]
+            profile_type = profile["type"]["type"]
+            values = []
+
+            for i in range(len(profile_segments)):
+                segment = profile_segments[i]
+
+                # The segment offset is the offset from plan start to the beginning of this segment
+                segment_start_time = postgres_duration_to_microseconds(
+                    segment["start_offset"])
+
+                # If this is *not* the last segment, then this segment ends where the next segment starts
+                if i + 1 < len(profile_segments):
+                    segment_end_time = postgres_duration_to_microseconds(
+                        profile_segments[i + 1]["start_offset"])
+                
+                # If this is the last segment, then this segment ends at the end of the plan
+                else:
+                    segment_end_time = duration
+
+                dynamics = segment["dynamics"]
+
+                # Discrete profiles don't have rates
+                if profile_type == 'discrete':
+
+                    # Define points at the start and end of this profile segment
+                    start_value = {
+                        "x": segment_start_time,
+                        "y": dynamics,
+                    }
+                    end_value = {
+                        "x": segment_end_time,
+                        "y": dynamics,
+                    }
+
+                    # Check if the previous point is identical to this one
+                    if len(values) and (values[-1] == start_value):
+
+                        # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
+                        values.pop()
+                        values.append(end_value)
+
+                    else:
+
+                        # If the value has changed, add points at the boundaries of this segment
+                        values.append(start_value)
+                        values.append(end_value)
+
+                # Real profiles can have rates over time
+                elif profile_type == 'real':
+
+                    start_value = {
+                        "x": segment_start_time,
+                        "y": dynamics["initial"],
+                    }
+
+                    # If the last value is not identical to this segment's start, then add the start
+                    if (len(values) and values[-1] != start_value) or (len(values) == 0):
+                        values.append(start_value)
+
+                    # Add a value at the end of this segment
+                    values.append({
+                        "x": segment_end_time,
+                        "y": dynamics["initial"] + dynamics["rate"] * ((segment_end_time - segment_start_time) / 1e6),
+                    })
+                
+                else:
+                    raise ValueError(f"Unknown resource profile type: {profile_type}")
+
+            resources[name] = values
+        return {
+            "resourceSamples": resources
+        }
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
         sim_result_query = """
-          query Simulation($sim_dataset_id: Int!) {
-            simulated_activity(where: {simulation_dataset_id: {_eq: $sim_dataset_id}}) {
-              activity_type_name
-              attributes
-              directive_id
-              duration
-              end_time
-              id
-              start_offset
-              start_time
-              simulation_dataset_id
+        query Simulation($sim_dataset_id: Int!) {
+            simulated_activity(where: { simulation_dataset_id: { _eq: $sim_dataset_id } }, order_by: { start_offset: asc }) {
+                activity_type_name
+                attributes
+                directive_id
+                duration
+                end_time
+                id
+                start_offset
+                start_time
+                simulation_dataset_id
+                parent_id
             }
-          }
+        }
         """
-        resp = self.__gql_query(sim_result_query, sim_dataset_id=sim_dataset_id)
+        resp = self.host_session.post_to_graphql(
+            sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
 
     def delete_plan(self, plan_id: int) -> str:
@@ -368,7 +485,8 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(delete_plan_mutation, plan_id=plan_id)
+        resp = self.host_session.post_to_graphql(
+            delete_plan_mutation, plan_id=plan_id)
 
         return resp["name"]
 
@@ -376,22 +494,16 @@ class AerieClient:
         self, mission_model_path: str, project_name: str, mission: str, version: str
     ) -> int:
 
-        file_api_url = self.files_api_path()
-
         # Create unique jar identifier for server side
         upload_timestamp = arrow.utcnow().isoformat()
         server_side_jar_name = (
             Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
         )
-
         with open(mission_model_path, "rb") as jar_file:
-            resp = requests.post(
-                file_api_url,
-                files={"file": (server_side_jar_name, jar_file)},
-                headers={"x-auth-sso-token": self.sso_token},
-            )
+            resp = self.host_session.post_to_gateway_files(
+                server_side_jar_name, jar_file)
 
-        jar_id = resp.json()["id"]
+        jar_id = resp["id"]
 
         create_model_mutation = """
         mutation CreateModel($model: mission_model_insert_input!) {
@@ -405,7 +517,7 @@ class AerieClient:
             name=project_name, mission=mission, version=version, jar_id=jar_id
         )
 
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             create_model_mutation, model=api_mission_model.to_dict()
         )
 
@@ -428,7 +540,7 @@ class AerieClient:
                 }
             }"""
 
-        resp = self.__gql_query(
+        resp = self.host_session.post_to_graphql(
             sim_template_mutation, model_id=model_id, args=args, name=name
         )
 
@@ -445,7 +557,8 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(delete_model_mutation, model_id=model_id)
+        resp = self.host_session.post_to_graphql(
+            delete_model_mutation, model_id=model_id)
 
         return resp["name"]
 
@@ -463,8 +576,9 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_mission_model_query)
-        api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
+        resp = self.host_session.post_to_graphql(get_mission_model_query)
+        api_mission_models = [
+            ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
 
@@ -492,7 +606,8 @@ class AerieClient:
         plan = self.get_activity_plan_by_id(plan_id)
         sim_id = plan.sim_id
 
-        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=args)
+        resp = self.host_session.post_to_graphql(
+            update_config_arg_query, sim_id=sim_id, args=args)
 
         return resp["arguments"]
 
@@ -536,7 +651,8 @@ class AerieClient:
         for arg in args:
             final_args[arg] = args[arg]
 
-        resp = self.__gql_query(update_config_arg_query, sim_id=sim_id, args=final_args)
+        resp = self.host_session.post_to_graphql(
+            update_config_arg_query, sim_id=sim_id, args=final_args)
 
         return resp["arguments"]
 
@@ -553,7 +669,8 @@ class AerieClient:
         }
         """
 
-        resp = self.__gql_query(get_config_query, sim_id=sim_id)
+        resp = self.host_session.post_to_graphql(
+            get_config_query, sim_id=sim_id)
 
         return resp["arguments"]
 
@@ -585,14 +702,14 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_activity_interface_query,
             activity_type_name=activity_name,
             mission_model_id=model_id,
         )
         return data["typescriptFiles"][0]["content"]
 
-    def create_expansion_logic(
+    def create_expansion_rule(
         self,
         expansion_logic: str,
         activity_name: str,
@@ -608,7 +725,7 @@ class AerieClient:
             command_dictionary_id (str): Aerie command dictionary ID
 
         Returns:
-            int: Activity ID in Aerie
+            int: Expansion Rule ID in Aerie
         """
 
         create_expansion_logic_query = """
@@ -628,7 +745,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             create_expansion_logic_query,
             activity_type_name=activity_name,
             expansion_logic=expansion_logic,
@@ -667,13 +784,29 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             create_expansion_set_query,
             command_dictionary_id=command_dictionary_id,
             mission_model_id=model_id,
             expansion_ids=expansion_ids,
         )
         return data["id"]
+
+    def list_expansion_sets(self) -> List[ExpansionSet]:
+        list_sets_query = """
+        query ListExpansionSets {
+            expansion_set {
+                id
+                command_dict_id
+                created_at
+                expansion_rules {
+                    id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_sets_query)
+        return [ExpansionSet.from_dict(i) for i in resp]
 
     def create_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
         """Create a sequence on a given simulation dataset
@@ -698,20 +831,20 @@ class AerieClient:
             }
         }
         """
-        self.__gql_query(
+        self.host_session.post_to_graphql(
             create_sequence_query,
             simulation_dataset_id=simulation_dataset_id,
             seq_id=seq_id,
         )
 
-    def get_expansion_ids_by_activity_type(self, activity_type: str) -> List[int]:
-        """Get ID of all expansions for a given activity type
+    def get_rule_ids_by_activity_type(self, activity_type: str) -> List[int]:
+        """Get ID of all expansion rules for a given activity type
 
         Args:
             activity_type (str): Activity type name
 
         Returns:
-            List[int]: Expansion IDs, in ascending order
+            List[int]: Expansion rule IDs, in ascending order
         """
 
         get_expansion_ids_query = """
@@ -729,76 +862,75 @@ class AerieClient:
             }
             }
         """
-        data = self.__gql_query(get_expansion_ids_query, activity_type=activity_type)
-        expansion_ids = [int(v["id"]) for v in data]
-        expansion_ids.sort()
-        return expansion_ids
+        data = self.host_session.post_to_graphql(
+            get_expansion_ids_query, activity_type=activity_type)
+        rule_ids = [int(v["id"]) for v in data]
+        rule_ids.sort()
+        return rule_ids
 
-    def get_all_expansion_ids(self) -> Dict[str, List[int]]:
-        """Get IDs of all expansions, by activity type
+    def list_expansion_rules(self) -> List[ExpansionRule]:
+        """List all expansion rules
 
         Returns:
-            Dict[str, List[int]]: Lists of expansion IDs keyed by activity type name
+            List[ExpansionRule]
+        """
+        list_rules_query = """
+        query ListExpansionRules {
+            expansion_rule {
+                activity_type
+                id
+                authoring_mission_model_id
+                authoring_command_dict_id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_rules_query)
+        return [ExpansionRule.from_dict(r) for r in resp]
+
+    def get_rules_by_type(self) -> Dict[str, List[ExpansionRule]]:
+        """Get all expansion rules, sorted by activity type
+
+        Returns:
+            Dict[str, List[ExpansionRule]]
         """
 
-        get_all_expansion_ids_query = """
-        query GetExpansionLogic {
-        expansion_rule {
-            activity_type
-            id
-        }
-        }
-        """
-        data = self.__gql_query(get_all_expansion_ids_query)
+        rules = self.list_expansion_rules()
 
-        expansion_ids = {}
-        for o in data:
-            activity_type = o["activity_type"]
-            id = int(o["id"])
-            if activity_type in expansion_ids.keys():
-                expansion_ids[activity_type].append(id)
+        rules_by_type = {}
+        for r in rules:
+            if r.activity_type in rules_by_type.keys():
+                rules_by_type[r.activity_type].append(r)
             else:
-                expansion_ids[activity_type] = [id]
+                rules_by_type[r.activity_type] = [r]
 
-        return expansion_ids
+        return rules_by_type
 
-    def get_simulation_dataset_id_by_plan_id(self, plan_id: int) -> List[int]:
-        """Get the IDs of simulation datasets generated from a given plan
+    def get_simulation_dataset_ids_by_plan_id(self, plan_id: int) -> List[int]:
+        """Get the IDs of the simulation datasets generated from a given plan
 
         Args:
             plan_id (int): ID of parent plan
 
         Returns:
-            List[int]: IDs of simulation datasets
+            List[int]: IDs of simulation datasets in descending order
         """
 
         get_simulation_dataset_query = """
-        query GetSimulationDatasetId(
-            $plan_id: Int!
-        ) {
-            simulation(
-                where: {
-                    plan_id: {
-                        _eq: $plan_id
-                    }
-                }, order_by: {
-                    dataset: {
-                        id: desc
-                    }
-                }, limit: 1
-            ) {
-                dataset {
-                    id
-                }
+        query GetSimulationDatasetId($plan_id: Int!) {
+          simulation(where: {plan_id: {_eq: $plan_id}}, order_by: { id: desc }, limit: 1) {
+            simulation_datasets(order_by: { id: desc }) {
+              id
             }
+          }
         }
         """
-        data = self.__gql_query(get_simulation_dataset_query, plan_id=plan_id)
-        return data[0]["dataset"]["id"]
+        data = self.host_session.post_to_graphql(
+            get_simulation_dataset_query, plan_id=plan_id)
+        return [d["id"] for d in data[0]["simulation_datasets"]]
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
-    ) -> Tuple[int, List[Dict]]:
+    ) -> int:
         """Expand simulated activities from a simulation dataset given an expansion set
 
         Args:
@@ -806,7 +938,7 @@ class AerieClient:
             expansion_set_id (int): ID of expansion set to use
 
         Returns:
-            int, List[Dict]: Expansion Run ID, Expanded activity instances
+            int: Expansion Run ID
         """
 
         expand_simulation_query = """
@@ -819,27 +951,65 @@ class AerieClient:
                 simulationDatasetId: $simulation_dataset_id
             ) {
                 id
-                expandedActivityInstances {
-                    commands {
-                        stem
-                    }
-                    errors {
-                        message
-                    }
-                }
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             expand_simulation_query,
             expansion_set_id=expansion_set_id,
             simulation_dataset_id=simulation_dataset_id,
         )
 
-        expansion_run_id = int(data["id"])
-        expanded_activity_instances = data["expandedActivityInstances"]
+        return int(data["id"])
 
-        return expansion_run_id, expanded_activity_instances
+    def list_expansion_runs(self, simulation_dataset_id: int) -> List[ExpansionRun]:
+        """
+        List all expansion runs from a given simulation dataset.
+        """
+        get_runs_query = """
+        query GetExpansionRuns($simulation_dataset_id: Int!) {
+            expansion_run(order_by: { created_at: desc }, where: { simulation_dataset_id: { _eq: $simulation_dataset_id } }) {
+                created_at
+                id
+                expansion_set_id
+                simulation_dataset_id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_runs_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return [ExpansionRun.from_dict(r) for r in resp]
+
+    def get_expansion_run(
+        self, expansion_run_id: int, include_commands: bool = False
+    ) -> ExpansionRun:
+        """
+        Get metadata about an expansion run and, optionally, all expanded 
+        activity instance commands/errors.
+        """
+        get_run_query = """
+        query GetExpansionRun($expansion_run_id: Int!, $include_commands: Boolean!) {
+            expansion_run(order_by: { created_at: desc }, where: { id: { _eq: $expansion_run_id } }) {
+                created_at
+                id
+                expansion_set_id
+                simulation_dataset_id
+                activity_instance_commands @include(if: $include_commands) {
+                    activity_instance_id
+                    commands
+                    errors
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            get_run_query,
+            expansion_run_id=expansion_run_id,
+            include_commands=include_commands
+        )
+        return ExpansionRun.from_dict(resp[0])
 
     def link_activities_to_sequence(
         self, seq_id: str, simulation_dataset_id: int, simulated_activity_ids: List[int]
@@ -876,7 +1046,7 @@ class AerieClient:
                 }
             }
             """
-            self.__gql_query(
+            self.host_session.post_to_graphql(
                 link_activity_to_sequence_query,
                 seq_id=seq_id,
                 simulated_activity_id=simulated_activity_id,
@@ -906,7 +1076,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_simulated_activity_ids_query,
             simulation_dataset_id=simulation_dataset_id,
         )
@@ -950,12 +1120,55 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_expanded_sequence_query,
             seq_id=seq_id,
             simulation_dataset_id=simulation_dataset_id,
         )
         return data["seqJson"]
+
+    def list_sequences(self, simulation_dataset_id: int) -> List[str]:
+        """List all sequences tied to a simulation dataset
+
+        Args:
+            simulation_dataset_id (int): ID on the Aerie host
+
+        Returns:
+            List[str]: Sequence IDs
+        """
+
+        list_sequences_query = """
+        query MyQuery($simulation_dataset_id: Int!) {
+            sequence(where: { simulation_dataset_id: { _eq: $simulation_dataset_id } }) {
+                seq_id
+            }
+        }
+        """
+        data = self.host_session.post_to_graphql(
+            list_sequences_query,
+            simulation_dataset_id=simulation_dataset_id
+        )
+        return [s["seq_id"] for s in data]
+
+    def delete_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
+        """Delete a command sequence
+
+        Args:
+            seq_id (str): Sequence ID
+            simulation_dataset_id (int): ID of Simulation Dataset where the sequence exists
+        """
+        delete_sequence_query = """
+        mutation DeleteExpansionSequence($seq_id: String!, $simulation_dataset_id: Int!) {
+            deleteExpansionSequence: delete_sequence_by_pk(seq_id: $seq_id, simulation_dataset_id: $simulation_dataset_id) {
+                seq_id
+            }
+        }
+        """
+        self.host_session.post_to_graphql(
+            delete_sequence_query,
+            seq_id=seq_id,
+            simulation_dataset_id=simulation_dataset_id
+        )
 
     def get_all_expansion_run_commands(self, expansion_run_id: int) -> List:
         """Get commands from all activity instances in an expansion run
@@ -986,7 +1199,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             expansion_run_commands_query, expansion_run_id=expansion_run_id
         )
 
@@ -1016,9 +1229,29 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(get_types_query, model_id=model_id)
+        data = self.host_session.post_to_graphql(
+            get_types_query, model_id=model_id)
         activity_types = [o["name"] for o in data]
         return activity_types
+
+    def list_command_dictionaries(self) -> List[CommandDictionaryInfo]:
+        """List all command dictionaries on an Aerie host
+
+        Returns:
+            List[CommandDictionaryInfo]
+        """
+        list_dictionaries_query = """
+        query ListCommandDictionaries {
+            command_dictionary {
+                id
+                mission
+                version
+                created_at
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_dictionaries_query)
+        return [CommandDictionaryInfo.from_dict(i) for i in resp]
 
     def upload_command_dictionary(self, command_dictionary_string: str) -> int:
         """Upload an AMPCS command dictionary to an Aerie instance
@@ -1044,7 +1277,7 @@ class AerieClient:
             }
         }
         """
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             upload_command_dictionary_query,
             command_dictionary_string=command_dictionary_string,
         )
@@ -1086,7 +1319,7 @@ class AerieClient:
         }
         """
 
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_command_dictionary_metadata_query,
             command_dictionary_id=command_dictionary_id,
         )[0]
@@ -1094,7 +1327,7 @@ class AerieClient:
         command_dictionary_mission = data["mission"]
         command_dictionary_version = data["version"]
 
-        data = self.__gql_query(
+        data = self.host_session.post_to_graphql(
             get_typescript_dictionary_query, command_dictionary_id=command_dictionary_id
         )
 
@@ -1218,42 +1451,6 @@ class AerieClient:
         
         return resp[0]["revision"]
 
-    def __gql_query(self, query: str, **kwargs):
-        resp = requests.post(
-            self.graphql_path(),
-            json={"query": query, "variables": kwargs},
-            headers=self.__auth_header(),
-        )
-
-        try:
-            if resp.ok:
-                resp_json = resp.json()["data"]
-                data = next(iter(resp_json.values()))
-
-            if data is None:
-                raise RuntimeError
-
-            if not resp.ok or (
-                resp.ok
-                and isinstance(data, dict)
-                and "success" in data
-                and not data["success"]
-            ):
-                raise RuntimeError
-
-        except Exception:
-            print("ERROR: The API call was unsuccessful!\n")
-
-            if "password" not in kwargs:
-                print(f"Variables: {kwargs}\n")
-
-            sys.exit(f"Query: {query}\n Response: {resp.text}")
-
-        return data
-
-    def __auth_header(self) -> dict[str, str]:
-        return {"x-auth-sso-token": self.sso_token}
-
     def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:
         if full_args is None or full_args == "" or full_args.lower() == "false":
             return plan
@@ -1275,60 +1472,12 @@ class AerieClient:
                     }
                 }
                 """
-                resp = self.__gql_query(
+                resp = self.host_session.post_to_graphql(
                     query,
                     args=activity.parameters,
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(resp).arguments
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(
+                    resp).arguments
         return plan
-
-
-def check_response_status(
-    response: requests.Response, status_code: int, error_message: str = "Request failed"
-):
-    if response.status_code != status_code:
-        raise RuntimeError(f"{error_message}\nServer response: {response.json()}")
-
-
-def auth_helper(sso: str, username: str, password: str, server_url: str):
-    """Aerie client authorization; \
-    defaults to using sso token if sso & user/pass are provided."""
-
-    LOCAL_URLS = ["local", "localhost", "http://localhost", "http://127.0.0.1"]
-    if server_url in LOCAL_URLS:
-        client = AerieClient.from_local(server_url="http://localhost")
-    # Assuming user has not provided valid credentials during command call
-    elif (sso == "") and (username == "") and (password == ""):
-        method = int(typer.prompt("Enter (1) for SSO Login or (2) for JPL Login"))
-        if method == 1:
-            sso = typer.prompt("SSO Token")
-            client = AerieClient.from_sso(server_url=server_url, sso=sso)
-        elif method == 2:
-            user = typer.prompt("JPL Username")
-            pwd = typer.prompt("JPL Password", hide_input=True)
-            client = AerieClient.from_userpass(
-                server_url=server_url, username=user, password=pwd
-            )
-        else:
-            print(
-                """
-                Please select one of the following login options:
-                1) SSO Token
-                2) JPL Username+Password
-                """
-            )
-            exit(1)
-    elif sso != "":
-        client = AerieClient.from_sso(server_url=server_url, sso=sso)
-    elif (username != "") and (password != ""):
-        client = AerieClient.from_userpass(
-            server_url=server_url, username=username, password=password
-        )
-    else:
-        print(
-            "Please provide either --sso flag or both --username and --password flags"
-        )
-        exit(1)
-    return client

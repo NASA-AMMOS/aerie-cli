@@ -3,6 +3,7 @@ from dataclasses import field
 from datetime import timedelta
 from typing import Any
 from typing import Optional
+from typing import List
 
 import arrow
 from arrow import Arrow
@@ -10,7 +11,7 @@ from dataclasses_json import config
 from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
 
-from ..utils.serialization import hms_string_to_timedelta
+from ..utils.serialization import postgres_duration_to_timedelta
 from ..utils.serialization import postgres_interval_to_timedelta
 from ..utils.serialization import timedelta_to_postgres_interval
 
@@ -25,7 +26,6 @@ class ApiEffectiveActivityArguments:
 @dataclass
 class ApiActivityBase:
     type: str
-    plan_id: int
     arguments: dict[str, Any]
     name: str
     tags: list[str]
@@ -35,6 +35,7 @@ class ApiActivityBase:
 @dataclass_json
 @dataclass
 class ApiActivityCreate(ApiActivityBase):
+    plan_id: int
     start_offset: timedelta = field(
         metadata=config(
             decoder=postgres_interval_to_timedelta,
@@ -48,7 +49,7 @@ class ApiActivityCreate(ApiActivityBase):
 class ApiActivityRead(ApiActivityBase):
     id: int
     start_offset: timedelta = field(
-        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
     )
 
 
@@ -78,17 +79,17 @@ class ApiActivityPlanCreate(ApiActivityPlanBase):
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
     simulations: list[int]
-    activity_directives: list[ApiActivityRead]
     duration: timedelta = field(
-        metadata=config(decoder=hms_string_to_timedelta, encoder=timedelta.__str__)
+        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
     )
+    activity_directives: Optional[List[ApiActivityRead]] = None
 
 
 @dataclass_json
 @dataclass
 class ApiAsSimulatedActivity:
     type: str
-    parent: Optional[str]
+    parent_id: Optional[str]
     start_timestamp: Arrow = field(
         metadata=config(
             letter_case=LetterCase.CAMEL, decoder=arrow.get, encoder=Arrow.isoformat

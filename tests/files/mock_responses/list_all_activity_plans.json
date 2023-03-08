@@ -1,0 +1,34 @@
+[
+    {
+        "request": {
+            "query": "\n query list_all_plans {\n plan(order_by: { id: asc }) {\n id\n model_id\n name\n start_time\n duration\n simulations{\n id\n }\n }\n }",
+            "variables": {}
+        },
+        "response": [
+            {
+                "id": 1,
+                "name": "plan--1",
+                "model_id": 1,
+                "start_time": "2025-01-01T00:00:00+00:00",
+                "duration": "48:00:00",
+                "simulations": [
+                    {
+                        "id": 1
+                    }
+                ]
+            },
+            {
+                "id": 2,
+                "name": "plan--2",
+                "model_id": 2,
+                "start_time": "2025-01-01T00:00:00+00:00",
+                "duration": "48:00:00",
+                "simulations": [
+                    {
+                        "id": 2
+                    }
+                ]
+            }
+        ]
+    }
+]
