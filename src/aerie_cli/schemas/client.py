@@ -277,3 +277,10 @@ class ExpansionRule:
     authoring_mission_model_id: int
     authoring_command_dict_id: int
     expansion_logic: Optional[str] = None
+
+
+@dataclass_json
+@dataclass
+class ResourceType:
+    name: str
+    schema: Dict

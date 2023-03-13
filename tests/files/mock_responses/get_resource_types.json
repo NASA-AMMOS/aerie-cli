@@ -1,0 +1,48 @@
+[
+    {
+        "request": {
+            "query": "query ResourceTypes($missionModelId: ID!) { resourceTypes(missionModelId: $missionModelId) { name schema } }",
+            "variables": {
+                "missionModelId": 1
+            }
+        },
+        "response": [
+            {
+                "name": "/imager/dataRate",
+                "schema": {
+                    "type": "real"
+                }
+            },
+            {
+                "name": "/imager/hardwareState",
+                "schema": {
+                    "type": "variant",
+                    "variants": [
+                        {
+                            "key": "OFF",
+                            "label": "OFF"
+                        },
+                        {
+                            "key": "ON",
+                            "label": "ON"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "/data/dataVolume",
+                "schema": {
+                    "items": {
+                        "initial": {
+                            "type": "real"
+                        },
+                        "rate": {
+                            "type": "real"
+                        }
+                    },
+                    "type": "struct"
+                }
+            }
+        ]
+    }
+]
