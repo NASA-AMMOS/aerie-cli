@@ -1547,3 +1547,179 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(get_violations_query, plan_id=plan_id)
         return resp["constraintViolations"]
 
+    def create_activity_instance(self, newControlMode, plan_id, start_offset, type):
+        create_activity_instance_query = """
+        mutation createActivity($newControlMode: jsonb!, $plan_id: Int!, $start_offset: interval!, $type: String!) {
+            insert_activity_directive(objects: [
+                {
+                    arguments: $newControlMode,
+                    plan_id: $plan_id,
+                    start_offset: $start_offset,
+                    type: $type
+                }
+            ]) {
+                returning {
+                    id
+                    start_offset
+                }}
+        }
+        """
+
+        return self.host_session.post_to_graphql(
+            create_activity_instance_query,
+            newControlMode = newControlMode,
+            plan_id = plan_id,
+            start_offset = start_offset,
+            type = type
+        )
+    
+    def edit_activity_instance_start_time(self, plan_id, id, offset):
+        edit_start_time_query = """
+        mutation updateStartTime($plan_id: Int!, $id: Int!, $offset: interval!){
+            update_activity_directive_by_pk(pk_columns: {
+                plan_id: $plan_id, 
+                id: $id
+            }
+            _set: {
+                start_offset: $offset
+            })
+            {
+                id
+                type
+                start_offset
+            }
+        }
+        """
+        
+        return self.host_session.post_to_graphql(
+            edit_start_time_query,
+            plan_id=plan_id, 
+            id=id, 
+            offset=offset
+        )
+    
+    def edit_activity_instance_parameter(self, plan_id, id, newControlMode):
+        edit_parameter_query = """
+        mutation updateParameter ($plan_id: Int!, $id: Int!, $newControlMode: jsonb!){
+            update_activity_directive_by_pk(
+                pk_columns: {
+                    plan_id: $plan_id, 
+                    id: $id
+                }
+                _set: {
+                    arguments: $newControlMode
+                }
+            )
+            {
+                id
+                type
+                start_offset
+            }
+        }
+        """
+        
+        return self.host_session.post_to_graphql(
+            edit_parameter_query,
+            plan_id=plan_id, 
+            id=id, 
+            newControlMode=newControlMode
+        )
+    
+    def delete_activity_instance(self, plan_id, id):
+        delete_activity_query = """
+        mutation deleteActivity ($plan_id: Int!, $id: Int!){
+            delete_activity_directive_by_pk(plan_id: $plan_id, id: $id) {
+                plan_id
+                start_offset
+                type
+            }
+        }
+        """
+
+        return self.host_session.post_to_graphql(
+            delete_activity_query,
+            plan_id=plan_id,
+            id=id
+        )
+    def get_activity_instances(self, plan_id):
+        activity_instances_query = """
+        query ($plan_id: Int!){
+            plan_by_pk(id: $plan_id) {
+                mission_model {
+                    activity_types {
+                        name
+                        parameters
+                        required_parameters
+                    }
+                }
+            }
+        }
+        """
+
+        return self.host_session.post_to_graphql(activity_instances_query, plan_id=plan_id)
+    
+    def get_all_plan_activities(self):
+        get_all_plan_activities_query = """
+        query getActivitiesOfAllPlans {
+            adaptations: mission_model {
+                id
+                name
+                version
+                plans 
+                {
+                    id
+                    name
+                    duration
+                    activity_directives 
+                    {
+                        type
+                    }
+                }
+            }
+        }
+        """
+
+        return self.host_session.post_to_graphql(get_all_plan_activities_query)
+    
+    def add_activity_and_modify_another(self, plan_id, id, newControlMode, start_offset, type):
+        graph_ql_activity_edits_query = """
+        mutation updateParameter ($plan_id: Int!, $id: Int!, $newControlMode: jsonb!, $start_offset: interval!, $type: String!){
+            update_activity_directive_by_pk(
+                pk_columns: {
+                    plan_id: $plan_id, 
+                    id: $id
+                }
+                _set: {
+                    arguments: $newControlMode
+                }
+            ) 
+            {
+                id
+                type
+                start_offset
+            },
+            insert_activity_directive(objects: [
+                {
+                    arguments: $newControlMode, 
+                    plan_id: $plan_id, 
+                    start_offset: $start_offset, 
+                    type: $type
+                }]) 
+                {
+                    returning {
+                        id
+                        start_offset
+                    }
+                }
+        }
+        """
+        return self.host_session.post_to_graphql(
+            graph_ql_activity_edits_query, 
+            plan_id=plan_id, 
+            id=id, 
+            newControlMode=newControlMode, 
+            start_offset=start_offset, 
+            type=type
+        )
+
+
