@@ -1,0 +1,115 @@
+[
+    {
+        "request": {
+            "query": "mutation CreatePlan($plan: plan_insert_input!) { createPlan: insert_plan_one(object: $plan) { id revision } }",
+            "variables": {
+                "plan": {
+                    "model_id": 7,
+                    "name": "upload-test-2",
+                    "start_time": "2030-01-01T00:00:00+00:00",
+                    "duration": "43200 seconds 0 microseconds"
+                }
+            }
+        },
+        "response": {
+            "id": 456,
+            "revision": 0
+        }
+    },
+    {
+        "request": {
+            "query": "mutation CreateActivity($activity: activity_directive_insert_input!) { createActivity: insert_activity_directive_one(object: $activity) { id } }",
+            "variables": {
+                "activity": {
+                    "type": "ACT_Two",
+                    "start_offset": "7200 seconds 0 microseconds",
+                    "tags": "{}",
+                    "metadata": {},
+                    "name": "Anchor",
+                    "arguments": {},
+                    "anchor_id": null,
+                    "anchored_to_start": true,
+                    "plan_id": 456
+                }
+            }
+        },
+        "response": {
+            "id": 629
+        }
+    },
+    {
+        "request": {
+            "query": "mutation CreateActivity($activity: activity_directive_insert_input!) { createActivity: insert_activity_directive_one(object: $activity) { id } }",
+            "variables": {
+                "activity": {
+                    "type": "ACT_One",
+                    "start_offset": "-3600 seconds 0 microseconds",
+                    "tags": "{first_tag,second_tag}",
+                    "metadata": {},
+                    "name": "Anchored_1",
+                    "arguments": {},
+                    "anchor_id": 629,
+                    "anchored_to_start": true,
+                    "plan_id": 456
+                }
+            }
+        },
+        "response": {
+            "id": 630
+        }
+    },
+    {
+        "request": {
+            "query": "mutation CreateActivity($activity: activity_directive_insert_input!) { createActivity: insert_activity_directive_one(object: $activity) { id } }",
+            "variables": {
+                "activity": {
+                    "type": "ACT_Three",
+                    "start_offset": "14400 seconds 0 microseconds",
+                    "tags": "{}",
+                    "metadata": {},
+                    "name": "Anchored_2",
+                    "arguments": {
+                        "test": "test"
+                    },
+                    "anchor_id": 630,
+                    "anchored_to_start": false,
+                    "plan_id": 456
+                }
+            }
+        },
+        "response": {
+            "id": 631
+        }
+    },
+    {
+        "request": {
+            "query": "mutation updateSimulationBounds($plan_id: Int!, $simulation_start_time: timestamptz!, $simulation_end_time: timestamptz!) { update_simulation( where: {plan_id: {_eq: $plan_id}}, _set: { simulation_start_time: $simulation_start_time, simulation_end_time: $simulation_end_time } ){ affected_rows } }",
+            "variables": {
+                "plan_id": 456,
+                "simulation_start_time": "2030-01-01T00:00:00+00:00",
+                "simulation_end_time": "2030-01-01T12:00:00+00:00"
+            }
+        },
+        "response": {
+            "id": 58
+        }
+    },
+    {
+        "request": {
+            "query": "mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) { insert_scheduling_specification_one(object: $spec) { id } }",
+            "variables": {
+                "spec": {
+                    "plan_id": 456,
+                    "analysis_only": false,
+                    "horizon_end": "2030-01-01T12:00:00+00:00",
+                    "horizon_start": "2030-01-01T00:00:00+00:00",
+                    "plan_revision": 0,
+                    "simulation_arguments": {}
+                }
+            }
+        },
+        "response": {
+            "id": 58
+        }
+    }
+]
