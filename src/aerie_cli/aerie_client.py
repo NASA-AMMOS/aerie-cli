@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from typing import Dict
 from typing import List
+from copy import deepcopy
 
 import arrow
 
@@ -11,7 +12,7 @@ from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
-from .schemas.client import ActivityCreate
+from .schemas.client import Activity
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import CommandDictionaryInfo
@@ -69,6 +70,8 @@ class AerieClient:
                     arguments
                     metadata
                     tags
+                    anchor_id
+                    anchored_to_start
                 }
             }
         }
@@ -102,38 +105,23 @@ class AerieClient:
         return activity_plans
 
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
-        get_all_plans_query = """
-        query get__all_plans {
-            plan{
-                id
-                model_id
-                name
-                start_time
-                duration
-                simulations{
-                    id
-                }
-                activity_directives(order_by: { start_offset: asc }) {
-                    id
-                    name
-                    type
-                    start_offset
-                    arguments
-                    metadata
-                    tags
-                }
-            }
-        }
-        """
-        resp = self.host_session.post_to_graphql(get_all_plans_query)
-        activity_plans = []
-        for plan in resp:
-            plan = ApiActivityPlanRead.from_dict(plan)
-            plan = ActivityPlanRead.from_api_read(plan)
-            plan = self.__expand_activity_arguments(plan, full_args)
-            activity_plans.append(plan)
+        """Get all activity plans
 
-        return activity_plans
+        Args:
+            full_args (str): comma separated list of activity types for which to
+            get full arguments, otherwise only modified arguments are returned.
+            Set to "true" to get full arguments for all activity types.
+            Disabled if missing, None, "false", or "".
+
+        Returns:
+            list[ActivityPlanRead]
+        """
+
+        # List all plans then loop to get activities from each
+        plans_metadata = self.list_all_activity_plans()
+        plans = [self.get_activity_plan_by_id(p.id, full_args) for p in plans_metadata]
+
+        return plans
 
     def get_plan_id_by_sim_id(self, simulation_dataset_id: int) -> int:
         """Get Plan ID by Simulation Dataset ID
@@ -180,6 +168,36 @@ class AerieClient:
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
+        # This loop exists to make sure all anchor IDs are updated as necessary
+
+        # Deep copy activities so we can augment and pop from the list
+        activities_to_upload = deepcopy(plan_to_create.activities)
+
+        # Map of old to new directive IDs
+        directive_id_mapping = {}
+
+        # Boolean catches errors to avoid an infinite loop
+        running = True
+        while len(activities_to_upload):
+            running = False
+
+            for act in activities_to_upload:
+                # If activity is anchored and the anchor isn't known yet, pass
+                # If activity is anchored and the anchor is known, add it
+                if act.anchor_id and act.anchor_id not in directive_id_mapping.keys():
+                    continue
+                else:
+                    if act.anchor_id:
+                        act.anchor_id = directive_id_mapping[act.anchor_id]
+                    directive_id_mapping[act.id] = self.create_activity(act, plan_id)
+                    activities_to_upload.remove(act)
+                    running = True
+
+            if not running:
+                raise RuntimeError(
+                    f"Failed to anchor activities: {', '.join([act.name for act in activities_to_upload])}"
+                )
+
         simulation_start_time = plan_to_create.start_time.isoformat()
         simulation_end_time = plan_to_create.end_time.isoformat()
         update_simulation_mutation = """
@@ -201,10 +219,6 @@ class AerieClient:
             simulation_start_time=simulation_start_time,
             simulation_end_time=simulation_end_time
         )
-
-        # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
-        for activity in plan_to_create.activities:
-            self.create_activity(activity, plan_id, plan_to_create.start_time)
 
         create_scheduling_spec_mutation = """
         mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
@@ -229,14 +243,8 @@ class AerieClient:
 
         return plan_id
 
-    def create_activity(
-        self,
-        activity_to_create: ActivityCreate,
-        plan_id: int,
-        plan_start_time: arrow.Arrow,
-    ) -> int:
-        api_activity_create = activity_to_create.to_api_create(
-            plan_id, plan_start_time)
+    def create_activity(self, activity_to_create: Activity, plan_id: int) -> int:
+        api_activity_create = activity_to_create.to_api_create(plan_id)
         insert_activity_mutation = """
         mutation CreateActivity($activity: activity_directive_insert_input!) {
             createActivity: insert_activity_directive_one(object: $activity) {
@@ -255,12 +263,12 @@ class AerieClient:
     def update_activity(
         self,
         activity_id: int,
-        activity_to_update: ActivityCreate,
-        plan_id: int,
-        plan_start_time: arrow.Arrow,
+        activity_to_update: Activity,
+        plan_id: int
     ) -> int:
         activity_dict: Dict = activity_to_update.to_api_create(
-            plan_id, plan_start_time).to_dict()
+            plan_id
+        ).to_dict()
         update_activity_mutation = """
         mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
             updateActivity: update_activity_directive_by_pk(

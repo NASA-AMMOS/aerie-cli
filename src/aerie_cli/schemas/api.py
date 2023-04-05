@@ -1,7 +1,14 @@
+"""
+API dataclasses emulate the structure of data for exchange with the Aerie GraphQL API.
+
+"create" dataclasses model data for upload and "read" dataclasses model data for download.
+"""
+
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
 from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import List
 
@@ -23,33 +30,61 @@ class ApiEffectiveActivityArguments:
 
 @dataclass_json
 @dataclass
-class ApiActivityBase:
+class ActivityBase:
+    """Base dataclass for an activity directive
+
+    Fields match GraphQL field names in Aerie.
+    """
+
     type: str
-    arguments: dict[str, Any]
-    name: str
-    tags: list[str]
-    metadata: dict[str, str]
-
-
-@dataclass_json
-@dataclass
-class ApiActivityCreate(ApiActivityBase):
-    plan_id: int
     start_offset: timedelta = field(
         metadata=config(
             decoder=postgres_interval_to_timedelta,
             encoder=timedelta_to_postgres_interval,
         )
     )
+    tags: Optional[List[str]] = field(default_factory=lambda: [], kw_only=True)
+    metadata: Optional[Dict[str, str]] = field(default_factory=lambda: {}, kw_only=True)
+    name: Optional[str] = field(default_factory=lambda: "", kw_only=True)
+    arguments: Optional[Dict[str, Any]] = field(
+        default_factory=lambda: [], kw_only=True
+    )
+    anchor_id: Optional[int] = field(default=None, kw_only=True)
+    anchored_to_start: Optional[bool] = field(default=None, kw_only=True)
+
+    def __post_init__(self):
+
+        # Enforce that anchored_to_start must be specified if an anchor ID is given
+        if self.anchored_to_start is None:
+            if self.anchor_id is not None:
+                raise ValueError(f"anchor_id was specified but anchored_to_start was not")
+            self.anchored_to_start = True
 
 
 @dataclass_json
 @dataclass
-class ApiActivityRead(ApiActivityBase):
-    id: int
-    start_offset: timedelta = field(
-        metadata=config(decoder=postgres_duration_to_timedelta, encoder=timedelta.__str__)
+class ApiActivityCreate(ActivityBase):
+    """Format for uploading activity directives
+
+    Plan ID is added because it's required to be included as part of the activity object.
+    Tags are encoded to the `text[]` format for GraphQL/Postgres.
+    """
+
+    plan_id: int
+    tags: list[str] = field(
+        metadata=config(encoder=lambda ts: "{" + ",".join(ts) + "}")
     )
+
+
+@dataclass_json
+@dataclass
+class ApiActivityRead(ActivityBase):
+    """Format for downloading activity directives
+
+    Downloaded activity directives have an ID which should be preserved, but is excluded in other cases (upload).
+    """
+
+    id: int
 
 
 @dataclass_json
