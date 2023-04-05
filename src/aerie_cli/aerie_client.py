@@ -19,7 +19,7 @@ from .schemas.client import ExpansionRun
 from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
 from .schemas.client import ResourceType
-from .utils.serialization import postgres_duration_to_microseconds
+from .utils.serialization import postgres_interval_to_microseconds
 from .aerie_host import AerieHostSession
 
 
@@ -424,8 +424,10 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(
-            plan_duration_query, plan_id=self.get_plan_id_by_sim_id(simulation_dataset_id))
-        duration = postgres_duration_to_microseconds(resp["duration"])
+            plan_duration_query,
+            plan_id=self.get_plan_id_by_sim_id(simulation_dataset_id),
+        )
+        duration = postgres_interval_to_microseconds(resp["duration"])
 
         # Parse profile segments into resource timelines
         resources = {}
@@ -439,14 +441,16 @@ class AerieClient:
                 segment = profile_segments[i]
 
                 # The segment offset is the offset from plan start to the beginning of this segment
-                segment_start_time = postgres_duration_to_microseconds(
-                    segment["start_offset"])
+                segment_start_time = postgres_interval_to_microseconds(
+                    segment["start_offset"]
+                )
 
                 # If this is *not* the last segment, then this segment ends where the next segment starts
                 if i + 1 < len(profile_segments):
-                    segment_end_time = postgres_duration_to_microseconds(
-                        profile_segments[i + 1]["start_offset"])
-                
+                    segment_end_time = postgres_interval_to_microseconds(
+                        profile_segments[i + 1]["start_offset"]
+                    )
+
                 # If this is the last segment, then this segment ends at the end of the plan
                 else:
                     segment_end_time = duration
@@ -488,15 +492,21 @@ class AerieClient:
                     }
 
                     # If the last value is not identical to this segment's start, then add the start
-                    if (len(values) and values[-1] != start_value) or (len(values) == 0):
+                    if (len(values) and values[-1] != start_value) or (
+                        len(values) == 0
+                    ):
                         values.append(start_value)
 
                     # Add a value at the end of this segment
-                    values.append({
-                        "x": segment_end_time,
-                        "y": dynamics["initial"] + dynamics["rate"] * ((segment_end_time - segment_start_time) / 1e6),
-                    })
-                
+                    values.append(
+                        {
+                            "x": segment_end_time,
+                            "y": dynamics["initial"]
+                            + dynamics["rate"]
+                            * ((segment_end_time - segment_start_time) / 1e6),
+                        }
+                    )
+
                 else:
                     raise ValueError(f"Unknown resource profile type: {profile_type}")
 
