@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Union
 from typing import Optional
 
 import arrow
@@ -116,6 +117,40 @@ class ActivityPlanRead(EmptyActivityPlan):
     model_id: int
     sim_id: int
     activities: Optional[List[Activity]] = None
+
+    def get_activity_start_time(self, activity: Union[int, Activity]) -> arrow.Arrow:
+        """Get the effective start time of an activity instance
+
+        Args:
+            activity (Union[int, Activity]): Either the Activity Directive ID or actual object
+
+        Returns:
+            arrow.Arrow: Effective activity start time
+        """
+
+        # If an ID was given, get the activity
+        if isinstance(activity, int):
+            try:
+                activity = next(filter(lambda a: a.id == activity, self.activities))
+            except StopIteration:
+                raise ValueError(f"Cannot find anchor for activity with ID {activity}")
+
+        # If the current activity is anchored to the plan, evaluate the start time rel. to the plan
+        if activity.anchor_id is None:
+            if activity.anchored_to_start:
+                return self.start_time + activity.start_offset
+            else:
+                return self.end_time + activity.start_offset
+
+        # If the current activity is anchored to another activity, evaluate the start time rel. to that act
+        if activity.anchored_to_start:
+            return (
+                self.get_activity_start_time(activity.anchor_id) + activity.start_offset
+            )
+        else:
+            raise ValueError(
+                f"Cannot evaluate activity start time for Activity with ID {activity.id} because it is anchored to the end of another activity"
+            )
 
     @classmethod
     def from_api_read(cls, api_plan_read: ApiActivityPlanRead) -> "ActivityPlanRead":

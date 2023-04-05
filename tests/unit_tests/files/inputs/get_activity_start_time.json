@@ -1,0 +1,87 @@
+{
+    "name": "get-activity-start-time",
+    "start_time": "2030-01-01T00:00:00+00:00",
+    "end_time": "2030-01-01T12:00:00+00:00",
+    "id": 1,
+    "model_id": 1,
+    "sim_id": 1,
+    "activities": [
+      {
+        "type": "ACT_One",
+        "arguments": {},
+        "name": "Anchored_1",
+        "tags": [
+          "first_tag",
+          "second_tag"
+        ],
+        "metadata": {},
+        "anchor_id": 2,
+        "anchored_to_start": true,
+        "start_offset": "-1:00:00",
+        "id": 1
+      },
+      {
+        "type": "ACT_Two",
+        "arguments": {},
+        "name": "Anchored_to_plan_start",
+        "tags": [],
+        "metadata": {},
+        "anchor_id": null,
+        "anchored_to_start": true,
+        "start_offset": "2:00:00",
+        "id": 2
+      },
+      {
+        "type": "ACT_Three",
+        "arguments": {
+          "test": "test"
+        },
+        "name": "Anchored_2_to_end",
+        "tags": [],
+        "metadata": {},
+        "anchor_id": 1,
+        "anchored_to_start": false,
+        "start_offset": "4:00:00",
+        "id": 3
+      },
+      {
+        "type": "ACT_Four",
+        "arguments": {
+          "test": "test"
+        },
+        "name": "Anchored_2_to_start",
+        "tags": [],
+        "metadata": {},
+        "anchor_id": 1,
+        "anchored_to_start": true,
+        "start_offset": "6:00:00",
+        "id": 4
+      },
+      {
+        "type": "ACT_Five",
+        "arguments": {
+          "test": "test"
+        },
+        "name": "Ancored_to_plan_end",
+        "tags": [],
+        "metadata": {},
+        "anchor_id": null,
+        "anchored_to_start": false,
+        "start_offset": "-6:00:00",
+        "id": 5
+      },
+      {
+        "type": "ACT_Six",
+        "arguments": {
+          "test": "test"
+        },
+        "name": "Anchor_no_existo",
+        "tags": [],
+        "metadata": {},
+        "anchor_id": 123,
+        "anchored_to_start": true,
+        "start_offset": "2:00:00",
+        "id": 6
+      }
+    ]
+  }
