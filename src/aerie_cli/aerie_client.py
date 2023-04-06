@@ -180,18 +180,26 @@ class AerieClient:
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
-
-        create_simulation_mutation = """
-        mutation CreateSimulation($simulation: simulation_insert_input!) {
-            createSimulation: insert_simulation_one(object: $simulation) {
-                id
+        simulation_start_time = plan_to_create.start_time.isoformat()
+        simulation_end_time = plan_to_create.end_time.isoformat()
+        update_simulation_mutation = """
+        mutation updateSimulationBounds($plan_id: Int!, $simulation_start_time: timestamptz!, $simulation_end_time: timestamptz!) {
+            update_simulation(
+                where: {plan_id: {_eq: $plan_id}},
+                _set: {
+                    simulation_start_time: $simulation_start_time,
+                    simulation_end_time: $simulation_end_time
+                }
+            ){
+                affected_rows
             }
         }
         """
-        # TODO: determine how to handle arguments--should we accept another upload?
         _ = self.host_session.post_to_graphql(
-            create_simulation_mutation, simulation={
-                "arguments": {}, "plan_id": plan_id}
+            update_simulation_mutation,
+            plan_id=plan_id,
+            simulation_start_time=simulation_start_time,
+            simulation_end_time=simulation_end_time
         )
 
         # TODO: move to batch insert once we confirm that the Aerie bug is fixed'
