@@ -18,6 +18,7 @@ from .schemas.client import CommandDictionaryInfo
 from .schemas.client import ExpansionRun
 from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
+from .schemas.client import ResourceType
 from .utils.serialization import postgres_duration_to_microseconds
 from .aerie_host import AerieHostSession
 
@@ -1547,3 +1548,30 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(get_violations_query, plan_id=plan_id)
         return resp["constraintViolations"]
 
+    def get_resource_types(self, model_id: int) -> List[ResourceType]:
+        """Get resource types (value schema)
+
+        Get the type information for each resource in a mission model.
+
+        The schema format is described in the Aerie documentation [here](https://nasa-ammos.github.io/aerie-docs/mission-modeling/advanced-value-schemas/#value-schemas-in-json).
+
+        Args:
+            model_id (int): Mission model for resources
+
+        Returns:
+            List[ResourceType]
+        """
+
+        get_resource_types_query = """
+        query ResourceTypes($missionModelId: ID!) {
+            resourceTypes(missionModelId: $missionModelId) {
+                name
+                schema
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_resource_types_query, missionModelId=model_id
+        )
+        return [ResourceType.from_dict(r) for r in resp]

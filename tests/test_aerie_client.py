@@ -10,6 +10,7 @@ from aerie_cli.aerie_host import AerieHostSession
 from aerie_cli.schemas.client import ActivityCreate
 from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
+from aerie_cli.schemas.client import ResourceType
 
 BLANK_LINE_REGEX = r'^\s*$'
 EXPECTED_RESULTS_DIRECTORY = Path(
@@ -171,4 +172,54 @@ def test_get_resource_samples():
 
     res = client.get_resource_samples(1, ["hardwareState"])
     print(json.dumps(res, indent=2))
+    assert res == expected
+
+
+def test_get_resource_types():
+    host_session = MockAerieHostSession("get_resource_types")
+    client = AerieClient(host_session)
+
+    expected = [
+        ResourceType("/imager/dataRate", {"type": "real"}),
+        ResourceType(
+            "/imager/hardwareState",
+            {
+                "type": "variant",
+                "variants": [
+                    {"key": "OFF", "label": "OFF"},
+                    {"key": "ON", "label": "ON"},
+                ],
+            },
+        ),
+        ResourceType(
+            "/data/dataVolume",
+            {
+                "items": {"initial": {"type": "real"}, "rate": {"type": "real"}},
+                "type": "struct",
+            },
+        ),
+        ResourceType(
+            "/data/arbitrarilyComplex",
+            {
+                "items": {
+                    "items": {
+                        "stringProperty": {"type": "string"},
+                        "enumProperty": {
+                            "type": "variant",
+                            "variants": [
+                                {"key": "A", "label": "A"},
+                                {"key": "B", "label": "B"},
+                            ],
+                        },
+                        "intProperty": {"type": "int"},
+                        "booleanProperty": {"type": "boolean"},
+                    },
+                    "type": "struct",
+                },
+                "type": "series",
+            },
+        ),
+    ]
+
+    res = client.get_resource_types(1)
     assert res == expected
