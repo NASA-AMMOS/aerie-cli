@@ -174,6 +174,7 @@ def test_get_resource_samples():
     print(json.dumps(res, indent=2))
     assert res == expected
 
+
 def test_get_resource_types():
     host_session = MockAerieHostSession("get_resource_types")
     client = AerieClient(host_session)
@@ -195,6 +196,27 @@ def test_get_resource_types():
             {
                 "items": {"initial": {"type": "real"}, "rate": {"type": "real"}},
                 "type": "struct",
+            },
+        ),
+        ResourceType(
+            "/data/arbitrarilyComplex",
+            {
+                "items": {
+                    "items": {
+                        "stringProperty": {"type": "string"},
+                        "enumProperty": {
+                            "type": "variant",
+                            "variants": [
+                                {"key": "A", "label": "A"},
+                                {"key": "B", "label": "B"},
+                            ],
+                        },
+                        "intProperty": {"type": "int"},
+                        "booleanProperty": {"type": "boolean"},
+                    },
+                    "type": "struct",
+                },
+                "type": "series",
             },
         ),
     ]

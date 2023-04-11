@@ -42,6 +42,39 @@
                     },
                     "type": "struct"
                 }
+            },
+            {
+                "name": "/data/arbitrarilyComplex",
+                "schema": {
+                    "items": {
+                        "items": {
+                            "stringProperty": {
+                                "type": "string"
+                            },
+                            "enumProperty": {
+                                "type": "variant",
+                                "variants": [
+                                    {
+                                        "key": "A",
+                                        "label": "A"
+                                    },
+                                    {
+                                        "key": "B",
+                                        "label": "B"
+                                    }
+                                ]
+                            },
+                            "intProperty": {
+                                "type": "int"
+                            },
+                            "booleanProperty": {
+                                "type": "boolean"
+                            }
+                        },
+                        "type": "struct"
+                    },
+                    "type": "series"
+                }
             }
         ]
     }
