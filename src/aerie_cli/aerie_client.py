@@ -15,6 +15,7 @@ from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
 from .schemas.api import ApiParcelRead
 from .schemas.client import Activity
+from .schemas.client import View
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import DictionaryMetadata
@@ -2217,3 +2218,52 @@ class AerieClient:
 
         if resp is None:
             raise RuntimeError(f"Failed to delete plan collaborator")
+
+
+
+
+    def list_all_views(self) -> List[View]:
+        list_all_views_query = """
+        query list_all_views {
+            view(order_by: { id: asc }) {
+                id
+                name
+                definition
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_views_query)
+        return [View.from_dict(r) for r in resp]
+
+    def get_view_by_id(self, viewId):
+        get_view_by_id_query = """
+        query get_view_by_id($view_id:Int) {
+            view(where: {id: {_eq: $view_id}}){
+                definition
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_view_by_id_query,
+            view_id=viewId
+        )
+
+        return resp[0]["definition"]
+
+    def create_view(self, view_to_create) -> int:
+        insert_view_mutation = """
+        mutation CreateView($view: view_insert_input!) {
+            insert_view_one(object: $view) {
+                id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            insert_view_mutation,
+            view=view_to_create,
+        )
+
+        return resp["id"]
+
+

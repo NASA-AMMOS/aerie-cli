@@ -386,6 +386,7 @@ class ResourceType(ClientSerialize):
     schema: Dict
 
 
+
 @define
 class ExpansionDeployRule(ClientSerialize):
     name: str
@@ -469,3 +470,9 @@ class SequenceAdaptationMetadata(ClientSerialize):
     updated_at: Arrow = field(
         converter=arrow.get
     )
+
+@define
+class View:
+    id: int
+    name: str
+    definition: Any
