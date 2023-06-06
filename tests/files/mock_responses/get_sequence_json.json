@@ -1,0 +1,20 @@
+[
+    {
+        "request": {
+            "query": "query GenerateJSON($id: Int!, $body: String!) { getUserSequenceSeqJson( command_dictionary_id: $id edsl_body: $body ){ seqJson } }",
+            "variables": {
+                "body": "export default () => Sequence.new({ seqId: '2', metadata: {\"testKey\": \"testValue\"}, steps: [] });",
+                "id": 1
+            }
+        },
+        "response": [
+            {
+                "id": "2",
+                "metadata": {
+                    "testKey": "testValue"
+                },
+                "steps": []
+            }
+        ]
+    }
+]

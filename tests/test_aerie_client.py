@@ -223,3 +223,22 @@ def test_get_resource_types():
 
     res = client.get_resource_types(1)
     assert res == expected
+
+def test_get_sequence_json():
+    host_session = MockAerieHostSession("get_sequence_json")
+    client = AerieClient(host_session)
+    
+    expected = json.loads("""
+    {
+        "id": "2",
+        "metadata": {
+            "testKey": "testValue"
+        },
+        "steps": []
+    }
+    """)
+    
+    edsl_code = "export default () => Sequence.new({ seqId: '2', metadata: {\"testKey\": \"testValue\"}, steps: [] });"
+    
+    res = client.get_sequence_json(1, edsl_code)
+    assert res == expected
