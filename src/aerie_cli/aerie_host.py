@@ -6,6 +6,7 @@ import requests
 import json
 
 
+
 class AuthMethod(Enum):
     NONE = 'None'
     AERIE_NATIVE = 'Native'
@@ -32,7 +33,8 @@ class AerieHostSession:
         session: requests.Session,
         graphql_url: str,
         gateway_url: str,
-        configuration_name: str = None
+        configuration_name: str = None,
+        token: str = None
     ) -> None:
         """
 
@@ -46,6 +48,7 @@ class AerieHostSession:
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
+        self.token = token
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -65,12 +68,22 @@ class AerieHostSession:
 
             resp = self.session.post(
                 self.graphql_url,
+                headers={ 'Authorization': self.token },
                 json={"query": query, "variables": kwargs}
             )
 
             if resp.ok:
-                resp_json = resp.json()["data"]
-                data = next(iter(resp_json.values()))
+                err = None
+                try:
+                    err = resp.json()["errors"]
+                except:
+                    pass
+                if err is not None:
+                    for error in err:
+                        print(error["message"])
+                else:
+                    resp_json = resp.json()["data"]
+                    data = next(iter(resp_json.values()))
 
             if data is None:
                 raise RuntimeError
@@ -147,7 +160,7 @@ class AerieHostSession:
     def ping_gateway(self) -> bool:
 
         try:
-            resp = self.session.get(self.gateway_url + '/health')
+            resp = self.session.get(self.gateway_url + '/health', headers={ 'Authorization': self.token })
         except requests.exceptions.ConnectionError:
             return False
         try:
@@ -165,7 +178,8 @@ class AerieHostSession:
         auth_url: str = None,
         username: str = None,
         password: str = None,
-        configuration_name: str = None
+        configuration_name: str = None,
+        token: str = None
     ) -> 'AerieHostSession':
         """Helper function to create a session with an Aerie host
 
@@ -193,7 +207,9 @@ class AerieHostSession:
             resp = session.post(
                 auth_url, json={'username': username, 'password': password})
             if resp.json()["success"]:
-                session.headers['x-auth-sso-token'] = resp.json()['ssoToken']
+                token = "Bearer " + resp.json().get('token')
+
+                # session.headers['x-auth-sso-token'] = token
             else:
                 raise RuntimeError(
                     f"Failed to authenticate at route: {auth_url}")
@@ -208,7 +224,7 @@ class AerieHostSession:
                 f"No logic to generate an Aerie host session for auth method: {auth_method}")
 
         aerie_session = cls(
-            session, graphql_url, gateway_url, configuration_name)
+            session, graphql_url, gateway_url, configuration_name, token)
 
         if not aerie_session.ping_gateway():
             raise RuntimeError(f"Failed to open session")
