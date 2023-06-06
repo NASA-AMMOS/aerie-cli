@@ -1583,3 +1583,31 @@ class AerieClient:
             get_resource_types_query, missionModelId=model_id
         )
         return [ResourceType.from_dict(r) for r in resp]
+
+    def get_sequence_json(self, command_dictionary_id: int, edsl_body: str) -> dict:
+        """Get user SeqJSON from EDSL
+        
+        Args:
+            command_dictionary_id (int): Command dictionary to generate the sequence json with
+            edsl_body (str): The EDSL code run to run through the sequence editor
+        
+        Returns:
+            dict: The sequence json as dictionary
+        """
+        get_sequence_json_query = """
+        query GenerateJSON($id: Int!, $body: String!) {
+            getUserSequenceSeqJson(
+                command_dictionary_id: $id
+                edsl_body: $body
+            ){
+                seqJson
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_sequence_json_query,
+            id=command_dictionary_id,
+            body=edsl_body
+        )
+        return resp[0]
