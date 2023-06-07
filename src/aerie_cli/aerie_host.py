@@ -1,19 +1,20 @@
-from dataclasses import dataclass
-from copy import deepcopy
-from typing import Dict, Optional
-from enum import Enum
-import requests
 import json
+from copy import deepcopy
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict
+from typing import Optional
 
+import requests
 
 
 class AuthMethod(Enum):
-    NONE = 'None'
-    AERIE_NATIVE = 'Native'
-    COOKIE = 'Cookie'
+    NONE = "None"
+    AERIE_NATIVE = "Native"
+    COOKIE = "Cookie"
 
     @classmethod
-    def from_string(cls, string_name: str) -> 'AuthMethod':
+    def from_string(cls, string_name: str) -> "AuthMethod":
         try:
             return next(filter(lambda x: x.value == string_name, cls))
         except StopIteration:
@@ -24,7 +25,7 @@ class AerieHostSession:
     """
     Encapsulate an authenticated session with an Aerie host.
 
-    An instance stores the necessary URLs and authenticates using header or 
+    An instance stores the necessary URLs and authenticates using header or
     cookie information stored in the `requests.Session` object, if necessary.
     """
 
@@ -34,7 +35,6 @@ class AerieHostSession:
         graphql_url: str,
         gateway_url: str,
         configuration_name: str = None,
-        token: str = None
     ) -> None:
         """
 
@@ -48,7 +48,6 @@ class AerieHostSession:
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
-        self.token = token
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -68,17 +67,13 @@ class AerieHostSession:
 
             resp = self.session.post(
                 self.graphql_url,
-                headers={ 'Authorization': self.token },
-                json={"query": query, "variables": kwargs}
+                headers={"Authorization": self.session.headers["x-auth-sso-token"]},
+                json={"query": query, "variables": kwargs},
             )
 
             if resp.ok:
-                err = None
-                try:
+                if "errors" in resp.json().keys():
                     err = resp.json()["errors"]
-                except:
-                    pass
-                if err is not None:
                     for error in err:
                         print(error["message"])
                 else:
@@ -111,11 +106,9 @@ class AerieHostSession:
                 kwargs["password"] = pw_sub_str
 
                 # Raise exception with query, variables, and original exception
-                raise RuntimeError({
-                    "query": deepcopy(query),
-                    "variables": kwargs,
-                    "exception": e
-                })
+                raise RuntimeError(
+                    {"query": deepcopy(query), "variables": kwargs, "exception": e}
+                )
 
             else:
 
@@ -126,12 +119,17 @@ class AerieHostSession:
                     resp_contents = resp.text
 
                 # Raise exception with query, variables, original exception, and response
-                raise RuntimeError(json.dumps({
-                    "query": deepcopy(query),
-                    "variables": deepcopy(kwargs),
-                    "exception": e,
-                    "response_text": resp_contents
-                }, indent=2))
+                raise RuntimeError(
+                    json.dumps(
+                        {
+                            "query": deepcopy(query),
+                            "variables": deepcopy(kwargs),
+                            "exception": e,
+                            "response_text": resp_contents,
+                        },
+                        indent=2,
+                    )
+                )
 
     def post_to_gateway_files(self, file_name: str, file_contents: bytes) -> Dict:
         """Issue a post request to upload a file via the Aerie gateway
@@ -148,8 +146,7 @@ class AerieHostSession:
         """
 
         resp = self.session.post(
-            self.gateway_url + "/file",
-            files={"file": (file_name, file_contents)}
+            self.gateway_url + "/file", files={"file": (file_name, file_contents)}
         )
 
         if resp.ok:
@@ -160,11 +157,14 @@ class AerieHostSession:
     def ping_gateway(self) -> bool:
 
         try:
-            resp = self.session.get(self.gateway_url + '/health', headers={ 'Authorization': self.token })
+            resp = self.session.get(
+                self.gateway_url + "/health",
+                headers={"Authorization": self.session.headers["x-auth-sso-token"]},
+            )
         except requests.exceptions.ConnectionError:
             return False
         try:
-            if 'uptimeMinutes' in resp.json().keys():
+            if "uptimeMinutes" in resp.json().keys():
                 return True
         except Exception:
             return False
@@ -179,8 +179,7 @@ class AerieHostSession:
         username: str = None,
         password: str = None,
         configuration_name: str = None,
-        token: str = None
-    ) -> 'AerieHostSession':
+    ) -> "AerieHostSession":
         """Helper function to create a session with an Aerie host
 
         Args:
@@ -205,26 +204,29 @@ class AerieHostSession:
         elif auth_method is AuthMethod.AERIE_NATIVE:
             # For aerie native auth, pass the SSO token in query headers
             resp = session.post(
-                auth_url, json={'username': username, 'password': password})
+                auth_url, json={"username": username, "password": password}
+            )
             if resp.json()["success"]:
-                token = "Bearer " + resp.json().get('token')
-
-                # session.headers['x-auth-sso-token'] = token
+                if "token" in resp.json().keys():
+                    token = resp.json().get("token")
+                    if token is not None:  # a string token should include prefix
+                        token = "Bearer " + token
+                    session.headers["x-auth-sso-token"] = token
+                else:
+                    session.headers["x-auth-sso-token"] = resp.json()["ssoToken"]
             else:
-                raise RuntimeError(
-                    f"Failed to authenticate at route: {auth_url}")
+                raise RuntimeError(f"Failed to authenticate at route: {auth_url}")
 
         elif auth_method is AuthMethod.COOKIE:
             # For cookie auth, simply query the login endpoint w/ credentials which will return the cookie to be stored in the session
-            session.post(
-                auth_url, json={'username': username, 'password': password})
+            session.post(auth_url, json={"username": username, "password": password})
 
         else:
             raise RuntimeError(
-                f"No logic to generate an Aerie host session for auth method: {auth_method}")
+                f"No logic to generate an Aerie host session for auth method: {auth_method}"
+            )
 
-        aerie_session = cls(
-            session, graphql_url, gateway_url, configuration_name, token)
+        aerie_session = cls(session, graphql_url, gateway_url, configuration_name)
 
         if not aerie_session.ping_gateway():
             raise RuntimeError(f"Failed to open session")
@@ -242,7 +244,7 @@ class AerieHostConfiguration:
     username: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, config: Dict) -> 'AerieHostConfiguration':
+    def from_dict(cls, config: Dict) -> "AerieHostConfiguration":
         try:
             name = config["name"]
             graphql_url = config["graphql_url"]
@@ -260,22 +262,21 @@ class AerieHostConfiguration:
                     username = None
 
         except KeyError as e:
-            raise ValueError(
-                f"Configuration missing required field: {e.args[0]}")
+            raise ValueError(f"Configuration missing required field: {e.args[0]}")
 
         return cls(name, graphql_url, gateway_url, auth_method, auth_url, username)
 
     def to_dict(self) -> Dict:
         retval = {
-            'name': self.name,
-            'graphql_url': self.graphql_url,
-            'gateway_url': self.gateway_url,
-            'auth_method': self.auth_method.value
+            "name": self.name,
+            "graphql_url": self.graphql_url,
+            "gateway_url": self.gateway_url,
+            "auth_method": self.auth_method.value,
         }
 
         if self.auth_method != AuthMethod.NONE:
-            retval['auth_url'] = self.auth_url
-            retval['username'] = self.username
+            retval["auth_url"] = self.auth_url
+            retval["username"] = self.username
 
         return retval
 
@@ -296,5 +297,5 @@ class AerieHostConfiguration:
             self.auth_url,
             username if username else self.username,
             password,
-            self.name
+            self.name,
         )
