@@ -1362,12 +1362,26 @@ class AerieClient:
 
         return typescript_dictionary_string
     
+    def get_all_scheduling_goals(self):
+        list_all_goals_query = """
+        query list_all_goals {
+            scheduling_goal(order_by: { id: asc }) {
+                id
+                model_id
+                name
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_goals_query)
+
+        return resp
+
     def upload_scheduling_goal(self, model_id, name, definition):
         upload_scheduling_goal_query = """
-        mutation InsertGoal($model_id: Int!, 
-                            $name: String!, 
+        mutation InsertGoal($model_id: Int!,
+                            $name: String!,
                             $definition: String!) {
-            insert_scheduling_goal_one(object: 
+            insert_scheduling_goal_one(object:
                 {
                 model_id: $model_id,
                 name: $name,
@@ -1378,11 +1392,25 @@ class AerieClient:
         }"""
 
         resp = self.host_session.post_to_graphql(
-            upload_scheduling_goal_query, 
-            model_id=model_id, 
-            name=name, 
-            definition=definition
+            upload_scheduling_goal_query,
+            model_id=model_id,
+            name=name,
+            definition=definition,
         )
+
+        return resp["id"]
+
+    def upload_mult_scheduling_goal(self, upload_object):
+        upload_mult_scheduling_goal_query = """
+        mutation InsertMultGoal {
+            insert_scheduling_goal(object: {obj}) {
+                    id
+                }
+        }""".format(
+            obj=upload_object
+        )
+
+        resp = self.host_session.post_to_graphql(upload_mult_scheduling_goal_query)
 
         return resp["id"]
 
