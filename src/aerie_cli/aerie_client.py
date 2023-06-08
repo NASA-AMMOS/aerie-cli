@@ -1610,4 +1610,6 @@ class AerieClient:
             id=command_dictionary_id,
             body=edsl_body
         )
-        return resp[0]
+        if "seqJson" in resp:
+            return resp["seqJson"]
+        return resp
