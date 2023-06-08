@@ -1597,8 +1597,8 @@ class AerieClient:
         get_sequence_json_query = """
         query GenerateJSON($id: Int!, $body: String!) {
             getUserSequenceSeqJson(
-                command_dictionary_id: $id
-                edsl_body: $body
+                commandDictionaryID: $id
+                edslBody: $body
             ){
                 seqJson
             }
