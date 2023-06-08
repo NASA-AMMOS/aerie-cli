@@ -7,12 +7,14 @@
                 "id": 1
             }
         },
-        "response": {
-            "id": "2",
-            "metadata": {
-                "testKey": "testValue"
-            },
-            "steps": []
+        "response":{
+            "seqJson": {
+                "id": "2",
+                "metadata": {
+                    "testKey": "testValue"
+                },
+                "steps": []
+            }
         }
     }
 ]
