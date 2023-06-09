@@ -1369,7 +1369,10 @@ class AerieClient:
                 id,
                 model_id,
                 name,
-                definition
+                definition,
+                description,
+                author,
+                last_updated_by
             }
         }
         """
@@ -1384,9 +1387,16 @@ class AerieClient:
             scheduling_specification_goals(where: {
                 specification_id:{_eq:$spec}
             })
-                {
-                goal_id
-                }
+             goal{
+                id
+                model_id
+                name
+                description
+                author
+                last_modified_by
+                created_date
+                modified_date
+            }
         }
         """
         resp = self.host_session.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
@@ -1395,10 +1405,10 @@ class AerieClient:
 
     def upload_scheduling_goal(self, model_id, name, definition):
         upload_scheduling_goal_query = """
-        mutation InsertGoal($model_id: Int!,
-                            $name: String!,
+        mutation InsertGoal($model_id: Int!, 
+                            $name: String!, 
                             $definition: String!) {
-            insert_scheduling_goal_one(object:
+            insert_scheduling_goal_one(object: 
                 {
                 model_id: $model_id,
                 name: $name,
@@ -1409,24 +1419,24 @@ class AerieClient:
         }"""
 
         resp = self.host_session.post_to_graphql(
-            upload_scheduling_goal_query,
-            model_id=model_id,
-            name=name,
-            definition=definition,
+            upload_scheduling_goal_query, 
+            model_id=model_id, 
+            name=name, 
+            definition=definition
         )
 
         return resp["id"]
 
-    def upload_mult_scheduling_goal(self, upload_object):
-        upload_mult_scheduling_goal_query = """
-        mutation InsertMultGoal($input:[scheduling_goal_insert_input!]!){
+    def upload_scheduling_goals(self, upload_object):
+        upload_scheduling_goals_query = """
+        mutation InsertGoals($input:[scheduling_goal_insert_input!]!){
             insert_scheduling_goal(objects: $input){
                 returning {id}
             }
         }"""
         
         resp = self.host_session.post_to_graphql(
-            upload_mult_scheduling_goal_query,
+            upload_scheduling_goals_query,
             input=upload_object
         )
 
@@ -1488,20 +1498,17 @@ class AerieClient:
 
         return resp['id']
 
-    def delete_mult_scheduling_goal(self, goal_id_list):
-        delete_mult_scheduling_goal_query = """
-        mutation DeleteMultSchedulingGoal($id_list: [Int!]!) {
-            delete_scheduling_goal (where: {
-                                                id: {_in:$id_list}
-                                            }
-                                    ){
+    def delete_scheduling_goals(self, goal_id_list):
+        delete_scheduling_goals_query = """
+        mutation DeleteSchedulingGoals($id_list: [Int!]!) {
+            delete_scheduling_goal (where: {id: {_in:$id_list}}){
                 returning {id}
             }
         }
         """
 
         resp = self.host_session.post_to_graphql(
-            delete_mult_scheduling_goal_query, 
+            delete_scheduling_goals_query, 
             id_list=goal_id_list
         )
 
