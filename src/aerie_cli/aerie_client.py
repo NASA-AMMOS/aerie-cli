@@ -1363,16 +1363,33 @@ class AerieClient:
         return typescript_dictionary_string
     
     def get_all_scheduling_goals(self):
-        list_all_goals_query = """
-        query list_all_goals {
-            scheduling_goal(order_by: { id: asc }) {
-                id
-                model_id
-                name
+        get_all_goals_query = """
+        query {
+            scheduling_goal {
+                id,
+                model_id,
+                name,
+                definition
             }
         }
         """
-        resp = self.host_session.post_to_graphql(list_all_goals_query)
+
+        resp = self.host_session.post_to_graphql(get_all_goals_query)
+
+        return resp
+
+    def get_scheduling_goals_by_specification(self, spec_id):
+        list_all_goals_by_spec_query = """
+        query ($spec: Int!){
+            scheduling_specification_goals(where: {
+                specification_id:{_eq:$spec}
+            })
+                {
+                goal_id
+                }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
 
         return resp
 
@@ -1402,17 +1419,18 @@ class AerieClient:
 
     def upload_mult_scheduling_goal(self, upload_object):
         upload_mult_scheduling_goal_query = """
-        mutation InsertMultGoal {
-            insert_scheduling_goal(object: {obj}) {
-                    id
-                }
-        }""".format(
-            obj=upload_object
+        mutation InsertMultGoal($input:[scheduling_goal_insert_input!]!){
+            insert_scheduling_goal(objects: $input){
+                returning {id}
+            }
+        }"""
+        
+        resp = self.host_session.post_to_graphql(
+            upload_mult_scheduling_goal_query,
+            input=upload_object
         )
 
-        resp = self.host_session.post_to_graphql(upload_mult_scheduling_goal_query)
-
-        return resp["id"]
+        return resp
 
     def get_specification_for_plan(self, plan_id):
         get_specification_for_plan_query = """
@@ -1469,6 +1487,25 @@ class AerieClient:
         )
 
         return resp['id']
+
+    def delete_mult_scheduling_goal(self, goal_id_list):
+        delete_mult_scheduling_goal_query = """
+        mutation DeleteMultSchedulingGoal($id_list: [Int!]!) {
+            delete_scheduling_goal (where: {
+                                                id: {_in:$id_list}
+                                            }
+                                    ){
+                returning {id}
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            delete_mult_scheduling_goal_query, 
+            id_list=goal_id_list
+        )
+
+        return resp
 
     def get_plan_revision(self, planId):
         get_plan_revision_query = """
