@@ -67,7 +67,6 @@ class AerieHostSession:
 
             resp = self.session.post(
                 self.graphql_url,
-                headers={"Authorization": self.session.headers["x-auth-sso-token"]},
                 json={"query": query, "variables": kwargs},
             )
 
@@ -157,10 +156,7 @@ class AerieHostSession:
     def ping_gateway(self) -> bool:
 
         try:
-            resp = self.session.get(
-                self.gateway_url + "/health",
-                headers={"Authorization": self.session.headers["x-auth-sso-token"]},
-            )
+            resp = self.session.get(self.gateway_url + "/health")
         except requests.exceptions.ConnectionError:
             return False
         try:
