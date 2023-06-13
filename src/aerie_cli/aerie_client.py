@@ -278,6 +278,49 @@ class AerieClient:
         )
         return resp["id"]
 
+    def get_all_activity_presets(self, m_id:int) -> List:
+        get_all_presets_query = """
+        query ($model_id: Int!) {
+            activity_presets (where: {model_id:{_eq:$model_id}}){
+                id
+                model_id
+                name
+                associated_activity_type
+                arguments
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_all_presets_query,
+            model_id=m_id
+        )
+        return resp
+
+    def upload_activity_presets(self, upload_obj):
+        upload_activity_presets_query = """
+        mutation upload_presets($object: [activity_presets_insert_input!]!) {
+            insert_activity_presets(objects: $object, 
+                                    on_conflict: {constraint: activity_presets_model_id_associated_activity_type_name_key, 
+                                                  update_columns: arguments}
+                                    ) {
+                returning {
+                    model_id
+                    id
+                    associated_activity_type
+                    arguments
+                    name
+                }
+            }
+        }"""
+
+        resp = self.host_session.post_to_graphql(
+            upload_activity_presets_query, 
+            object = upload_obj
+        )
+
+        return resp["returning"]
+
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
@@ -1369,10 +1412,11 @@ class AerieClient:
                 id,
                 model_id,
                 name,
-                definition,
                 description,
                 author,
-                last_updated_by
+                last_modified_by,
+                created_date,
+                modified_date
             }
         }
         """
@@ -1386,16 +1430,17 @@ class AerieClient:
         query ($spec: Int!){
             scheduling_specification_goals(where: {
                 specification_id:{_eq:$spec}
-            })
-             goal{
-                id
-                model_id
-                name
-                description
-                author
-                last_modified_by
-                created_date
-                modified_date
+            }){
+                goal{
+                    id
+                    model_id
+                    name
+                    description
+                    author
+                    last_modified_by
+                    created_date
+                    modified_date
+                }
             }
         }
         """
@@ -1440,7 +1485,7 @@ class AerieClient:
             input=upload_object
         )
 
-        return resp
+        return resp["returning"]
 
     def get_specification_for_plan(self, plan_id):
         get_specification_for_plan_query = """
@@ -1512,7 +1557,7 @@ class AerieClient:
             id_list=goal_id_list
         )
 
-        return resp
+        return resp["returning"]
 
     def get_plan_revision(self, planId):
         get_plan_revision_query = """
