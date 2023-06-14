@@ -356,10 +356,8 @@ class AerieClient:
         sim_dataset_id = resp["simulationDatasetId"]
         return sim_dataset_id
 
-    def get_resource_timelines(self, plan_id: int):
-        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
-        api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
-        return api_resource_timeline
+    def get_resource_timelines(self, plan_id: int, state_names: List=None):
+        return self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0], state_names)
 
     def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
         """Pull resource samples from a simulation dataset, optionally filtering for specific states
@@ -518,9 +516,7 @@ class AerieClient:
                     raise ValueError(f"Unknown resource profile type: {profile_type}")
 
             resources[name] = values
-        return {
-            "resourceSamples": resources
-        }
+        return ApiResourceSampleResults.from_dict({"resourceSamples": resources})
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
