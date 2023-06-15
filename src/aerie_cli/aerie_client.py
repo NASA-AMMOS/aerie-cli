@@ -1502,30 +1502,26 @@ class AerieClient:
         )
         return resp[0]["id"]
 
-    def add_goal_to_specification(self, specification_id, goal_id, priority):
+    def add_goals_to_specifications(self, upload_object):
         add_goal_to_specification_query = """
-        mutation AddGoalToSpecification($specification_id: Int!,
-                                        $goal_id: Int!,
-                                        $priority: Int!) {
-            insert_scheduling_specification_goals_one(object: {
-                goal_id: $goal_id,
-                specification_id: $specification_id
-                priority: $priority,
-                enabled: true,
-            }) {
-                priority
+        mutation MyMutation($object: [scheduling_specification_goals_insert_input!]!) {
+            insert_scheduling_specification_goals(objects: $object) {
+                returning {
+                    enabled
+                    goal_id
+                    priority
+                    simulate_after
+                    specification_id
+                }
             }
         }
         """
-
         resp = self.host_session.post_to_graphql(
             add_goal_to_specification_query, 
-            specification_id=specification_id, 
-            goal_id=goal_id, 
-            priority=priority
+            object = upload_object
         )
 
-        return resp['priority']
+        return resp['returning']
 
     def delete_scheduling_goal(self, goal_id):
         delete_scheduling_goal_query = """
