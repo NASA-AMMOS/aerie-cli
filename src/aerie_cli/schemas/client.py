@@ -16,16 +16,16 @@ from arrow import Arrow
 from dataclasses_json import config
 from dataclasses_json import dataclass_json
 
-from ..utils.serialization import parse_timedelta_str
-from .api import ApiActivityCreate
-from .api import ApiActivityPlanCreate
-from .api import ApiActivityPlanRead
-from .api import ApiActivityRead
-from .api import ApiAsSimulatedActivity
-from .api import ApiResourceSampleResults
-from .api import ApiSimulatedResourceSample
-from .api import ApiSimulationResults
-from .api import ActivityBase
+from aerie_cli.utils.serialization import parse_timedelta_str
+from aerie_cli.schemas.api import ApiActivityCreate
+from aerie_cli.schemas.api import ApiActivityPlanCreate
+from aerie_cli.schemas.api import ApiActivityPlanRead
+from aerie_cli.schemas.api import ApiActivityRead
+from aerie_cli.schemas.api import ApiAsSimulatedActivity
+from aerie_cli.schemas.api import ApiResourceSampleResults
+from aerie_cli.schemas.api import ApiSimulatedResourceSample
+from aerie_cli.schemas.api import ApiSimulationResults
+from aerie_cli.schemas.api import ActivityBase
 
 
 @dataclass_json

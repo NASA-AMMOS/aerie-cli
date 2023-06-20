@@ -18,8 +18,8 @@ from dataclasses_json import config
 from dataclasses_json import dataclass_json
 from dataclasses_json import LetterCase
 
-from ..utils.serialization import postgres_interval_to_timedelta
-from ..utils.serialization import timedelta_to_postgres_interval
+from aerie_cli.utils.serialization import postgres_interval_to_timedelta
+from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 
 
 @dataclass_json
