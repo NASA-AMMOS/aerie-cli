@@ -16,7 +16,7 @@ from arrow import Arrow
 from dataclasses_json import config
 from dataclasses_json import dataclass_json
 
-from ..utils.serialization import postgres_interval_to_timedelta
+from ..utils.serialization import parse_timedelta_str
 from .api import ApiActivityCreate
 from .api import ApiActivityPlanCreate
 from .api import ApiActivityPlanRead
@@ -38,7 +38,7 @@ class Activity(ActivityBase):
     """
     start_offset: timedelta = field(
         metadata=config(
-            decoder=postgres_interval_to_timedelta,
+            decoder=parse_timedelta_str,
             encoder=timedelta.__str__
         )
     )
@@ -180,7 +180,7 @@ class AsSimulatedActivity:
     )
     children: list[str]
     duration: timedelta = field(
-        metadata=config(decoder=postgres_interval_to_timedelta,
+        metadata=config(decoder=parse_timedelta_str,
                         encoder=timedelta.__str__)
     )
     parameters: dict[str, Any]

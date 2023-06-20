@@ -86,8 +86,33 @@ def postgres_interval_to_microseconds(interval: str) -> int:
 
 
 def timedelta_to_postgres_interval(td: timedelta) -> str:
-    """Constructs a PostgreSQL interval from a `timedelta`
-    """
+    """Constructs a PostgreSQL interval from a `timedelta`"""
     seconds = td.days * 86400 + td.seconds
     microseconds = td.microseconds
     return f"{int(seconds)} seconds {int(microseconds)} microseconds"
+
+
+def parse_timedelta_str(td_string: str) -> timedelta:
+    """Parse the string format returned by timedelta.__str__"""
+    pattern = r"((?P<days>[-+]?\d+)\s*day[s]?,\s*)?(?P<hours>\d{1,2}):(?P<minutes>\d{2}):(?P<seconds>\d{2})(?:\.(?P<microseconds>\d{6}))?"
+    match = re.match(pattern, td_string)
+
+    if match:
+        groups = match.groupdict()
+        days = int(groups["days"]) if groups["days"] else 0
+        hours = int(groups["hours"])
+        minutes = int(groups["minutes"])
+        seconds = int(groups["seconds"])
+        microseconds = int(groups["microseconds"]) if groups["microseconds"] else 0
+
+        parsed_timedelta = timedelta(
+            days=days,
+            hours=hours,
+            minutes=minutes,
+            seconds=seconds,
+            microseconds=microseconds,
+        )
+        return parsed_timedelta
+
+    else:
+        raise ValueError(f"Invalid time string format: {td_string}")
