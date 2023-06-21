@@ -5,11 +5,8 @@ from typing import Dict
 from typing import List
 from copy import deepcopy
 
-from attrs import asdict
-
 import arrow
 
-from .schemas.api import api_serialize
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
@@ -80,7 +77,7 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(query, plan_id=plan_id)
-        api_plan = ApiActivityPlanRead(**resp)
+        api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
         return self.__expand_activity_arguments(plan, full_args)
 
@@ -102,7 +99,7 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(list_all_plans_query)
         activity_plans = []
         for plan in resp:
-            plan = ApiActivityPlanRead(**plan)
+            plan = ApiActivityPlanRead.from_dict(plan)
             plan = ActivityPlanRead.from_api_read(plan)
             activity_plans.append(plan)
         return activity_plans
@@ -167,7 +164,7 @@ class AerieClient:
         """
         plan_resp = self.host_session.post_to_graphql(
             create_plan_mutation,
-            plan=asdict(api_plan_create, value_serializer=api_serialize),
+            plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
@@ -257,7 +254,7 @@ class AerieClient:
         """
         resp = self.host_session.post_to_graphql(
             insert_activity_mutation,
-            activity=asdict(api_activity_create, value_serializer=api_serialize)
+            activity=api_activity_create.to_dict()
         )
         activity_id = resp["id"]
 
@@ -269,12 +266,9 @@ class AerieClient:
         activity_to_update: Activity,
         plan_id: int
     ) -> int:
-        activity_dict: Dict = asdict(
-            activity_to_update.to_api_create(
+        activity_dict: Dict = activity_to_update.to_api_create(
                 plan_id
-            ),
-            value_serializer=api_serialize
-        )
+            ).to_dict()
         update_activity_mutation = """
         mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
             updateActivity: update_activity_directive_by_pk(
@@ -365,7 +359,7 @@ class AerieClient:
 
     def get_resource_timelines(self, plan_id: int):
         samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
-        api_resource_timeline = ApiResourceSampleResults(**samples)
+        api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
     def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
@@ -594,7 +588,7 @@ class AerieClient:
         )
 
         resp = self.host_session.post_to_graphql(
-            create_model_mutation, model=asdict(api_mission_model, value_serializer=api_serialize)
+            create_model_mutation, model=api_mission_model.to_dict()
         )
 
         return resp["id"]
@@ -654,7 +648,7 @@ class AerieClient:
 
         resp = self.host_session.post_to_graphql(get_mission_model_query)
         api_mission_models = [
-            ApiMissionModelRead(**model) for model in resp]
+            ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
 
@@ -882,7 +876,7 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(list_sets_query)
-        return [ExpansionSet(**i) for i in resp]
+        return [ExpansionSet.from_dict(i) for i in resp]
 
     def create_sequence(self, seq_id: str, simulation_dataset_id: int) -> None:
         """Create a sequence on a given simulation dataset
@@ -961,7 +955,7 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(list_rules_query)
-        return [ExpansionRule(**r) for r in resp]
+        return [ExpansionRule.from_dict(r) for r in resp]
 
     def get_rules_by_type(self) -> Dict[str, List[ExpansionRule]]:
         """Get all expansion rules, sorted by activity type
@@ -1056,7 +1050,7 @@ class AerieClient:
             get_runs_query,
             simulation_dataset_id=simulation_dataset_id
         )
-        return [ExpansionRun(**r) for r in resp]
+        return [ExpansionRun.from_dict(r) for r in resp]
 
     def get_expansion_run(
         self, expansion_run_id: int, include_commands: bool = False
@@ -1085,7 +1079,7 @@ class AerieClient:
             expansion_run_id=expansion_run_id,
             include_commands=include_commands
         )
-        return ExpansionRun(**resp[0])
+        return ExpansionRun.from_dict(resp[0])
 
     def link_activities_to_sequence(
         self, seq_id: str, simulation_dataset_id: int, simulated_activity_ids: List[int]
@@ -1314,7 +1308,7 @@ class AerieClient:
         }
         """
         resp = self.host_session.post_to_graphql(list_dictionaries_query)
-        return [CommandDictionaryInfo(**i) for i in resp]
+        return [CommandDictionaryInfo.from_dict(i) for i in resp]
 
     def upload_command_dictionary(self, command_dictionary_string: str) -> int:
         """Upload an AMPCS command dictionary to an Aerie instance
@@ -1585,7 +1579,7 @@ class AerieClient:
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments(**
+                activity.parameters = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
 
@@ -1682,7 +1676,7 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(
             get_resource_types_query, missionModelId=model_id
         )
-        return [ResourceType(**r) for r in resp]
+        return [ResourceType.from_dict(r) for r in resp]
 
     def get_sequence_json(self, command_dictionary_id: int, edsl_body: str) -> dict:
         """Get user SeqJSON from EDSL

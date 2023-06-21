@@ -19,29 +19,36 @@ from arrow import Arrow
 from aerie_cli.utils.serialization import postgres_interval_to_timedelta
 from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 
-@define
-class ApiEffectiveActivityArguments:
-    arguments: dict[str, Any]
+import json
 
 def convert_to_time_delta(t) -> timedelta:
     if isinstance(t, timedelta):
         return t
     return postgres_interval_to_timedelta(t)
 
-def api_serialize(inst, field, value):
+def serialize_timedelta_to_postgress(inst, field, value):
     if isinstance(value, timedelta):
         return timedelta_to_postgres_interval(value)
     if isinstance(value, Arrow):
         return str(value)
     return value
-def client_serialize(inst, field, value):
-    if isinstance(value, timedelta):
-        return timedelta_to_postgres_interval(value)
-    if isinstance(value, Arrow):
-        return str(value)
-    return value
+
+class ApiSerialize:
+    @classmethod
+    def from_dict(cls, dictionary: dict) -> "ApiSerialize":
+        return cls(**dictionary)
+    def to_dict(self) -> dict:
+        return asdict(self, value_serializer=serialize_timedelta_to_postgress)
+    @classmethod
+    def from_json(cls, dictionary: dict) -> "ApiSerialize":
+        return cls(**json.loads(dictionary))
+
 @define
-class ActivityBase:
+class ApiEffectiveActivityArguments(ApiSerialize):
+    arguments: dict[str, Any]
+
+@define
+class ActivityBase(ApiSerialize):
     """Base dataclass for an activity directive
 
     Fields match GraphQL field names in Aerie.
@@ -93,7 +100,7 @@ class ApiActivityRead(ActivityBase):
     id: int
 
 @define
-class ApiActivityPlanBase:
+class ApiActivityPlanBase(ApiSerialize):
     model_id: int
     name: str
     start_time: Arrow = field(
@@ -116,12 +123,12 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
     activity_directives: Optional[List[ApiActivityRead]] = field(
         default = None,
         converter=converters.optional(
-            lambda listOfDicts: [ApiActivityRead(**d) if isinstance(d, dict) else d for d in listOfDicts])
+            lambda listOfDicts: [ApiActivityRead.from_dict(d) if isinstance(d, dict) else d for d in listOfDicts])
     )
 
 
 @define
-class ApiAsSimulatedActivity:
+class ApiAsSimulatedActivity(ApiSerialize):
     type: str
     parent_id: Optional[str]
     start_timestamp: Arrow = field(
@@ -135,7 +142,7 @@ class ApiAsSimulatedActivity:
 
 
 @define
-class ApiSimulatedResourceSample:
+class ApiSimulatedResourceSample(ApiSerialize):
     x: timedelta = field(
         converter = lambda microseconds: timedelta(microseconds=microseconds)
     )
@@ -143,7 +150,7 @@ class ApiSimulatedResourceSample:
 
 
 @define
-class ApiSimulationResults:
+class ApiSimulationResults(ApiSerialize):
     start: Arrow = field(
         converter = arrow.get
     )
@@ -156,12 +163,12 @@ class ApiSimulationResults:
 
 
 @define
-class ApiResourceSampleResults:
+class ApiResourceSampleResults(ApiSerialize):
     resourceSamples: dict[str, list[ApiSimulatedResourceSample]]
 
 
 @define
-class ApiMissionModelCreate:
+class ApiMissionModelCreate(ApiSerialize):
     name: str
     version: str
     mission: str

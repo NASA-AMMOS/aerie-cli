@@ -13,7 +13,8 @@ from attrs import define, field
 from attrs import converters
 import arrow
 from arrow import Arrow
-
+import json
+from attrs import asdict
 
 from aerie_cli.utils.serialization import parse_timedelta_str
 from aerie_cli.schemas.api import ApiActivityCreate
@@ -32,8 +33,26 @@ def parse_timedelta_str_converter(t) -> timedelta:
     if isinstance(t, timedelta):
         return t
     raise TypeError(f"{type(t)} is not a supported input. Must be str or timedelta!")
+
+def serialize_timedelta_to_str(inst, field, value):
+    if isinstance(value, timedelta):
+        return value.__str__()
+    if isinstance(value, Arrow):
+        return str(value)
+    return value
+
+class ClientSerialize:
+    @classmethod
+    def from_dict(cls, dictionary: dict) -> "ClientSerialize":
+        return cls(**dictionary)
+    def to_dict(self) -> dict:
+        return asdict(self, value_serializer=serialize_timedelta_to_str)
+    @classmethod
+    def from_json(cls, dictionary: dict) -> "ClientSerialize":
+        return cls(**json.loads(dictionary))
+
 @define
-class Activity(ActivityBase):
+class Activity(ActivityBase, ClientSerialize):
     """Activity Directive
     
     Dataclass designed for client-side manipulation of activity directives.
@@ -74,7 +93,7 @@ class Activity(ActivityBase):
         )
 
 @define
-class EmptyActivityPlan:
+class EmptyActivityPlan(ClientSerialize):
     name: str
     start_time: Arrow = field(
         converter = arrow.get
@@ -116,7 +135,7 @@ class ActivityPlanRead(EmptyActivityPlan):
     activities: Optional[List[Activity]] = field(
         default = None,
         converter=converters.optional(
-            lambda listOfDicts: [Activity(**d) if isinstance(d, dict) else d for d in listOfDicts])
+            lambda listOfDicts: [Activity.from_dict(d) if isinstance(d, dict) else d for d in listOfDicts])
     )
 
     def get_activity_start_time(self, activity: Union[int, Activity]) -> arrow.Arrow:
@@ -171,7 +190,7 @@ class ActivityPlanRead(EmptyActivityPlan):
 
 
 @define
-class AsSimulatedActivity:
+class AsSimulatedActivity(ClientSerialize):
     type: str
     id: str
     parent_id: Optional[str]
@@ -200,7 +219,7 @@ class AsSimulatedActivity:
 
 
 @define
-class SimulatedResourceSample:
+class SimulatedResourceSample(ClientSerialize):
     t: Arrow = field(
         converter = arrow.get
     )
@@ -208,7 +227,7 @@ class SimulatedResourceSample:
 
 
 @define
-class SimulatedResourceTimeline:
+class SimulatedResourceTimeline(ClientSerialize):
     name: str
     values: list[SimulatedResourceSample]
 
@@ -230,7 +249,7 @@ class SimulatedResourceTimeline:
 
 
 @define
-class SimulationResults:
+class SimulationResults(ClientSerialize):
     start_time: Arrow = field(
         converter = arrow.get
     )
@@ -260,14 +279,14 @@ class SimulationResults:
 
 
 @define
-class ActivityInstanceCommand:
+class ActivityInstanceCommand(ClientSerialize):
     activity_instance_id: int
     commands: List[Dict]
     errors: List[Dict]
 
 
 @define
-class ExpansionRun:
+class ExpansionRun(ClientSerialize):
     id: int
     expansion_set_id: int
     simulation_dataset_id: int
@@ -278,7 +297,7 @@ class ExpansionRun:
 
 
 @define
-class ExpansionSet:
+class ExpansionSet(ClientSerialize):
     id: int
     created_at: Arrow = field(
         converter = arrow.get
@@ -290,7 +309,7 @@ class ExpansionSet:
 
 
 @define
-class CommandDictionaryInfo:
+class CommandDictionaryInfo(ClientSerialize):
     id: int
     mission: str
     version: str
@@ -300,7 +319,7 @@ class CommandDictionaryInfo:
 
 
 @define
-class ExpansionRule:
+class ExpansionRule(ClientSerialize):
     id: int
     activity_type: str
     authoring_mission_model_id: int
@@ -309,6 +328,6 @@ class ExpansionRule:
 
 
 @define
-class ResourceType:
+class ResourceType(ClientSerialize):
     name: str
     schema: Dict
