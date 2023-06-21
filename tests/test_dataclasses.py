@@ -3,10 +3,10 @@
 
 from pathlib import Path
 import arrow
-import json
 
 from aerie_cli.schemas.client import ActivityPlanRead
 import pytest
+
 INPUTS_DIRECTORY = Path(__file__).parent.joinpath("files", "inputs")
 
 
