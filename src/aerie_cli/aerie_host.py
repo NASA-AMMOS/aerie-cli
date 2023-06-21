@@ -1,9 +1,10 @@
 import json
 from copy import deepcopy
-from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 from typing import Optional
+
+from attrs import define, field
 
 import requests
 
@@ -230,14 +231,16 @@ class AerieHostSession:
         return aerie_session
 
 
-@dataclass
+@define
 class AerieHostConfiguration:
     name: str
     graphql_url: str
     gateway_url: str
     auth_method: AuthMethod
     auth_url: str = None
-    username: Optional[str] = None
+    username: Optional[str] = field(
+        default=None
+    )
 
     @classmethod
     def from_dict(cls, config: Dict) -> "AerieHostConfiguration":
