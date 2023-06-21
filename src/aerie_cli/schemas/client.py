@@ -2,8 +2,6 @@
 Client dataclasses store data in accessible formats and provide helper methods to convert to/from the API dataclasses.
 """
 
-from dataclasses import dataclass
-from dataclasses import field
 from datetime import timedelta
 from typing import Any
 from typing import Dict
@@ -11,10 +9,11 @@ from typing import List
 from typing import Union
 from typing import Optional
 
+from attrs import define, field
+from attrs import converters
 import arrow
 from arrow import Arrow
-from dataclasses_json import config
-from dataclasses_json import dataclass_json
+
 
 from aerie_cli.utils.serialization import parse_timedelta_str
 from aerie_cli.schemas.api import ApiActivityCreate
@@ -27,9 +26,13 @@ from aerie_cli.schemas.api import ApiSimulatedResourceSample
 from aerie_cli.schemas.api import ApiSimulationResults
 from aerie_cli.schemas.api import ActivityBase
 
-
-@dataclass_json
-@dataclass
+def parse_timedelta_str_converter(t) -> timedelta:
+    if isinstance(t, str):
+        return parse_timedelta_str(t)
+    if isinstance(t, timedelta):
+        return t
+    raise TypeError(f"{type(t)} is not a supported input. Must be str or timedelta!")
+@define
 class Activity(ActivityBase):
     """Activity Directive
     
@@ -37,10 +40,7 @@ class Activity(ActivityBase):
     Use helper methods to covert to and from API-compatible dataclasses.
     """
     start_offset: timedelta = field(
-        metadata=config(
-            decoder=parse_timedelta_str,
-            encoder=timedelta.__str__
-        )
+        converter = parse_timedelta_str_converter
     )
     id: Optional[int] = field(default=None)
 
@@ -73,22 +73,20 @@ class Activity(ActivityBase):
             anchored_to_start=api_activity_read.anchored_to_start
         )
 
-@dataclass_json
-@dataclass
+@define
 class EmptyActivityPlan:
     name: str
     start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+        converter = arrow.get
     )
-    end_time: Arrow = field(metadata=config(
-        decoder=arrow.get, encoder=Arrow.isoformat))
+    end_time: Arrow = field(
+        converter = arrow.get)
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
 
 
-@dataclass_json
-@dataclass
+@define
 class ActivityPlanCreate(EmptyActivityPlan):
     activities: list[Activity]
 
@@ -110,13 +108,16 @@ class ActivityPlanCreate(EmptyActivityPlan):
         )
 
 
-@dataclass_json
-@dataclass
+@define
 class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     sim_id: int
-    activities: Optional[List[Activity]] = None
+    activities: Optional[List[Activity]] = field(
+        default = None,
+        converter=converters.optional(
+            lambda listOfDicts: [Activity(**d) if isinstance(d, dict) else d for d in listOfDicts])
+    )
 
     def get_activity_start_time(self, activity: Union[int, Activity]) -> arrow.Arrow:
         """Get the effective start time of an activity instance
@@ -169,19 +170,17 @@ class ActivityPlanRead(EmptyActivityPlan):
         )
 
 
-@dataclass_json
-@dataclass
+@define
 class AsSimulatedActivity:
     type: str
     id: str
     parent_id: Optional[str]
     start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+        converter = arrow.get
     )
     children: list[str]
     duration: timedelta = field(
-        metadata=config(decoder=parse_timedelta_str,
-                        encoder=timedelta.__str__)
+        converter = parse_timedelta_str_converter
     )
     parameters: dict[str, Any]
 
@@ -200,16 +199,15 @@ class AsSimulatedActivity:
         )
 
 
-@dataclass_json
-@dataclass
+@define
 class SimulatedResourceSample:
-    t: Arrow = field(metadata=config(
-        decoder=arrow.get, encoder=Arrow.isoformat))
+    t: Arrow = field(
+        converter = arrow.get
+    )
     v: Any
 
 
-@dataclass_json
-@dataclass
+@define
 class SimulatedResourceTimeline:
     name: str
     values: list[SimulatedResourceSample]
@@ -231,11 +229,10 @@ class SimulatedResourceTimeline:
         )
 
 
-@dataclass_json
-@dataclass
+@define
 class SimulationResults:
     start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+        converter = arrow.get
     )
     activities: list[AsSimulatedActivity]
     resources: list[SimulatedResourceTimeline]
@@ -262,49 +259,47 @@ class SimulationResults:
         )
 
 
-@dataclass_json
-@dataclass
+@define
 class ActivityInstanceCommand:
     activity_instance_id: int
     commands: List[Dict]
     errors: List[Dict]
 
 
-@dataclass_json
-@dataclass
+@define
 class ExpansionRun:
     id: int
     expansion_set_id: int
     simulation_dataset_id: int
-    created_at: Arrow = field(metadata=config(
-        decoder=arrow.get, encoder=Arrow.isoformat))
+    created_at: Arrow = field(
+        converter = arrow.get
+    )
     activity_instance_commands: Optional[List[ActivityInstanceCommand]] = None
 
 
-@dataclass_json
-@dataclass
+@define
 class ExpansionSet:
     id: int
-    created_at: Arrow = field(metadata=config(
-        decoder=arrow.get, encoder=Arrow.isoformat))
+    created_at: Arrow = field(
+        converter = arrow.get
+    )
     command_dictionary_id: int = field(
-        metadata=config(field_name="command_dict_id"))
-    expansion_rules: List[int] = field(metadata=config(
-        decoder=lambda x: [i['id'] for i in x], encoder=lambda x: [{'id': i} for i in x]))
+        alias = "command_dict_id")
+    expansion_rules: List[int] = field(
+        converter = lambda x: [i['id'] for i in x])
 
 
-@dataclass_json
-@dataclass
+@define
 class CommandDictionaryInfo:
     id: int
     mission: str
     version: str
-    created_at: Arrow = field(metadata=config(
-        decoder=arrow.get, encoder=Arrow.isoformat))
+    created_at: Arrow = field(
+        converter = arrow.get
+    )
 
 
-@dataclass_json
-@dataclass
+@define
 class ExpansionRule:
     id: int
     activity_type: str
@@ -313,8 +308,7 @@ class ExpansionRule:
     expansion_logic: Optional[str] = None
 
 
-@dataclass_json
-@dataclass
+@define
 class ResourceType:
     name: str
     schema: Dict

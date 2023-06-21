@@ -12,6 +12,8 @@ from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanCreate
 from aerie_cli.schemas.client import ResourceType
+from aerie_cli.schemas.api import api_serialize
+from attrs import asdict
 
 BLANK_LINE_REGEX = r"^\s*$"
 EXPECTED_RESULTS_DIRECTORY = Path(__file__).parent.joinpath("files", "expected_results")
@@ -104,7 +106,7 @@ def test_list_all_activity_plans():
         }
     ]""")
     expected = [ActivityPlanRead.from_api_read(
-        ApiActivityPlanRead.from_dict(e)
+        ApiActivityPlanRead(**e)
     ) for e in expected]
     assert client.list_all_activity_plans() == expected
 
@@ -113,7 +115,7 @@ def test_create_activity():
     host_session = MockAerieHostSession('create_activity')
     client = AerieClient(host_session)
 
-    activity = Activity.from_dict(
+    activity = Activity(**
         {
             "id": 1,
             "type": "NoOp",
@@ -136,7 +138,7 @@ def test_update_activity():
     host_session = MockAerieHostSession("update_activity")
     client = AerieClient(host_session)
 
-    activity = Activity.from_dict(
+    activity = Activity(**
         {
             "type": "NoOp",
             "start_offset": "00:00:00",
@@ -182,7 +184,10 @@ def test_get_activity_plan_by_id():
     ) as fid:
         expected = json.load(fid)
 
-    res = client.get_activity_plan_by_id(1).to_dict()
+    res = asdict(
+        client.get_activity_plan_by_id(1),
+        value_serializer=api_serialize
+    )
     assert res == expected
 
 
@@ -192,7 +197,7 @@ def test_create_activity_plan(case_name: str):
     client = AerieClient(host_session)
 
     with open(INPUTS_DIRECTORY.joinpath(f"{case_name}.json"), "r") as fid:
-        input_plan = ActivityPlanCreate.from_plan_read(ActivityPlanRead.from_json(fid.read()))
+        input_plan = ActivityPlanCreate.from_plan_read(ActivityPlanRead(**(json.loads(fid.read()))))
 
     res = client.create_activity_plan(7, input_plan)
 

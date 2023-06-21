@@ -95,7 +95,6 @@ def cli_upload_banana_model():
     )
 
 def test_model_upload():
-    print(f"<<{HASURA_ADMIN_SECRET}>>")
     result = cli_upload_banana_model()
 
     # Get model_id of uploaded mission model

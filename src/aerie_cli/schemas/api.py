@@ -4,32 +4,43 @@ API dataclasses emulate the structure of data for exchange with the Aerie GraphQ
 "create" dataclasses model data for upload and "read" dataclasses model data for download.
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import List
 
+from attrs import define, field
+from attrs import converters
+from attrs import asdict
 import arrow
 from arrow import Arrow
-from dataclasses_json import config
-from dataclasses_json import dataclass_json
-from dataclasses_json import LetterCase
 
 from aerie_cli.utils.serialization import postgres_interval_to_timedelta
 from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 
-
-@dataclass_json
-@dataclass
+@define
 class ApiEffectiveActivityArguments:
     arguments: dict[str, Any]
 
+def convert_to_time_delta(t) -> timedelta:
+    if isinstance(t, timedelta):
+        return t
+    return postgres_interval_to_timedelta(t)
 
-@dataclass_json
-@dataclass
+def api_serialize(inst, field, value):
+    if isinstance(value, timedelta):
+        return timedelta_to_postgres_interval(value)
+    if isinstance(value, Arrow):
+        return str(value)
+    return value
+def client_serialize(inst, field, value):
+    if isinstance(value, timedelta):
+        return timedelta_to_postgres_interval(value)
+    if isinstance(value, Arrow):
+        return str(value)
+    return value
+@define
 class ActivityBase:
     """Base dataclass for an activity directive
 
@@ -38,21 +49,18 @@ class ActivityBase:
 
     type: str
     start_offset: timedelta = field(
-        metadata=config(
-            decoder=postgres_interval_to_timedelta,
-            encoder=timedelta_to_postgres_interval,
-        )
+        converter = convert_to_time_delta
     )
-    tags: Optional[List[str]] = field(default_factory=lambda: [], kw_only=True)
-    metadata: Optional[Dict[str, str]] = field(default_factory=lambda: {}, kw_only=True)
-    name: Optional[str] = field(default_factory=lambda: "", kw_only=True)
+    tags: Optional[List[str]] = field(factory=lambda: [], kw_only=True)
+    metadata: Optional[Dict[str, str]] = field(factory=lambda: {}, kw_only=True)
+    name: Optional[str] = field(factory=lambda: "", kw_only=True)
     arguments: Optional[Dict[str, Any]] = field(
-        default_factory=lambda: [], kw_only=True
+        factory=lambda: [], kw_only=True
     )
     anchor_id: Optional[int] = field(default=None, kw_only=True)
     anchored_to_start: Optional[bool] = field(default=None, kw_only=True)
 
-    def __post_init__(self):
+    def __attrs_post_init__(self):
 
         # Enforce that anchored_to_start must be specified if an anchor ID is given
         if self.anchored_to_start is None:
@@ -61,8 +69,7 @@ class ActivityBase:
             self.anchored_to_start = True
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiActivityCreate(ActivityBase):
     """Format for uploading activity directives
 
@@ -72,12 +79,11 @@ class ApiActivityCreate(ActivityBase):
 
     plan_id: int
     tags: list[str] = field(
-        metadata=config(encoder=lambda ts: "{" + ",".join(ts) + "}")
+        converter = lambda ts: "{" + ",".join(ts) + "}"
     )
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiActivityRead(ActivityBase):
     """Format for downloading activity directives
 
@@ -86,77 +92,61 @@ class ApiActivityRead(ActivityBase):
 
     id: int
 
-
-@dataclass_json
-@dataclass
+@define
 class ApiActivityPlanBase:
     model_id: int
     name: str
     start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+        converter=arrow.get
     )
 
-
-@dataclass_json
-@dataclass
+@define
 class ApiActivityPlanCreate(ApiActivityPlanBase):
     duration: timedelta = field(
-        metadata=config(
-            decoder=postgres_interval_to_timedelta,
-            encoder=timedelta_to_postgres_interval,
-        )
+        converter = convert_to_time_delta,
     )
 
-
-@dataclass_json
-@dataclass
+@define
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
     simulations: list[int]
     duration: timedelta = field(
-        metadata=config(
-            decoder=postgres_interval_to_timedelta, encoder=timedelta.__str__
-        )
+        converter = convert_to_time_delta,
     )
-    activity_directives: Optional[List[ApiActivityRead]] = None
+    activity_directives: Optional[List[ApiActivityRead]] = field(
+        default = None,
+        converter=converters.optional(
+            lambda listOfDicts: [ApiActivityRead(**d) if isinstance(d, dict) else d for d in listOfDicts])
+    )
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiAsSimulatedActivity:
     type: str
     parent_id: Optional[str]
     start_timestamp: Arrow = field(
-        metadata=config(
-            letter_case=LetterCase.CAMEL, decoder=arrow.get, encoder=Arrow.isoformat
-        )
+        converter = arrow.get
     )
     children: list[str]
     duration: timedelta = field(
-        metadata=config(
-            decoder=lambda microseconds: timedelta(microseconds=microseconds),
-            encoder=lambda dur: round(dur.total_seconds() * 1e6),
-        )
+        converter = lambda microseconds: timedelta(microseconds=microseconds)
     )
     arguments: dict[str, Any]
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiSimulatedResourceSample:
     x: timedelta = field(
-        metadata=config(
-            decoder=lambda microseconds: timedelta(microseconds=microseconds),
-            encoder=lambda dur: round(dur.total_seconds() * 1e6),
-        )
+        converter = lambda microseconds: timedelta(microseconds=microseconds)
     )
     y: Any
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiSimulationResults:
-    start: Arrow = field(metadata=config(decoder=arrow.get, encoder=Arrow.isoformat))
+    start: Arrow = field(
+        converter = arrow.get
+    )
     activities: dict[str, ApiAsSimulatedActivity]
     unfinishedActivities: Any
     # TODO: implement constraints
@@ -165,14 +155,12 @@ class ApiSimulationResults:
     events: Any
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiResourceSampleResults:
     resourceSamples: dict[str, list[ApiSimulatedResourceSample]]
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiMissionModelCreate:
     name: str
     version: str
@@ -180,7 +168,6 @@ class ApiMissionModelCreate:
     jar_id: str
 
 
-@dataclass_json
-@dataclass
+@define
 class ApiMissionModelRead(ApiMissionModelCreate):
     id: int
