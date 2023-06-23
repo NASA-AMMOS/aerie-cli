@@ -9,6 +9,7 @@ from aerie_cli.commands import configurations
 from aerie_cli.commands import expansion
 from aerie_cli.commands import constraints
 from aerie_cli.commands import scheduling
+from aerie_cli.commands import metadata
 
 from .persistent import NoActiveSessionError
 
