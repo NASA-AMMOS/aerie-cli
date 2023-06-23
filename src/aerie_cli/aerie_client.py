@@ -1631,3 +1631,26 @@ class AerieClient:
 
         resp = self.host_session.post_to_graphql(get_metadata_query)
         return resp
+
+    def add_metadata_schemas(self, schemas) -> list:
+        """Add metadata schemas
+        """
+        add_schemas_query = """
+        mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) {
+            insert_activity_directive_metadata_schema(objects: $schemas) {
+                affected_rows
+                returning {
+                created_at
+                key
+                schema
+                updated_at
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            add_schemas_query,
+            schemas=schemas
+        )
+        return resp
+        

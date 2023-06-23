@@ -1,0 +1,19 @@
+{
+    "schemas": [
+        { "key": "STRING_EXAMPLE", "schema": { "type": "string" } },
+        { "key": "LONG_STRING_EXAMPLE", "schema": { "type": "long_string" } },
+        { "key": "BOOLEAN_EXAMPLE", "schema": { "type": "boolean" } },
+        { "key": "NUMBER_EXAMPLE", "schema": { "type": "number" } },
+        {
+        "key": "ENUM_EXAMPLE",
+        "schema": { "enumerates": ["A", "B", "C"], "type": "enum" }
+        },
+        {
+        "key": "ENUM_MULTISELECT_EXAMPLE",
+        "schema": {
+            "enumerates": ["D", "E", "F", "G"],
+            "type": "enum_multiselect"
+        }
+        }
+    ]
+}
