@@ -30,12 +30,13 @@ def upload(
 # placeholder for now
 @app.command()
 def delete(
-    schema_name: int = typer.Option(
+    schema_name: str = typer.Option(
         ..., help="Name of schema to be deleted", prompt=True
     ),
 ):
     """Delete a metadata schema by its name."""
-    pass
+    resp = get_active_session_client().delete_metadata_schema(schema_name)
+    typer.echo(f"Schema `{resp}` has been removed.")
 
 
 @app.command()

@@ -1623,8 +1623,6 @@ class AerieClient:
             activity_directive_metadata_schema {
                 schema
                 key
-                created_at
-                updated_at
             }
         }
         """
@@ -1648,9 +1646,26 @@ class AerieClient:
             }
         }
         """
+
         resp = self.host_session.post_to_graphql(
             add_schemas_query,
             schemas=schemas
         )
         return resp
         
+    def delete_metadata_schema(self, key) -> list:
+        """Delete metadata schemas
+        """
+        delete_schema_query = """
+        mutation MyMutation($key: String!) {
+            delete_activity_directive_metadata_schema_by_pk(key: $key) {
+                key
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            delete_schema_query,
+            key=key
+        )
+        return resp["key"]
