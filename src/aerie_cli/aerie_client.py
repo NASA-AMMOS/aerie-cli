@@ -1611,3 +1611,23 @@ class AerieClient:
             body=edsl_body
         )
         return resp["seqJson"]
+
+    def get_metadata(self) -> list:
+        """Get metatdata
+
+        Returns:
+            list: a list of the metadata keys and schemas
+        """
+        get_metadata_query = """
+        query GetMetadata {
+            activity_directive_metadata_schema {
+                schema
+                key
+                created_at
+                updated_at
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(get_metadata_query)
+        return resp

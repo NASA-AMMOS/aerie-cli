@@ -19,6 +19,7 @@ app.add_typer(configurations.app, name="configurations")
 app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
+app.add_typer(metadata.app, name="metadata")
 
 
 def main():
