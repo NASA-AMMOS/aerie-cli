@@ -269,6 +269,7 @@ Help at script level:
 Usage: aerie-cli [OPTIONS] COMMAND [ARGS]...
 
 Options:
+  --hasura-admin-secret TEXT      [env var: HASURA_ADMIN_SECRET]
   --install-completion [bash|zsh|fish|powershell|pwsh]
                                   Install completion for the specified shell.
   --show-completion [bash|zsh|fish|powershell|pwsh]
@@ -277,9 +278,12 @@ Options:
   --help                          Show this message and exit.
 
 Commands:
-  plans
-  models
+  configurations
+  constraints
   expansion
+  models
+  plans
+  scheduling
 ```
 
 Help at command level:
