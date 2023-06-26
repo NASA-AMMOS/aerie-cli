@@ -219,6 +219,19 @@ Each configuration must specify an authentication method, which depends on how t
 | `Native` | Default Aerie authentication scheme (Token-based)               |
 | `Cookie` | Cookie-based authentication (used on some advanced deployments) |
 
+A Hasura Admin Secret may be required for certain operations. Aerie-cli provides two ways of entering the secret.
+
+1. Through the `--hasura-admin-secret` CLI option.
+
+    *Provide this option after ```aerie-cli```, but before any commands.*
+
+    *For example:*
+    ```
+    aerie-cli --hasura-admin-secret SECRET plans list
+    ```
+2. Through the `HASURA_ADMIN_SECRET` environment variable.
+
+    *This variable will be used by default. If both the `--hasura-admin-secret` CLI option and the enviornment variable are set, the program will utilize the CLI option's value.*
 ### Commands
 
 Begin by activating a configuration. This will store a persistent session with an Aerie host that will be used for all CLI commands.
