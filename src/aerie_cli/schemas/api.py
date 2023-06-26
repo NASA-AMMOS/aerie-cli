@@ -45,7 +45,7 @@ class ApiSerialize:
 
 @define
 class ApiEffectiveActivityArguments(ApiSerialize):
-    arguments: dict[str, Any]
+    arguments: Dict[str, Any]
 
 @define
 class ActivityBase(ApiSerialize):
@@ -85,7 +85,7 @@ class ApiActivityCreate(ActivityBase):
     """
 
     plan_id: int
-    tags: list[str] = field(
+    tags: List[str] = field(
         converter = lambda ts: "{" + ",".join(ts) + "}"
     )
 
@@ -116,7 +116,7 @@ class ApiActivityPlanCreate(ApiActivityPlanBase):
 @define
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
-    simulations: list[int]
+    simulations: List[int]
     duration: timedelta = field(
         converter = convert_to_time_delta,
     )
@@ -134,11 +134,11 @@ class ApiAsSimulatedActivity(ApiSerialize):
     start_timestamp: Arrow = field(
         converter = arrow.get
     )
-    children: list[str]
+    children: List[str]
     duration: timedelta = field(
         converter = lambda microseconds: timedelta(microseconds=microseconds)
     )
-    arguments: dict[str, Any]
+    arguments: Dict[str, Any]
 
 
 @define
@@ -154,7 +154,7 @@ class ApiSimulationResults(ApiSerialize):
     start: Arrow = field(
         converter = arrow.get
     )
-    activities: dict[str, ApiAsSimulatedActivity]
+    activities: Dict[str, ApiAsSimulatedActivity]
     unfinishedActivities: Any
     # TODO: implement constraints
     constraints: Any
@@ -164,7 +164,7 @@ class ApiSimulationResults(ApiSerialize):
 
 @define
 class ApiResourceSampleResults(ApiSerialize):
-    resourceSamples: dict[str, list[ApiSimulatedResourceSample]]
+    resourceSamples: Dict[str, List[ApiSimulatedResourceSample]]
 
 
 @define

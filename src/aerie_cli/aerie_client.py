@@ -104,7 +104,7 @@ class AerieClient:
             activity_plans.append(plan)
         return activity_plans
 
-    def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
+    def get_all_activity_plans(self, full_args: str = None) -> List[ActivityPlanRead]:
         """Get all activity plans
 
         Args:
@@ -114,7 +114,7 @@ class AerieClient:
             Disabled if missing, None, "false", or "".
 
         Returns:
-            list[ActivityPlanRead]
+            List[ActivityPlanRead]
         """
 
         # List all plans then loop to get activities from each
@@ -632,7 +632,7 @@ class AerieClient:
 
         return resp["name"]
 
-    def get_mission_models(self) -> list[ApiMissionModelRead]:
+    def get_mission_models(self) -> List[ApiMissionModelRead]:
 
         get_mission_model_query = """
         query getMissionModels {

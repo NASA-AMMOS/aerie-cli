@@ -107,7 +107,7 @@ class EmptyActivityPlan(ClientSerialize):
 
 @define
 class ActivityPlanCreate(EmptyActivityPlan):
-    activities: list[Activity]
+    activities: List[Activity]
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
@@ -197,11 +197,11 @@ class AsSimulatedActivity(ClientSerialize):
     start_time: Arrow = field(
         converter = arrow.get
     )
-    children: list[str]
+    children: List[str]
     duration: timedelta = field(
         converter = parse_timedelta_str_converter
     )
-    parameters: dict[str, Any]
+    parameters: Dict[str, Any]
 
     @classmethod
     def from_api_as_simulated_activity(
@@ -229,13 +229,13 @@ class SimulatedResourceSample(ClientSerialize):
 @define
 class SimulatedResourceTimeline(ClientSerialize):
     name: str
-    values: list[SimulatedResourceSample]
+    values: List[SimulatedResourceSample]
 
     @classmethod
     def from_api_sim_res_timeline(
         cls,
         name: str,
-        api_sim_res_timeline: list[ApiSimulatedResourceSample],
+        api_sim_res_timeline: List[ApiSimulatedResourceSample],
         profile_start_time: arrow,
     ):
         return SimulatedResourceTimeline(
@@ -253,8 +253,8 @@ class SimulationResults(ClientSerialize):
     start_time: Arrow = field(
         converter = arrow.get
     )
-    activities: list[AsSimulatedActivity]
-    resources: list[SimulatedResourceTimeline]
+    activities: List[AsSimulatedActivity]
+    resources: List[SimulatedResourceTimeline]
 
     @classmethod
     def from_api_results(
@@ -302,8 +302,7 @@ class ExpansionSet(ClientSerialize):
     created_at: Arrow = field(
         converter = arrow.get
     )
-    command_dictionary_id: int = field(
-        alias = "command_dict_id")
+    command_dictionary_id: int
     expansion_rules: List[int] = field(
         converter = lambda x: [i['id'] for i in x])
 
