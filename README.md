@@ -219,6 +219,13 @@ Each configuration must specify an authentication method, which depends on how t
 | `Native` | Default Aerie authentication scheme (Token-based)               |
 | `Cookie` | Cookie-based authentication (used on some advanced deployments) |
 
+A Hasura Admin Secret may be required for certain operations.
+
+The `--hasura-admin-secret` CLI option is used to set this secret. Provide this option after ```aerie-cli```, but before any commands. For example:
+```
+aerie-cli --hasura-admin-secret SECRET plans list
+```
+*The hasura admin secret is not stored persistently. The secret is only used for the current command.*
 ### Commands
 
 Begin by activating a configuration. This will store a persistent session with an Aerie host that will be used for all CLI commands.
@@ -269,6 +276,7 @@ Help at script level:
 Usage: aerie-cli [OPTIONS] COMMAND [ARGS]...
 
 Options:
+  --hasura-admin-secret TEXT      [env var: HASURA_GRAPHQL_ADMIN_SECRET]
   --install-completion [bash|zsh|fish|powershell|pwsh]
                                   Install completion for the specified shell.
   --show-completion [bash|zsh|fish|powershell|pwsh]
@@ -277,9 +285,12 @@ Options:
   --help                          Show this message and exit.
 
 Commands:
-  plans
-  models
+  configurations
+  constraints
   expansion
+  models
+  plans
+  scheduling
 ```
 
 Help at command level:

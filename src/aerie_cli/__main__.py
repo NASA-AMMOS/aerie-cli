@@ -9,8 +9,8 @@ from aerie_cli.commands import configurations
 from aerie_cli.commands import expansion
 from aerie_cli.commands import constraints
 from aerie_cli.commands import scheduling
-
 from .persistent import NoActiveSessionError
+from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 app.add_typer(plans.app, name="plans")
@@ -20,6 +20,12 @@ app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
 
+@app.callback()
+def setupGlobalCommandContext(
+        hasura_admin_secret = typer.Option(default="",
+                                           help="Hasura admin secret that will be put in the header of graphql requests")
+    ):
+    CommandContext.hasura_admin_secret = hasura_admin_secret
 
 def main():
     try:
