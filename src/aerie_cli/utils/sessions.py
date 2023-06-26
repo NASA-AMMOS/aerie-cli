@@ -3,7 +3,7 @@ import requests
 from aerie_cli.aerie_host import AerieHostSession
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.persistent import PersistentSessionManager
-from aerie_cli.commands.command_context import CommandContextManager
+from aerie_cli.commands.command_context import CommandContext
 
 def get_active_session_client():
     """Instantiate AerieClient with the active host session
@@ -15,7 +15,7 @@ def get_active_session_client():
         AerieClient
     """
     session = PersistentSessionManager.get_active_session()
-    hasura_secret = CommandContextManager.context.get_hasura_admin_secret()
+    hasura_secret = CommandContext.hasura_admin_secret
     if hasura_secret:
         session.session.headers["x-hasura-admin-secret"] = hasura_secret
     return AerieClient(session)
