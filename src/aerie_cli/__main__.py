@@ -22,7 +22,7 @@ app.add_typer(scheduling.app, name="scheduling")
 
 @app.callback()
 def setupGlobalCommandContext(
-        hasura_admin_secret = typer.Option(default="",envvar="HASURA_ADMIN_SECRET",
+        hasura_admin_secret = typer.Option(default="",envvar="HASURA_GRAPHQL_ADMIN_SECRET",
                                            help="Hasura admin secret that will be put in the header of graphql requests")
     ):
     CommandContextManager.context = CommandContext(hasura_admin_secret=hasura_admin_secret)    

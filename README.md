@@ -229,7 +229,7 @@ A Hasura Admin Secret may be required for certain operations. Aerie-cli provides
     ```
     aerie-cli --hasura-admin-secret SECRET plans list
     ```
-2. Through the `HASURA_ADMIN_SECRET` environment variable.
+2. Through the `HASURA_GRAPHQL_ADMIN_SECRET` environment variable.
 
     *This variable will be used by default. If both the `--hasura-admin-secret` CLI option and the enviornment variable are set, the program will utilize the CLI option's value.*
 ### Commands
@@ -282,7 +282,7 @@ Help at script level:
 Usage: aerie-cli [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --hasura-admin-secret TEXT      [env var: HASURA_ADMIN_SECRET]
+  --hasura-admin-secret TEXT      [env var: HASURA_GRAPHQL_ADMIN_SECRET]
   --install-completion [bash|zsh|fish|powershell|pwsh]
                                   Install completion for the specified shell.
   --show-completion [bash|zsh|fish|powershell|pwsh]
