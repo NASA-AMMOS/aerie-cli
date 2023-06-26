@@ -1621,8 +1621,8 @@ class AerieClient:
         get_metadata_query = """
         query GetMetadata {
             activity_directive_metadata_schema {
-                schema
                 key
+                schema
             }
         }
         """
@@ -1636,12 +1636,9 @@ class AerieClient:
         add_schemas_query = """
         mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) {
             insert_activity_directive_metadata_schema(objects: $schemas) {
-                affected_rows
                 returning {
-                created_at
-                key
-                schema
-                updated_at
+                    key
+                    schema
                 }
             }
         }

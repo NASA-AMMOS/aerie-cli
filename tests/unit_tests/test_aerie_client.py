@@ -242,3 +242,24 @@ def test_get_sequence_json():
     
     res = client.get_sequence_json(1, edsl_code)
     assert res == expected
+
+def test_upload_metadata():
+    host_session = MockAerieHostSession("upload_metadata_schemas")
+    client = AerieClient(host_session)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('upload_metadata_schemas.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    schema_data = json.loads("""
+    [
+        { "key": "STRING_EXAMPLE", "schema": { "type": "string" } },
+        { "key": "LONG_STRING_EXAMPLE", "schema": { "type": "long_string" } },
+        {
+        "key": "ENUM_EXAMPLE",
+        "schema": { "enumerates": ["A", "B", "C"], "type": "enum" }
+        }
+    ]
+    """)
+
+    res = client.add_metadata_schemas(schema_data)
+    assert res == expected
