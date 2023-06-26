@@ -10,7 +10,6 @@ from aerie_cli.utils.sessions import get_active_session_client
 app = typer.Typer()
 
 
-# placeholder for now
 @app.command()
 def upload(
     schema_path: str = typer.Option(
@@ -24,10 +23,9 @@ def upload(
         contents = in_file.read()
     schema_data = json.loads(contents)
     result = client.add_metadata_schemas(schema_data["schemas"])
-    print(result)
+    typer.echo(f"{len(schema_data['schemas'])} new schema have been added.")
 
 
-# placeholder for now
 @app.command()
 def delete(
     schema_name: str = typer.Option(
@@ -41,7 +39,7 @@ def delete(
 
 @app.command()
 def list():
-    """List uploaded mission models."""
+    """List uploaded metadata schemas."""
 
     resp = get_active_session_client().get_metadata()
 
@@ -56,3 +54,14 @@ def list():
 
     console = Console()
     console.print(table)
+
+@app.command()
+def clean():
+    """Delete all metadata schemas."""
+    client = get_active_session_client()
+
+    resp = client.get_metadata()
+    for schema in resp:
+        client.delete_metadata_schema(schema["key"])
+
+    typer.echo(f"All metadata schemas have been deleted")
