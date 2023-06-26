@@ -221,6 +221,8 @@ Each configuration must specify an authentication method, which depends on how t
 
 A Hasura Admin Secret may be required for certain operations. Aerie-cli provides two ways of entering the secret.
 
+When the hasura admin secret is set by either method, it is not stored persistently. The secret is only used for the current command.
+
 1. Through the `--hasura-admin-secret` CLI option.
 
     *Provide this option after ```aerie-cli```, but before any commands.*
