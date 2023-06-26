@@ -1,6 +1,4 @@
-from aerie_cli.aerie_client import AerieClient
 import typer
-from types import SimpleNamespace
 
 app = typer.Typer()
 
