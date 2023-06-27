@@ -19,7 +19,7 @@ env:
 
 jobs:
   unit-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     environment: integration-test-workflow
     strategy:
       matrix:
