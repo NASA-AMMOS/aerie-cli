@@ -1630,8 +1630,16 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(get_metadata_query)
         return resp
 
-    def add_directive_metadata_schemas(self, schemas) -> list:
+    def add_directive_metadata_schemas(self, schemas: list) -> list:
         """Add metadata schemas
+
+        The schema format should follow the documentation [here](https://nasa-ammos.github.io/aerie-docs/planning/activity-directive-metadata/).
+
+        Args:
+            schemas (list): a list of the schemas to add
+
+        Returns:
+            list: a list of the metadata keys and schemas that were added
         """
         add_schemas_query = """
         mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) {
@@ -1652,6 +1660,9 @@ class AerieClient:
         
     def delete_directive_metadata_schema(self, key) -> list:
         """Delete metadata schemas
+
+        Returns:
+            list: a list of the metadata keys that were deleted
         """
         delete_schema_query = """
         mutation MyMutation($key: String!) {
