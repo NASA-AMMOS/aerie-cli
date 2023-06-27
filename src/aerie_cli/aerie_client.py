@@ -1612,7 +1612,7 @@ class AerieClient:
         )
         return resp["seqJson"]
 
-    def get_metadata(self) -> list:
+    def get_directive_metadata(self) -> list:
         """Get metatdata
 
         Returns:
@@ -1630,7 +1630,7 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(get_metadata_query)
         return resp
 
-    def add_metadata_schemas(self, schemas) -> list:
+    def add_directive_metadata_schemas(self, schemas) -> list:
         """Add metadata schemas
         """
         add_schemas_query = """
@@ -1650,7 +1650,7 @@ class AerieClient:
         )
         return resp
         
-    def delete_metadata_schema(self, key) -> list:
+    def delete_directive_metadata_schema(self, key) -> list:
         """Delete metadata schemas
         """
         delete_schema_query = """

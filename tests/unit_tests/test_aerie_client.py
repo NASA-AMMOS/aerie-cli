@@ -243,11 +243,11 @@ def test_get_sequence_json():
     res = client.get_sequence_json(1, edsl_code)
     assert res == expected
 
-def test_upload_metadata():
-    host_session = MockAerieHostSession("upload_metadata_schemas")
+def test_upload_directive_metadata():
+    host_session = MockAerieHostSession("upload_directive_metadata_schemas")
     client = AerieClient(host_session)
 
-    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('upload_metadata_schemas.json'), 'r') as fid:
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('upload_directive_metadata_schemas.json'), 'r') as fid:
         expected = json.load(fid)
 
     schema_data = json.loads("""
@@ -261,5 +261,5 @@ def test_upload_metadata():
     ]
     """)
 
-    res = client.add_metadata_schemas(schema_data)
+    res = client.add_directive_metadata_schemas(schema_data)
     assert res == expected
