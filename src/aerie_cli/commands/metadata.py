@@ -16,7 +16,10 @@ def upload(
         ..., help="path to JSON file defining the schema to be created", prompt=True
     ),
 ):
-    """Add to the metadata schema from a .json file."""
+    """Add to the metadata schema from a .json file.
+    
+    JSON file contents should include a list schemas, each containing a key for its name and value for its type.
+    """
     client = get_active_session_client()
 
     with open(schema_path) as in_file:
