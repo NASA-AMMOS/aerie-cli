@@ -39,9 +39,7 @@ def upload(
     #will append to existing goals in specification priority order
     specification = client.get_specification_for_plan(plan_id)
 
-    upload_to_spec = []
-    for goal_id in uploaded_ids:
-        upload_to_spec.append(dict(zip(["goal_id", "specification_id"], [goal_id, specification])))
+    upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
 
     client.add_goals_to_specifications(upload_to_spec)
 

@@ -1404,26 +1404,6 @@ class AerieClient:
         )
 
         return typescript_dictionary_string
-    
-    def get_all_scheduling_goals(self):
-        get_all_goals_query = """
-        query {
-            scheduling_goal {
-                id,
-                model_id,
-                name,
-                description,
-                author,
-                last_modified_by,
-                created_date,
-                modified_date
-            }
-        }
-        """
-
-        resp = self.host_session.post_to_graphql(get_all_goals_query)
-
-        return resp
 
     def get_scheduling_goals_by_specification(self, spec_id):
         list_all_goals_by_spec_query = """
