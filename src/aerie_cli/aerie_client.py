@@ -1155,20 +1155,7 @@ class AerieClient:
                 seqId: $seq_id,
                 simulationDatasetId: $simulation_dataset_id
             ) {
-                seqJson {
-                    steps {
-                        args
-                        metadata
-                        stem
-                        type
-                        time {
-                            tag
-                            type
-                        }
-                    }
-                    metadata
-                    id
-                }
+                seqJson
             }
         }
         """
