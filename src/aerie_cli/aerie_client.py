@@ -1611,3 +1611,69 @@ class AerieClient:
             body=edsl_body
         )
         return resp["seqJson"]
+
+    def get_directive_metadata(self) -> list:
+        """Get metatdata
+
+        Returns:
+            list: a list of the metadata keys and schemas
+        """
+        get_metadata_query = """
+        query GetMetadata {
+            activity_directive_metadata_schema {
+                key
+                schema
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(get_metadata_query)
+        return resp
+
+    def add_directive_metadata_schemas(self, schemas: list) -> list:
+        """Add metadata schemas
+
+        The schema format should follow the documentation [here](https://nasa-ammos.github.io/aerie-docs/planning/activity-directive-metadata/).
+
+        Args:
+            schemas (list): a list of the schemas to add
+
+        Returns:
+            list: a list of the metadata keys and schemas that were added
+        """
+        add_schemas_query = """
+        mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) {
+            insert_activity_directive_metadata_schema(objects: $schemas) {
+                returning {
+                    key
+                    schema
+                }
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            add_schemas_query,
+            schemas=schemas
+        )
+        return resp
+        
+    def delete_directive_metadata_schema(self, key) -> list:
+        """Delete metadata schemas
+
+        Returns:
+            list: a list of the metadata keys that were deleted
+        """
+        delete_schema_query = """
+        mutation MyMutation($key: String!) {
+            delete_activity_directive_metadata_schema_by_pk(key: $key) {
+                key
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            delete_schema_query,
+            key=key
+        )
+        return resp["key"]

@@ -1,0 +1,23 @@
+{
+    "activity_directive_metadata_schema": [
+        {
+            "key": "STRING_EXAMPLE",
+            "schema": {
+                "type": "string"
+            }
+        },
+        {
+            "key": "LONG_STRING_EXAMPLE",
+            "schema": {
+                "type": "long_string"
+            }
+        },
+        {
+            "key": "ENUM_MULTISELECT_EXAMPLE",
+            "schema": {
+                "type": "enum_multiselect",
+                "enumerates": ["D", "E", "F", "G"]
+            }
+        }
+    ]
+}
