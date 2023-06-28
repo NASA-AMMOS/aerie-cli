@@ -37,6 +37,7 @@ def app_callback(
     version: Optional[bool] = typer.Option(
         None,
         "--version",
+        "-v",
         callback=print_version,
         help="Print Aerie-CLI package version and exit.",
     ),
