@@ -13,11 +13,15 @@ app = typer.Typer()
 @app.command()
 def upload(
     schema_path: str = typer.Option(
-        ..., help="path to JSON file defining the schema to be created", prompt=True
+        ...,
+        "--schema-path",
+        "-i",
+        help="path to JSON file defining the schema to be created",
+        prompt=True,
     ),
 ):
     """Add to the metadata schema from a .json file.
-    
+
     JSON file contents should include a list schemas, each containing a key for its name and value for its type.
     """
     client = get_active_session_client()
@@ -32,7 +36,7 @@ def upload(
 @app.command()
 def delete(
     schema_name: str = typer.Option(
-        ..., help="Name of schema to be deleted", prompt=True
+        ..., "--schema-name", "-n", help="Name of schema to be deleted", prompt=True
     ),
 ):
     """Delete a metadata schema by its name."""
@@ -57,6 +61,7 @@ def list():
 
     console = Console()
     console.print(table)
+
 
 @app.command()
 def clean():

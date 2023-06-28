@@ -71,7 +71,7 @@ def upload(
 @app.command()
 def delete(
     model_id: int = typer.Option(
-        ..., help="Mission model ID to be deleted", prompt=True
+        ..., "--model-id", "-m", help="Mission model ID to be deleted", prompt=True
     ),
 ):
     """Delete a mission model by its model id."""
