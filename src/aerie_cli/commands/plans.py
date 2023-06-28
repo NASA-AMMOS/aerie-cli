@@ -33,9 +33,9 @@ def download(
 def download_simulation(
     sim_id: int = typer.Option(
         ..., '--sim-id', '-s',
-        help="Simulation ID", prompt=True),
+        help="Simulation Dataset ID", prompt=True),
     output: str = typer.Option(
-        ..., '--output', '-s',
+        ..., '--output', '-o',
         help="The output file destination", prompt=True)
 ):
     """
