@@ -5,7 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
@@ -43,7 +43,7 @@ def upload(
         version = arrow.utcnow().isoformat()
 
     # Initialize Aerie client
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     # Upload mission model file to Aerie server
     model_id = client.upload_mission_model(
@@ -76,14 +76,14 @@ def delete(
 ):
     """Delete a mission model by its model id."""
 
-    model_name = get_active_session_client().delete_mission_model(model_id)
+    model_name = CommandContext.get_client().delete_mission_model(model_id)
     typer.echo(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
 
 
 @app.command()
 def clean():
     """Delete all mission models."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     resp = client.get_mission_models()
     for api_mission_model in resp:
@@ -96,7 +96,7 @@ def clean():
 def list():
     """List uploaded mission models."""
 
-    resp = get_active_session_client().get_mission_models()
+    resp = CommandContext.get_client().get_mission_models()
 
     # Create output table
     table = Table(title="Current Mission Models")

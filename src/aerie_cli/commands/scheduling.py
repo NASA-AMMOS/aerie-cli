@@ -1,6 +1,6 @@
 import typer
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
@@ -19,7 +19,7 @@ def upload(
     )
 ): 
     """Upload scheduling goal"""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     with open(schedule) as in_file:
         i = 0
@@ -43,7 +43,7 @@ def delete(
     )
 ):
     """Delete scheduling goal"""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     resp = client.delete_scheduling_goal(goal_id)
     typer.echo("Successfully deleted Goal ID: " + str(resp))
