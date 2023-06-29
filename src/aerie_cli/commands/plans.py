@@ -15,12 +15,12 @@ app = typer.Typer()
 
 @app.command()
 def download(
-    id: int = typer.Option(..., help="Plan ID", prompt=True),
+    id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     full_args: str = typer.Option(
         "",
         help="true, false, or comma separated list of activity types for which to get full arguments.  Otherwise only modified arguments are returned.  Defaults to false.",
     ),
-    output: str = typer.Option(..., help="The output file destination", prompt=True)
+    output: str = typer.Option(..., "--output", "-o", help="The output file destination", prompt=True)
 ):
     """Download a plan and save it locally as a JSON file."""
     plan = get_active_session_client().get_activity_plan_by_id(id, full_args)
@@ -33,9 +33,9 @@ def download(
 def download_simulation(
     sim_id: int = typer.Option(
         ..., '--sim-id', '-s',
-        help="Simulation ID", prompt=True),
+        help="Simulation Dataset ID", prompt=True),
     output: str = typer.Option(
-        ..., '--output', '-s',
+        ..., '--output', '-o',
         help="The output file destination", prompt=True)
 ):
     """
@@ -54,7 +54,7 @@ def download_resources(
         ..., '--sim-id', '-s',
         help="Simulation Dataset ID", prompt='Simulation Dataset ID'),
     csv: bool = typer.Option(
-        False, "--csv/--json", help="Download as CSV"
+        False, "--csv/--json", help="Specify file format. Defaults to JSON"
     ),
     output: str = typer.Option(
         ..., '--output', '-o',
@@ -160,10 +160,10 @@ def download_resources(
 @app.command()
 def upload(
     input: str = typer.Option(
-        ..., help="The input file from which to create an Aerie plan", prompt=True
+        ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
     ),
     model_id: int = typer.Option(
-        ..., help="The mission model ID to associate with the plan", prompt=True
+        ..., "--model-id", "-m", help="The mission model ID to associate with the plan", prompt=True
     ),
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
@@ -181,9 +181,9 @@ def upload(
 
 @app.command()
 def duplicate(
-    id: int = typer.Option(..., help="Plan ID", prompt=True),
+    id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     duplicated_plan_name: str = typer.Option(
-        ..., help="The name for the duplicated plan", prompt=True
+        ..., "--duplicate-plan-name", "-n", help="The name for the duplicated plan", prompt=True
     )
 ):
     """Duplicate an existing plan."""
@@ -193,16 +193,14 @@ def duplicate(
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
     plan_to_duplicate.name = duplicated_plan_name
     duplicated_plan_id = client.create_activity_plan(plan.model_id, plan_to_duplicate)
-    typer.echo(
-        f"Duplicated activity plan at: {client.ui_path()}/plans/{duplicated_plan_id}"
-    )
+    typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
 
 @app.command()
 def simulate(
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: Union[str, None] = typer.Option(
-        None, help="The output file destination for simulation results (if desired)"
+        None, "--output", "-o", help="The output file destination for simulation results (if desired)"
     ),
     poll_period: int = typer.Option(
         5,
@@ -298,7 +296,7 @@ def update_config(
 
 @app.command()
 def delete(
-    plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
+    plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to be deleted", prompt=True),
 ):
     """Delete an activity plan by its id."""
 

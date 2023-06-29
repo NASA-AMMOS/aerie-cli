@@ -13,26 +13,28 @@ app = typer.Typer()
 @app.command()
 def upload(
     mission_model_path: str = typer.Option(
-        ..., help="The input file from which to create an Aerie model", prompt=True
+        ...,
+        "--mission-model-path",
+        "-i",
+        help="The input file from which to create an Aerie model",
+        prompt=True,
     ),
-    model_name: str = typer.Option(..., help="Name of mission model", prompt=True),
-    mission: str = typer.Option(
-        ..., help="Mission to associate with the model", prompt=True
-    ),
-    time_tag_version: bool = typer.Option(
-        False, "--time-tag-version", help="Use timestamp for model version"
+    model_name: str = typer.Option(
+        ..., "--model-name", "-n", help="Name of mission model", prompt=True
     ),
     version: str = typer.Option(
         "",
+        "--version",
+        "-v",
         help="Mission model verison",
         show_default=True,
         prompt=True,
     ),
+    time_tag_version: bool = typer.Option(
+        False, "--time-tag-version", help="Use timestamp for model version"
+    ),
     sim_template: str = typer.Option(
-        "",
-        help="Simulation template file",
-        show_default=True,
-        prompt=True,
+        "", help="Simulation template file", show_default=True
     ),
 ):
     """Upload a single mission model from a .jar file."""
@@ -47,7 +49,7 @@ def upload(
     model_id = client.upload_mission_model(
         mission_model_path=mission_model_path,
         project_name=model_name,
-        mission=mission,
+        mission="",
         version=version,
     )
 
@@ -61,17 +63,15 @@ def upload(
 
         # Attach sim template to model
         client.upload_sim_template(model_id=model_id, args=json_obj, name=name)
-        print(f"Attached simulation template to model {model_id}.")
+        typer.echo(f"Attached simulation template to model {model_id}.")
 
-    typer.echo(
-        f"Created new mission model: {model_name} with Model ID: {model_id}"
-    )
+    typer.echo(f"Created new mission model: {model_name} with Model ID: {model_id}")
 
 
 @app.command()
 def delete(
     model_id: int = typer.Option(
-        ..., help="Mission model ID to be deleted", prompt=True
+        ..., "--model-id", "-m", help="Mission model ID to be deleted", prompt=True
     ),
 ):
     """Delete a mission model by its model id."""
