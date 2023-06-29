@@ -5,7 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
@@ -24,7 +24,7 @@ def upload(
 
     JSON file contents should include a list schemas, each containing a key for its name and value for its type.
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     with open(schema_path) as in_file:
         contents = in_file.read()
@@ -40,7 +40,7 @@ def delete(
     ),
 ):
     """Delete a metadata schema by its name."""
-    resp = get_active_session_client().delete_directive_metadata_schema(schema_name)
+    resp = CommandContext.get_client().delete_directive_metadata_schema(schema_name)
     typer.echo(f"Schema `{resp}` has been removed.")
 
 
@@ -48,7 +48,7 @@ def delete(
 def list():
     """List uploaded metadata schemas."""
 
-    resp = get_active_session_client().get_directive_metadata()
+    resp = CommandContext.get_client().get_directive_metadata()
 
     table = Table(title="Metadata Schemas")
     table.add_column("Key", style="magenta")
@@ -66,7 +66,7 @@ def list():
 @app.command()
 def clean():
     """Delete all metadata schemas."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     resp = client.get_directive_metadata()
     for schema in resp:

@@ -7,7 +7,7 @@ import fnmatch
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.utils.prompts import select_from_list
 from aerie_cli.schemas.client import ExpansionRun
 
@@ -36,7 +36,7 @@ def expand_simulation(
     """
     Run command expansion on a simulation dataset
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     expansion_run_id = client.expand_simulation(
         int(simulation_dataset_id), int(expansion_set_id))
@@ -69,7 +69,7 @@ def list_expansion_runs(
         elif choice == 'Simulation Dataset ID':
             simulation_dataset_id = typer.prompt('Enter Simulation Dataset ID')
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     if simulation_dataset_id is None:
         simulation_datasets = client.get_simulation_dataset_ids_by_plan_id(
@@ -129,7 +129,7 @@ def list_sequences(
         elif choice == 'Simulation Dataset ID':
             simulation_dataset_id = typer.prompt('Enter Simulation Dataset ID')
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     if simulation_dataset_id is None:
         simulation_datasets = client.get_simulation_dataset_ids_by_plan_id(
@@ -173,7 +173,7 @@ def create_sequence(
     """
     Create a sequence on a simulation dataset
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     existing_sequences = client.list_sequences(simulation_dataset_id)
     if seq_id in existing_sequences:
         Console().print(f"Sequence already exists: {seq_id}", style='red')
@@ -230,7 +230,7 @@ def delete_sequence(
     """
     Delete sequence on a simulation dataset
     """
-    get_active_session_client().delete_sequence(
+    CommandContext.get_client().delete_sequence(
         seq_id, simulation_dataset_id)
 
     Console().print(f"Successfully deleted sequence: {seq_id}", style='green')
@@ -258,7 +258,7 @@ def download_sequence(
         output_fn == '.json'
     output_fn = Path(output_fn)
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     seq_dict = client.get_expanded_sequence(seq_id, int(simulation_dataset_id))
 
@@ -273,7 +273,7 @@ def list_expansion_sets():
     """
     List all expansion sets
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     sets = client.list_expansion_sets()
     cmd_dicts = client.list_command_dictionaries()
     cmd_dicts = {c.id: c for c in cmd_dicts}
@@ -308,7 +308,7 @@ def get_expansion_set(
     """
     View all rules in an expansion set
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     sets = client.list_expansion_sets()
     try:
         set = next(filter(lambda s: s.id == int(expansion_set_id), sets))
@@ -353,7 +353,7 @@ def create_expansion_set(
     Filters to only use rules designated for the given mission model and 
     command dictionary.
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     expansion_rules = client.get_rules_by_type()
 
     if not activity_types:

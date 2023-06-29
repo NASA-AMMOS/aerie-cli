@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
 
 app = typer.Typer()
@@ -23,7 +23,7 @@ def download(
     output: str = typer.Option(..., "--output", "-o", help="The output file destination", prompt=True)
 ):
     """Download a plan and save it locally as a JSON file."""
-    plan = get_active_session_client().get_activity_plan_by_id(id, full_args)
+    plan = CommandContext.get_client().get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
@@ -41,7 +41,7 @@ def download_simulation(
     """
     Download simulated activity instances and save to a JSON file
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     simulated_activities = client.get_simulation_results(sim_id)
     with open(output, "w") as out_file:
         out_file.write(json.dumps(simulated_activities, indent=2))
@@ -75,7 +75,7 @@ def download_resources(
     CSV resource timeline relative timestamps are seconds since plan start time. Absolute timestamps are formatted the 
     same as the JSON outputs.
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     # reads the states
     contents = []
@@ -168,7 +168,7 @@ def upload(
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     with open(input) as in_file:
         contents = in_file.read()
@@ -187,7 +187,7 @@ def duplicate(
     )
 ):
     """Duplicate an existing plan."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     plan = client.get_activity_plan_by_id(id)
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
@@ -208,7 +208,7 @@ def simulate(
     ),
 ):
     """Simulate a plan and optionally download the results."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     start_time = arrow.utcnow()
     sim_dataset_id = client.simulate_plan(id, poll_period)
@@ -227,7 +227,7 @@ def simulate(
 def list():
     """List uploaded plans."""
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     resp = client.list_all_activity_plans()
 
     # Create output table
@@ -268,7 +268,7 @@ def create_config(
     with open(arg_file) as fid:
         json_obj = json.load(fid)
 
-    resp = get_active_session_client().create_config_args(plan_id=plan_id, args=json_obj)
+    resp = CommandContext.get_client().create_config_args(plan_id=plan_id, args=json_obj)
 
     typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
@@ -287,7 +287,7 @@ def update_config(
     with open(arg_file) as fid:
         json_obj = json.load(fid)
 
-    resp = get_active_session_client().update_config_args(plan_id=plan_id, args=json_obj)
+    resp = CommandContext.get_client().update_config_args(plan_id=plan_id, args=json_obj)
 
     typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
@@ -300,14 +300,14 @@ def delete(
 ):
     """Delete an activity plan by its id."""
 
-    plan_name = get_active_session_client().delete_plan(plan_id)
+    plan_name = CommandContext.get_client().delete_plan(plan_id)
     typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
 @app.command()
 def clean():
     """Delete all activity plans."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     resp = client.get_all_activity_plans()
     for activity_plan in resp:

@@ -5,7 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
@@ -23,7 +23,7 @@ def upload(
     if model_id is None and plan_id is None:
         model_id = typer.prompt("Model id")
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     with open(constraint_file) as in_file:
         contents = in_file.readlines()
         str_contents = " ".join(contents)
@@ -44,7 +44,7 @@ def delete(
 ):
     """Delete a constraint"""
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     client.delete_constraint(id)
     typer.echo(f"Successfully deleted constraint {id}")
 
@@ -55,7 +55,7 @@ def update(
 ):
     """Update a constraint"""
     
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     constraint = client.get_constraint_by_id(id)
     with open(constraint_file) as in_file:
         contents = in_file.readlines()
@@ -76,7 +76,7 @@ def violations(
     plan_id: int = typer.Option(..., help="The plan id for the violation", prompt=True)
 ):
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     constraint_violations = client.get_constraint_violations(plan_id)
     typer.echo(f"Constraint violations: {constraint_violations}")
     
