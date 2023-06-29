@@ -12,6 +12,6 @@ class CommandContext:
     @classmethod
     def get_client(cls) -> AerieClient:
         client = get_active_session_client()
-        if CommandContext.hasura_admin_secret:
-            client.host_session.session.headers["x-hasura-admin-secret"] = CommandContext.hasura_admin_secret
+        if cls.hasura_admin_secret:
+            client.host_session.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
         return client
