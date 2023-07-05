@@ -1434,7 +1434,7 @@ class AerieClient:
         obj["model_id"] = model_id
         obj["definition"] = definition
 
-        return self.upload_scheduling_goals(obj)
+        return self.upload_scheduling_goals([obj])
 
     def upload_scheduling_goals(self, upload_object):
         """
