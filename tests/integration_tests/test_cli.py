@@ -7,19 +7,30 @@ sys.path.insert(0, src_path)
 
 from typer.testing import CliRunner
 
-from aerie_cli.aerie_client import auth_helper
+from aerie_cli.aerie_client import AerieClient
+from aerie_cli.aerie_host import AerieHostSession, AuthMethod
 from aerie_cli.commands.models import app as m_app
 from aerie_cli.commands.plans import app as p_app
 
 runner = CliRunner()
 
-sso = "sso"
-username = ""
-password = ""
-server_url = "http://localhost"
-client = auth_helper(
-    sso=sso, username=username, password=password, server_url=server_url
+GRAPHQL_URL = "http://localhost:8080/v1/graphql"
+GATEWAY_URL = "http://localhost:9000"
+AUTH_URL = "http://localhost:9000/auth/login"
+AUTH_METHOD = AuthMethod.AERIE_NATIVE
+USERNAME = ""
+PASSWORD = ""
+
+session = AerieHostSession.session_helper(
+    AUTH_METHOD,
+    GRAPHQL_URL,
+    GATEWAY_URL,
+    AUTH_URL,
+    USERNAME,
+    PASSWORD
 )
+
+client = AerieClient(session)
 
 # Model Variables
 model_jar = "TODO"
