@@ -14,6 +14,7 @@ from aerie_cli.aerie_host import AerieHostSession, AuthMethod
 from aerie_cli.__main__ import app
 from aerie_cli.commands.configurations import delete_all_persistent_files, upload_configurations, deactivate_session, activate_session
 from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands import plans
 
 runner = CliRunner(mix_stderr = False)
 
@@ -115,17 +116,9 @@ def test_model_list():
     f"\nError was: \n\n {result.stderr}"
     assert "Current Mission Models" in result.stdout
 
-def test_plan_clean():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
-    assert (
-        f"All activity plans have been deleted"
-        in result.stdout
-    )
-
 def test_plan_upload():
+    # Clean out plans first
+    plans.clean()
     # Upload mission model for setup
     result = cli_upload_banana_model()
     
@@ -229,6 +222,17 @@ def test_plan_delete():
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
     assert f"ID: {plan_id} has been removed." in result.stdout
+
+
+def test_plan_clean():
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
+    assert (
+        f"All activity plans have been deleted"
+        in result.stdout
+    )
 
 def test_model_delete():
     result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "delete"], input=str(model_id))
