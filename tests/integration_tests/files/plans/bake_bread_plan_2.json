@@ -1,0 +1,22 @@
+{
+  "name": "banana",
+  "start_time": "2023-07-07T00:00:00+00:00",
+  "end_time": "2023-07-09T00:00:00+00:00",
+  "id": 14,
+  "model_id": 32,
+  "sim_id": 13,
+  "activities": [
+    {
+      "type": "BakeBananaBread",
+      "start_time": "2023-07-07T13:12:00+00:00",
+      "parameters": {
+        "tbSugar": 1,
+        "glutenFree": true
+      },
+      "name": "BakeBananaBread",
+      "tags": [],
+      "metadata": {},
+      "id": 7
+    }
+  ]
+}

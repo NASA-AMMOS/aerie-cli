@@ -47,11 +47,11 @@ version = "0.0.1"
 model_id = 0
 
 # Plan Variables
-plan_json = os.path.join(test_dir, "files/plans/empty-2day-plan.json")
-dup_plan_name = os.path.join(test_dir, "files/plans/empty-2day-plan-v2.json")
+plan_json = os.path.join(test_dir, "files/plans/bake_bread_plan.json")
+dup_plan_name = os.path.join(test_dir, "files/plans/bake_bread_plan_2.json")
 plan_id = 0
-args_init = os.path.join(test_dir, "files/plans/args1.json")
-args_update = os.path.join(test_dir, "files/plans/args2.json")
+args_init = os.path.join(test_dir, "files/plans/create_config.json")
+args_update = os.path.join(test_dir, "files/plans/update_config.json")
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
@@ -114,6 +114,16 @@ def test_model_list():
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
     assert "Current Mission Models" in result.stdout
+
+def test_plan_clean():
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
+    assert (
+        f"All activity plans have been deleted"
+        in result.stdout
+    )
 
 def test_plan_upload():
     # Upload mission model for setup
@@ -219,17 +229,6 @@ def test_plan_delete():
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
     assert f"ID: {plan_id} has been removed." in result.stdout
-
-
-def test_plan_clean():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
-    assert (
-        f"All activity plans have been deleted"
-        in result.stdout
-    )
 
 def test_model_delete():
     result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "delete"], input=str(model_id))
