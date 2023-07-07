@@ -9,9 +9,19 @@ on:
       - v*
   workflow_dispatch:
 
+env:
+  AERIE_USERNAME: "${{secrets.AERIE_USERNAME}}"
+  AERIE_PASSWORD: "${{secrets.AERIE_PASSWORD}}"
+  HASURA_GRAPHQL_ADMIN_SECRET: "${{secrets.HASURA_GRAPHQL_ADMIN_SECRET}}"
+  HASURA_GRAPHQL_JWT_SECRET: "${{secrets.HASURA_GRAPHQL_JWT_SECRET}}"
+  POSTGRES_USER: "${{secrets.POSTGRES_USER}}"
+  POSTGRES_PASSWORD: "${{secrets.POSTGRES_PASSWORD}}"
+
 jobs:
   unit-test:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
+    environment: integration-test-workflow
     strategy:
       matrix:
         python-version: [ "3.10", "3.11" ]
@@ -26,7 +36,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install .
+      - name: Set up aerie instance
+        run: |
+          docker compose -f docker-compose-test.yml up -d
+          docker images
+          docker ps -a
+      - name: Sleep for 60 Seconds
+        run: sleep 60s
+        shell: bash
       - name: Test with pytest
         run: |
           cd tests
           pytest unit_tests
+      - name: Run integration tests
+        run: |
+          cd tests
+          pytest integration_tests
+      - name: Print service logs
+        if: always()
+        run: docker compose -f docker-compose-test.yml logs -t
+      - name: Stop services
+        if: always()
+        run: |
+          docker ps -a
+          docker compose -f docker-compose-test.yml down
+          docker ps -a
+      - name: Prune volumes
+        if: always()
+        run: docker volume prune --force
