@@ -1732,7 +1732,7 @@ class AerieClient:
         )
         return resp
         
-    def delete_directive_metadata_schema(self, key) -> list:
+    def delete_directive_metadata_schema(self, key: str) -> list:
         """Delete metadata schemas
 
         Returns:
@@ -1752,7 +1752,13 @@ class AerieClient:
         )
         return resp["key"]
 
-    def get_activity_directive_preset(self, activity_id, plan_id):
+    def get_activity_directive_preset(self, activity_id: int, plan_id: int) -> dict:
+        """Get the preset applied on a activity directive
+
+        Returns:
+            dict: an object representing the activity directive.
+                dict["applied_preset"] == None if there is no preset applied to the activity
+        """
         query = """
         query MyQuery($id: Int!, $plan_id: Int!) {
             activity_directive_by_pk(id: $id, plan_id: $plan_id) {
@@ -1772,7 +1778,12 @@ class AerieClient:
         )
         return resp
 
-    def apply_activity_directive_preset(self, activity_id, plan_id, preset_id):
+    def apply_activity_directive_preset(self, activity_id, plan_id, preset_id) -> int:
+        """Apply the a preset to an activity directive
+
+        Returns:
+            int: the ID of the applied preset
+        """
         mutation = """
         mutation MyMutation($_activity_id: Int!, $_plan_id: Int!, $_preset_id: Int!) {
             apply_preset_to_activity(args: {_activity_id: $_activity_id, _plan_id: $_plan_id, _preset_id: $_preset_id}) {
@@ -1786,9 +1797,14 @@ class AerieClient:
             _plan_id=plan_id,
             _preset_id=preset_id
         )
-        return resp
+        return resp["id"]
 
-    def delete_activity_directive_preset(self, activity_id, plan_id):
+    def delete_activity_directive_preset(self, activity_id, plan_id) -> dict:
+        """Remove a preset from an activity directive
+
+        Returns:
+            dict: an object representing the preset that was deleted
+        """
         mutation = """
         mutation MyMutation($_activity_id: Int!, $_plan_id: Int!) {
             delete_preset_to_directive(where: {activity_id: {_eq: $_activity_id}, _and: {plan_id: {_eq: $_plan_id}}}) {
