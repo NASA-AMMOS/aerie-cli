@@ -37,7 +37,7 @@ session = AerieHostSession.session_helper(
 
 client = AerieClient(session)
 
-@pytest.fixture()
+@pytest.fixture(scope="session", autouse=True)
 def options(pytestconfig) -> PytestOptions:
     PytestOptions.generate = pytestconfig.getoption('--g')
  
