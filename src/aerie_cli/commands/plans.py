@@ -315,3 +315,48 @@ def clean():
 
     typer.echo(f"All activity plans have been deleted")
 
+
+@app.command()
+def subset(
+    plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to subset from", prompt=True),
+    name: str = typer.Option(..., "--name", "-n", help="Name of the child plan", prompt=True),
+    start_time: str = typer.Option(..., "--start", "-s", help="Start time of child plan (YYYY-DDDT00:00:00.000)", prompt=True),
+    end_time: str = typer.Option(..., "--end", "-e", help="End time of child plan (YYYY-DDDT00:00:00.000)", prompt=True)
+):
+    """Branch off a subset of a plan"""
+    client = CommandContext.get_client()
+
+    # get parent plan info
+    parent_id = plan_id
+    start_time = arrow.get(start_time)
+    end_time = arrow.get(end_time)
+    parent = client.get_activity_plan_subset_by_id(
+        parent_id,
+        start_time,
+        end_time
+    )
+    parent_name = parent.name
+
+    # modify child plan
+    model_id = parent.model_id
+    parent.name = name
+    parent.start_time = start_time
+    parent.end_time = end_time
+
+    # add metadata
+    for a in parent.activities:
+        a.metadata["parent_activity_id"] = a.id
+        a.metadata["parent_plan_id"] = parent_id
+
+    # create child plan
+    parent = ActivityPlanCreate.from_plan_read(parent)
+    child_id = client.create_activity_plan(model_id, parent)
+    child_data = client.get_activity_plan_by_id(child_id)
+
+    # apply presets
+    for activity in child_data.activities:
+        preset = client.get_activity_directive_preset(activity.metadata["parent_activity_id"], parent_id)
+        if preset["applied_preset"]:
+            client.apply_activity_directive_preset(activity.id, child_id, preset["applied_preset"]["preset_id"])
+    
+    typer.echo(f"Created branch of `{parent_name}` (id {parent_id}) with name `{child_data.name}` (id {child_id}).")

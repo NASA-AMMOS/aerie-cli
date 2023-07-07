@@ -20,6 +20,7 @@ from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
 from .schemas.client import ResourceType
 from .utils.serialization import postgres_duration_to_microseconds
+from .utils.serialization import timedelta_to_postgres_interval
 from .aerie_host import AerieHostSession
 
 
@@ -76,6 +77,64 @@ class AerieClient:
         resp = self.host_session.post_to_graphql(query, plan_id=plan_id)
         api_plan = ApiActivityPlanRead.from_dict(resp)
         plan = ActivityPlanRead.from_api_read(api_plan)
+        return self.__expand_activity_arguments(plan, full_args)
+
+    def get_activity_plan_subset_by_id(
+        self, plan_id: int,
+        start_time: arrow.Arrow, 
+        end_time: arrow.Arrow,
+        full_args: str = None) -> ActivityPlanRead:
+        """Download a subset of an activity plan from Aerie
+
+        Args:
+            plan_id (int): ID of the plan in Aerie
+            full_args (str): comma separated list of activity types for which to
+            get full arguments, otherwise only modified arguments are returned.
+            Set to "true" to get full arguments for all activity types.
+            Disabled if missing, None, "false", or "".
+            start_time (arrow.Arrow)
+            end_time (arrow.Arrow)
+
+        Returns:
+            ActivityPlanRead: the activity plan subset
+        """
+
+        parent = self.get_activity_plan_by_id(plan_id)
+        parent_start = parent.start_time
+        start_offset = timedelta_to_postgres_interval(start_time - parent_start)
+        end_offset = timedelta_to_postgres_interval(end_time - parent_start)
+
+        query = """
+        query get_plans ($start_offset: interval!, $end_offset: interval!, $plan_id: Int!) {
+                plan_by_pk(id: $plan_id) {
+                    id
+                    model_id
+                    name
+                    start_time
+                    duration
+                    simulations{
+                        id
+                    }
+                    activity_directives(where: {start_offset: {_gte: $start_offset, _lt: $end_offset}}, order_by: { start_offset: asc }) {
+                        id
+                        name
+                        type
+                        start_offset
+                        arguments
+                        metadata
+                        tags
+                    }
+                }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            query,
+            plan_id=plan_id,
+            start_offset=start_offset,
+            end_offset=end_offset
+        )
+        plan = ApiActivityPlanRead.from_dict(resp)
+        plan = ActivityPlanRead.from_api_read(plan)
         return self.__expand_activity_arguments(plan, full_args)
 
     def list_all_activity_plans(self) -> List[ActivityPlanRead]:
@@ -1677,3 +1736,56 @@ class AerieClient:
             key=key
         )
         return resp["key"]
+
+    def get_activity_directive_preset(self, activity_id, plan_id):
+        query = """
+        query MyQuery($id: Int!, $plan_id: Int!) {
+            activity_directive_by_pk(id: $id, plan_id: $plan_id) {
+                applied_preset {
+                presets_applied {
+                    name
+                }
+                preset_id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            query,
+            id=activity_id,
+            plan_id=plan_id
+        )
+        return resp
+
+    def apply_activity_directive_preset(self, activity_id, plan_id, preset_id):
+        mutation = """
+        mutation MyMutation($_activity_id: Int!, $_plan_id: Int!, $_preset_id: Int!) {
+            apply_preset_to_activity(args: {_activity_id: $_activity_id, _plan_id: $_plan_id, _preset_id: $_preset_id}) {
+                id
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            mutation,
+            _activity_id=activity_id,
+            _plan_id=plan_id,
+            _preset_id=preset_id
+        )
+        return resp
+
+    def delete_activity_directive_preset(self, activity_id, plan_id):
+        mutation = """
+        mutation MyMutation($_activity_id: Int!, $_plan_id: Int!) {
+            delete_preset_to_directive(where: {activity_id: {_eq: $_activity_id}, _and: {plan_id: {_eq: $_plan_id}}}) {
+                returning {
+                    preset_id
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            mutation,
+            _activity_id=activity_id,
+            _plan_id=plan_id
+        )
+        return resp
