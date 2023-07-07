@@ -81,19 +81,28 @@ class MockAerieHostSession(AerieHostSession):
     def generate_mock_response(self, mock_query_fn, query, **kwargs):
         request = {"query": query, "variables": kwargs}
         with open(mock_query_fn, 'w') as fid:
+            # Get the real response from active client
             response = client.host_session.session.post(
                 client.host_session.graphql_url,
                 json=request,
             )
+
+            # Check for errors in real post
             assert response.ok, f"Query failed"
             response_json = response.json()
             assert "errors" not in response_json, f"Errors occured in query: {response_json['errors']}"
+            
+            # Get contents of real data for mock data
             data: dict = response_json["data"]
-            assert len(data.keys()) == 1, "Unhandled data type returned"
-            mock_data = None
-            for key in data.keys():
-                mock_data = data[f"{key}"]
+
+            # If post was successful,
+            # the response will contain the data under only one key
+            # with the GraphQL query's name.
+            assert len(data.values()) == 1, "Unhandled data type returned"
+            mock_data = list(data.values())[0]
             assert mock_data is not None, "No data returned"
+
+            # format as a mock response
             new_mock_response = {
                 "request": request,
                 "response": mock_data
