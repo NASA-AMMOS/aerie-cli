@@ -321,10 +321,22 @@ def clean():
 def subset(
     plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to subset from", prompt=True),
     name: str = typer.Option(..., "--name", "-n", help="Name of the child plan", prompt=True),
-    start_time: str = typer.Option(..., "--start", "-s", help="Start time of child plan (YYYY-DDDT00:00:00.000)", prompt=True),
-    end_time: str = typer.Option(..., "--end", "-e", help="End time of child plan (YYYY-DDDT00:00:00.000)", prompt=True)
+    start_time: str = typer.Option(..., "--start", "-s", help="Start time of child plan", prompt=True),
+    end_time: str = typer.Option(..., "--end", "-e", help="End time of child plan", prompt=True)
 ):
-    """Branch off a subset of a plan"""
+    """
+    Branch off a part of a plan, given start and end times.
+    
+    Times are given in the format YYYY-DDDTHH:mm:ss.SSS and must be within the start and 
+    end times of the parent plan.
+
+    This command will also add `parent_activity_id` and `parent_plan_id` metadata to the 
+    child activity directives so they can reference back to the parent plan. To view these in the
+    UI, please add the following directive metadata schema to the Aerie instance.
+
+    parent_activity_id: INTEGER
+    parent_plan_id: INTEGER
+    """
     client = CommandContext.get_client()
 
     # get parent plan info
@@ -368,7 +380,18 @@ def merge(
     child_id: int = typer.Option(..., "--child-id", "-c", help="Plan ID of child", prompt=True),
     parent_id: int = typer.Option(..., "--parent-id", "-p", help="Plan ID of parent to merge into", prompt=True),
 ):  
-    """Merge a child plan into a parent plan"""
+    """
+    Merge a child plan into a parent plan. Supports adding, updating, and deleting 
+    activities.
+
+    This command best works with a child created from the `subset` command merging back
+    into a parent, since the child contains metadata about which parent activity it
+    came from. All activities in the child plan must fall within the time range of
+    the parent plan.
+
+    This command also has limited conflict checking by seeing if there were any changes
+    made to the parent after the child branch was created.
+    """
     client = CommandContext.get_client()
 
     # get and store data
