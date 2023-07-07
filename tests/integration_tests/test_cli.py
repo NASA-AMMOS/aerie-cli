@@ -44,13 +44,14 @@ config_json = os.path.join(test_dir, "files/configuration/localhost_config.json"
 model_jar = os.path.join(test_dir, "files/models/banananation.jar")
 model_name = "banananation"
 version = "0.0.1"
+model_id = 0
 
 # Plan Variables
-plan_json = "files/empty-2day-plan.json"
-dup_plan_name = "empty-2day-plan-v2.json"
+plan_json = os.path.join(test_dir, "files/plans/empty-2day-plan.json")
+dup_plan_name = os.path.join(test_dir, "files/plans/empty-2day-plan-v2.json")
 plan_id = 0
-args_init = "files/args1.json"
-args_update = "files/args2.json"
+args_init = os.path.join(test_dir, "files/plans/args1.json")
+args_update = os.path.join(test_dir, "files/plans/args2.json")
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
@@ -130,17 +131,19 @@ def test_plan_upload():
         ["--hasura-admin-secret", "aerie", "plans", "upload", "--time-tag"],
         input=plan_json + "\n" + str(model_id) + "\n",
     )
-
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
+    
     # Get uploaded plan id
     resp = client.get_all_activity_plans()
     latest_plan = resp[-1]
     global plan_id
     plan_id = latest_plan.id
 
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
-    assert f"Created plan at: {client.ui_path()}/plans/" in result.stdout
+    assert f"Created plan ID: {plan_id}" in result.stdout
+
+
 
 
 def test_plan_duplicate():
@@ -152,7 +155,13 @@ def test_plan_duplicate():
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
-    assert f"Duplicated activity plan at: {client.ui_path()}/plans/" in result.stdout
+
+    # Get duplicated plan id
+    resp = client.get_all_activity_plans()
+    latest_plan = resp[-1]
+    duplicated_plan_id = latest_plan.id
+
+    assert f"Duplicate activity plan created with ID: {duplicated_plan_id}" in result.stdout
 
 
 def test_plan_list():
@@ -173,7 +182,7 @@ def test_plan_simulate():
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
-    assert f"Simulating activity plan at: {client.ui_path()}/plans/{plan_id}"in result.stdout
+    assert f"Simulation completed" in result.stdout
 
 
 def test_plan_create_config():
