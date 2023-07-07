@@ -79,16 +79,29 @@ class MockAerieHostSession(AerieHostSession):
         self.mock_query_name = mock_query_name
 
     def generate_mock_response(self, mock_query_fn, query, **kwargs):
+        request = {"query": query, "variables": kwargs}
         with open(mock_query_fn, 'w') as fid:
             response = client.host_session.session.post(
                 client.host_session.graphql_url,
-                json={"query": query, "variables": kwargs},
+                json=request,
             )
             assert response.ok, f"Query failed"
             response_json = response.json()
             assert "errors" not in response_json, f"Errors occured in query: {response_json['errors']}"
-            new_mock_response = json.dumps(response_json, indent=2)
-            fid.write(new_mock_response)
+            data: dict = response_json["data"]
+            assert len(data.keys()) == 1, "Unhandled data type returned"
+            mock_data = None
+            for key in data.keys():
+                mock_data = data[f"{key}"]
+            assert mock_data is not None, "No data returned"
+            new_mock_response = {
+                "request": request,
+                "response": mock_data
+            }
+            fid.write("[\n" + 
+                      json.dumps(new_mock_response, indent=2) + 
+                      "\n]"
+                      )
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
