@@ -2,6 +2,8 @@
 import os
 import sys
 
+import pytest
+
 src_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 sys.path.insert(0, src_path)
 
@@ -10,6 +12,8 @@ from typer.testing import CliRunner
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession, AuthMethod
 from aerie_cli.__main__ import app
+from aerie_cli.commands.configurations import delete_all_persistent_files, upload_configurations, deactivate_session, activate_session
+from aerie_cli.utils.sessions import get_active_session_client
 
 runner = CliRunner(mix_stderr = False)
 
@@ -33,6 +37,9 @@ client = AerieClient(session)
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 
+# Configuration Variables
+config_json = os.path.join(test_dir, "files/configuration/localhost_config.json")
+
 # Model Variables
 model_jar = os.path.join(test_dir, "files/models/banananation.jar")
 model_name = "banananation"
@@ -45,6 +52,20 @@ plan_id = 0
 args_init = "files/args1.json"
 args_update = "files/args2.json"
 
+@pytest.fixture(scope="session", autouse=True)
+def set_up_environment(request):
+    # Resets the configurations and adds localhost
+    deactivate_session()
+    delete_all_persistent_files()
+    upload_configurations(config_json)
+    activate_session("localhost")
+    client = None
+    try:
+        client = get_active_session_client()
+    except:
+        raise RuntimeError("Configuration is not active!")
+    assert client.host_session.gateway_url == GATEWAY_URL,\
+        "Aerie instances are mismatched. Ensure test URLs are the same."
 
 def test_model_upload():
     result = runner.invoke(
