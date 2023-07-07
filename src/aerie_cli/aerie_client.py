@@ -337,6 +337,21 @@ class AerieClient:
         )
         return resp["id"]
 
+    def delete_activity(self, activity_id: int, plan_id: int):
+        query = """
+        mutation DeleteActivityDirective($id: Int!, $plan_id: Int!) {
+            delete_activity_directive_by_pk(id: $id, plan_id: $plan_id) {
+                name
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            query,
+            id=activity_id,
+            plan_id=plan_id
+        )
+        return resp
+
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
@@ -1787,5 +1802,40 @@ class AerieClient:
             mutation,
             _activity_id=activity_id,
             _plan_id=plan_id
+        )
+        return resp
+
+    # TODO: the two functions below are very specific to the plans merge command
+    # do we still want them here or is there another way to integrate them into the cli?
+
+    def get_plan_created_date(self, plan_id: int):
+        # for some reason, plan doesnt have a `created_at` field on local, but its there 
+        # in the dev venue. i need to look at the activity `created_at` for now.....
+        plan_query = """
+        query MyQuery($plan_id: Int!) {
+            activity_directive(where: {plan_id: {_eq: $plan_id}}) {
+                created_at
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            plan_query,
+            plan_id=plan_id,
+        )
+        return arrow.get(resp[0]["created_at"]) if len(resp) > 0 else None
+
+    def get_plan_recently_updated_activities(self, plan_id: int, time: arrow.Arrow):
+        activity_query = """
+        query GetRecentlyUpdatedActivities($plan_id: Int!, $time: timestamptz!) {
+            activity_directive(where: {_and: {plan_id: {_eq: $plan_id}}, last_modified_at: {_gt: $time}}) {
+                id
+                name
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(
+            activity_query,
+            plan_id=plan_id,
+            time=str(time)
         )
         return resp

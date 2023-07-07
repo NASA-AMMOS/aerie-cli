@@ -353,7 +353,6 @@ def subset(
     parent = ActivityPlanCreate.from_plan_read(parent)
     child_id = client.create_activity_plan(model_id, parent)
     child_data = client.get_activity_plan_by_id(child_id)
-    print(child_data)
 
     # apply presets
     for activity in child_data.activities:
@@ -379,15 +378,36 @@ def merge(
     child_activity_ids = [a.metadata["parent_activity_id"] for a in child_data.activities if "parent_activity_id" in a.metadata]
     parent_activity_ids = [a.id for a in parent_data.activities]
 
+    child_creation_time = client.get_plan_created_date(child_id)
+
     # check for possible conflicts
+    if child_creation_time:
+        conflicts = client.get_plan_recently_updated_activities(parent_id, child_creation_time)
+        if len(conflicts) > 0:
+            typer.echo("Warning: potential conflicts detected in the following activities")
+            for conflict in conflicts:
+                typer.echo(f"Activity name: {conflict['name']} (id {conflict['id']})")
+
+            typer.echo("If the merge continues, activities in the parent plan will be overwritten, and new activities in the parent plan will not be deleted.")
+            proceed = typer.confirm("Are you sure you would like to continue merging?")
+            if not proceed:
+                typer.echo("Aborting merge")
+                raise typer.Abort()
+            typer.echo("Continuing merge")
+    else:
+        typer.echo("Warning: the child has no activities, which will delete all activities in the parent for this time frame.")
+        proceed = typer.confirm("Are you sure you would like to continue merging?")
+        if not proceed:
+            typer.echo("Aborting merge")
+            raise typer.Abort()
+        typer.echo("Continuing merge")
 
     # add/update activities in parent plan
     for activity in child_data.activities:
 
         # child activity was not branched from parent
-        if ("parent_plan_id" not in activity.metadata or
-            ("parent_plan_id" in activity.metadata and 
-            activity.metadata["parent_plan_id"] != parent_id)):
+        if ("parent_plan_id" in activity.metadata and 
+            activity.metadata["parent_plan_id"] != parent_id):
                 typer.echo("Warning: the plan you are trying to merge into does not match the plan that this child was pulled from.")
                 proceed = typer.confirm("Are you sure you would like to continue merging?")
                 if not proceed:
@@ -444,8 +464,7 @@ def merge(
         # delete deleted activities from parent
         deleted_activities = set(parent_activity_ids) - set(child_activity_ids)
         for activity_id in deleted_activities:
-            client.delete_activity(activity_id, parent_id)
-            typer.echo(f"Deleted activity (id {activity_id}) in parent.")
+            activity_name = client.delete_activity(activity_id, parent_id)
+            typer.echo(f"Deleted activity {activity_name} (id {activity_id}) in parent.")
         
-    # hooray
     typer.echo(f"Finished merging plan {child_data.name} (id {child_id}) into {parent_data.name} (id {parent_id}).")
