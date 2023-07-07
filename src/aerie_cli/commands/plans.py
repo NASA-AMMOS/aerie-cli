@@ -6,6 +6,7 @@ import pandas as pd
 import typer
 from rich.console import Console
 from rich.table import Table
+from deepdiff import DeepDiff
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
@@ -315,3 +316,178 @@ def clean():
 
     typer.echo(f"All activity plans have been deleted")
 
+
+@app.command()
+def subset(
+    plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to subset from", prompt=True),
+    name: str = typer.Option(..., "--name", "-n", help="Name of the child plan", prompt=True),
+    start_time: str = typer.Option(..., "--start", "-s", help="Start time of child plan", prompt=True),
+    end_time: str = typer.Option(..., "--end", "-e", help="End time of child plan", prompt=True)
+):
+    """
+    Branch off a part of a plan, given start and end times.
+    
+    Times are given in the format YYYY-DDDTHH:mm:ss.SSS and must be within the start and 
+    end times of the parent plan.
+
+    This command will also add `parent_activity_id` and `parent_plan_id` metadata to the 
+    child activity directives so they can reference back to the parent plan. To view these in the
+    UI, please add the following directive metadata schema to the Aerie instance.
+
+    parent_activity_id: INTEGER
+    parent_plan_id: INTEGER
+    """
+    client = CommandContext.get_client()
+
+    # get parent plan info
+    parent_id = plan_id
+    start_time = arrow.get(start_time)
+    end_time = arrow.get(end_time)
+    parent = client.get_activity_plan_subset_by_id(
+        parent_id,
+        start_time,
+        end_time
+    )
+    parent_name = parent.name
+
+    # modify child plan
+    model_id = parent.model_id
+    parent.name = name
+    parent.start_time = start_time
+    parent.end_time = end_time
+
+    # add metadata
+    for a in parent.activities:
+        a.metadata["parent_activity_id"] = a.id
+        a.metadata["parent_plan_id"] = parent_id
+
+    # create child plan
+    parent = ActivityPlanCreate.from_plan_read(parent)
+    child_id = client.create_activity_plan(model_id, parent)
+    child_data = client.get_activity_plan_by_id(child_id)
+
+    # apply presets
+    for activity in child_data.activities:
+        preset = client.get_activity_directive_preset(activity.metadata["parent_activity_id"], parent_id)
+        if preset["applied_preset"]:
+            client.apply_activity_directive_preset(activity.id, child_id, preset["applied_preset"]["preset_id"])
+    
+    typer.echo(f"Created branch of `{parent_name}` (id {parent_id}) with name `{child_data.name}` (id {child_id}).")
+
+
+@app.command()
+def merge(
+    child_id: int = typer.Option(..., "--child-id", "-c", help="Plan ID of child", prompt=True),
+    parent_id: int = typer.Option(..., "--parent-id", "-p", help="Plan ID of parent to merge into", prompt=True),
+):  
+    """
+    Merge a child plan into a parent plan. Supports adding, updating, and deleting 
+    activities.
+
+    This command best works with a child created from the `subset` command merging back
+    into a parent, since the child contains metadata about which parent activity it
+    came from. All activities in the child plan must fall within the time range of
+    the parent plan.
+
+    This command also has limited conflict checking by seeing if there were any changes
+    made to the parent after the child branch was created.
+    """
+    client = CommandContext.get_client()
+
+    # get and store data
+    child_data = client.get_activity_plan_by_id(child_id)
+    parent_data = client.get_activity_plan_subset_by_id(parent_id, child_data.start_time, child_data.end_time)
+
+    child_activity_ids = [a.metadata["parent_activity_id"] for a in child_data.activities if "parent_activity_id" in a.metadata]
+    parent_activity_ids = [a.id for a in parent_data.activities]
+
+    child_creation_time = client.get_plan_created_date(child_id)
+
+    # check for possible conflicts
+    if child_creation_time:
+        conflicts = client.get_plan_recently_updated_activities(parent_id, child_creation_time)
+        if len(conflicts) > 0:
+            typer.echo("Warning: potential conflicts detected in the following activities")
+            for conflict in conflicts:
+                typer.echo(f"Activity name: {conflict['name']} (id {conflict['id']})")
+
+            typer.echo("If the merge continues, activities in the parent plan will be overwritten, and new activities in the parent plan will not be deleted.")
+            proceed = typer.confirm("Are you sure you would like to continue merging?")
+            if not proceed:
+                typer.echo("Aborting merge")
+                raise typer.Abort()
+            typer.echo("Continuing merge")
+    else:
+        typer.echo("Warning: the child has no activities, which will delete all activities in the parent for this time frame.")
+        proceed = typer.confirm("Are you sure you would like to continue merging?")
+        if not proceed:
+            typer.echo("Aborting merge")
+            raise typer.Abort()
+        typer.echo("Continuing merge")
+
+    # add/update activities in parent plan
+    for activity in child_data.activities:
+
+        # child activity was not branched from parent
+        if ("parent_plan_id" in activity.metadata and 
+            activity.metadata["parent_plan_id"] != parent_id):
+                typer.echo("Warning: the plan you are trying to merge into does not match the plan that this child was pulled from.")
+                proceed = typer.confirm("Are you sure you would like to continue merging?")
+                if not proceed:
+                    typer.echo("Aborting merge")
+                    raise typer.Abort()
+                typer.echo("Continuing merge")
+
+        # add new child activity
+        if "parent_activity_id" not in activity.metadata:
+            activity_id = client.create_activity(activity, parent_id, parent_data.start_time)
+            activity.metadata["parent_activity_id"] = activity_id
+            activity.metadata["parent_plan_id"] = parent_id
+            client.update_activity(activity.id, activity, child_id, child_data.start_time)
+            typer.echo(f"Added activity {activity.name} (id {activity.id} in child) to parent.")
+        
+        # or, update existing child activity
+        else:
+            # grab the metadata
+            parent_activity_id = activity.metadata.pop("parent_activity_id")
+            parent_plan_id = activity.metadata.pop("parent_plan_id")
+
+            # find the corresponding parent activity
+            if parent_activity_id in parent_activity_ids:
+                parent_activity = [a for a in parent_data.activities if a.id == parent_activity_id][0]
+                difference = DeepDiff(parent_activity, activity)
+
+                # only update the activity if there are any changed values
+                if ("values_changed" in difference and 
+                    (len(difference["values_changed"]) > 1 or len(difference) > 1)): # the activity IDs will be different, so we wanna detect any diff besides that
+                    client.update_activity(parent_activity_id, activity, parent_data.id, parent_data.start_time)
+                    typer.echo(f"Updated activity {activity.name} (id {activity.id}) in parent plan.")
+                    typer.echo(f"Difference: \n{difference.pretty()}")
+
+                # restore metadata in child activity
+                activity.metadata["parent_activity_id"] = parent_activity_id 
+                activity.metadata["parent_plan_id"] = parent_plan_id
+
+            # case where child activity cannot find its parent activity in the plan anymore
+            else:
+                typer.echo(f"Warning: activity (id {parent_activity_id}) was deleted in parent after branching. Adding activity back to parent.")
+                activity_id = client.create_activity(activity, parent_id, parent_data.start_time)
+                activity.metadata["parent_activity_id"] = activity_id
+                activity.metadata["parent_plan_id"] = parent_id
+                client.update_activity(activity.id, activity, child_id, child_data.start_time)
+                typer.echo(f"Added activity {activity.name} (id {activity.id} in child) to parent.")
+        
+        # apply preset, if there are any
+        preset = client.get_activity_directive_preset(activity.id, child_id)
+        if preset["applied_preset"]:
+            client.apply_activity_directive_preset(activity.metadata["parent_activity_id"], parent_id, preset["applied_preset"]["preset_id"])
+        else:
+            client.delete_activity_directive_preset(activity.metadata["parent_activity_id"], parent_id)
+
+        # delete deleted activities from parent
+        deleted_activities = set(parent_activity_ids) - set(child_activity_ids)
+        for activity_id in deleted_activities:
+            activity_name = client.delete_activity(activity_id, parent_id)
+            typer.echo(f"Deleted activity {activity_name} (id {activity_id}) in parent.")
+        
+    typer.echo(f"Finished merging plan {child_data.name} (id {child_id}) into {parent_data.name} (id {parent_id}).")
