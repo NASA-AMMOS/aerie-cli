@@ -78,22 +78,32 @@ class MockAerieHostSession(AerieHostSession):
     def __init__(self, mock_query_name: str) -> None:
         self.mock_query_name = mock_query_name
 
+    def generate_mock_response(self, mock_query_fn, query, **kwargs):
+        with open(mock_query_fn, 'w') as fid:
+            response = client.host_session.session.post(
+                client.host_session.graphql_url,
+                json={"query": query, "variables": kwargs},
+            )
+            assert response.ok, f"Query failed"
+            response_json = response.json()
+            assert "errors" not in response_json, f"Errors occured in query: {response_json['errors']}"
+            new_mock_response = json.dumps(response_json, indent=2)
+            fid.write(new_mock_response)
+
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
             f"{self.mock_query_name}.json")
         
         # Generate mock responses if the user requested it
         if PytestOptions.generate:
-            mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
-                f"{self.mock_query_name}.json")
-            with open(mock_query_fn, 'w') as fid:
-                response = client.host_session.post_to_graphql(query, **kwargs)
-                fid.write(json.dumps(response, indent=2))
+            self.generate_mock_response(mock_query_fn, query, **kwargs)
 
         # Read mock responses
         with open(mock_query_fn, 'r') as fid:
             self.mock_data: List = json.load(fid)
 
+        assert len(self.mock_data) > 0, "Mock response is empty"
+        
         # Get the next transaction being mocked
         mock_transaction = self.mock_data.pop(0)
 
