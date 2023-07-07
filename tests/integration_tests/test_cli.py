@@ -77,8 +77,8 @@ def test_model_clean():
         in result.stdout
     )
 
-def test_model_upload():
-    result = runner.invoke(
+def cli_upload_banana_model():
+    return runner.invoke(
         app,
         ["--hasura-admin-secret", "aerie", "models", "upload", "--time-tag-version"],
         input=model_jar 
@@ -89,6 +89,9 @@ def test_model_upload():
         + "\n",
         catch_exceptions=False
     )
+
+def test_model_upload():
+    result = cli_upload_banana_model()
 
     # Get model_id of uploaded mission model
     resp = client.get_mission_models()
@@ -113,18 +116,8 @@ def test_model_list():
 
 def test_plan_upload():
     # Upload mission model for setup
-    runner.invoke(
-        app,
-        ["--hasura-admin-secret", "aerie", "plans", "upload", "--time-tag-version"],
-        input=model_jar
-        + "\n"
-        + model_name
-        + "\n"
-        + version
-        + "\n"
-       ,
-    )
-
+    result = cli_upload_banana_model()
+    
     # Get model_id of uploaded mission model
     resp = client.get_mission_models()
     latest_model = resp[-1]
