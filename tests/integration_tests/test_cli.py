@@ -67,6 +67,16 @@ def set_up_environment(request):
     assert client.host_session.gateway_url == GATEWAY_URL,\
         "Aerie instances are mismatched. Ensure test URLs are the same."
 
+def test_model_clean():
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "clean"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
+    assert (
+        f"All mission models have been deleted"
+        in result.stdout
+    )
+
 def test_model_upload():
     result = runner.invoke(
         app,
@@ -87,40 +97,25 @@ def test_model_upload():
     model_id = latest_model.id
 
     assert result.exit_code == 0, \
-        f"\nOutput was: \n\n{result.stdout}"\
-        f"\nError was: \n\n {result.stderr}"
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert (
         f"Created new mission model: {model_name} with Model ID: {model_id}"
         in result.stdout
     )
 
-
-def test_model_delete():
-    result = runner.invoke(app, ["delete"], input=str(model_id))
-    assert result.exit_code == 0
-    assert f"ID: {model_id} has been removed" in result.stdout
-
-
 def test_model_list():
-    result = runner.invoke(app, ["list"])
-    assert result.exit_code == 0
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "list"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert "Current Mission Models" in result.stdout
-
-
-def test_model_clean():
-    result = runner.invoke(app, ["clean"])
-    assert result.exit_code == 0
-    assert (
-        f"All mission models at {client.ui_models_path()} have been deleted"
-        in result.stdout
-    )
-
 
 def test_plan_upload():
     # Upload mission model for setup
     runner.invoke(
         app,
-        ["upload", "--time-tag-version"],
+        ["--hasura-admin-secret", "aerie", "plans", "upload", "--time-tag-version"],
         input=model_jar
         + "\n"
         + model_name
@@ -139,7 +134,7 @@ def test_plan_upload():
     # Test plan upload
     result = runner.invoke(
         app,
-        ["upload", "--time-tag"],
+        ["--hasura-admin-secret", "aerie", "plans", "upload", "--time-tag"],
         input=plan_json + "\n" + str(model_id) + "\n",
     )
 
@@ -149,44 +144,54 @@ def test_plan_upload():
     global plan_id
     plan_id = latest_plan.id
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"Created plan at: {client.ui_path()}/plans/" in result.stdout
 
 
 def test_plan_duplicate():
     result = runner.invoke(
         app,
-        ["duplicate"],
+        ["--hasura-admin-secret", "aerie", "plans", "duplicate"],
         input=str(plan_id) + "\n" + dup_plan_name + "\n",
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"Duplicated activity plan at: {client.ui_path()}/plans/" in result.stdout
 
 
 def test_plan_list():
-    result = runner.invoke(app, ["list"])
-    assert result.exit_code == 0
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "list"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert "Current Activity Plans" in result.stdout
 
 
 def test_plan_simulate():
     result = runner.invoke(
         app,
-        ["simulate", "--output", "temp.json"],
+        ["--hasura-admin-secret", "aerie", "plans", "simulate", "--output", "temp.json"],
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"Simulating activity plan at: {client.ui_path()}/plans/{plan_id}"in result.stdout
 
 
 def test_plan_create_config():
     result = runner.invoke(
         app,
-        ["create-config"],
+        ["--hasura-admin-secret", "aerie", "plans", "create-config"],
         input=str(plan_id) + "\n" + args_init + "\n",
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "foo: arg1" in result.stdout
     assert "num: 5" in result.stdout
@@ -195,25 +200,38 @@ def test_plan_create_config():
 def test_plan_update_config():
     result = runner.invoke(
         app,
-        ["update-config"],
+        ["--hasura-admin-secret", "aerie", "plans", "update-config"],
         input=str(plan_id) + "\n" + args_update + "\n",
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "foo: arg2" in result.stdout
     assert "num: 5" in result.stdout
 
 
 def test_plan_delete():
-    result = runner.invoke(app, ["delete"], input=str(plan_id) + "\n")
-    assert result.exit_code == 0
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "delete"], input=str(plan_id) + "\n")
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert f"ID: {plan_id} has been removed." in result.stdout
 
 
 def test_plan_clean():
-    result = runner.invoke(app, ["clean"])
-    assert result.exit_code == 0
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
     assert (
         f"All activity plans have been deleted"
         in result.stdout
     )
+
+def test_model_delete():
+    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "delete"], input=str(model_id))
+    assert result.exit_code == 0, \
+    f"\nOutput was: \n\n{result.stdout}"\
+    f"\nError was: \n\n {result.stderr}"
+    assert f"ID: {model_id} has been removed" in result.stdout
