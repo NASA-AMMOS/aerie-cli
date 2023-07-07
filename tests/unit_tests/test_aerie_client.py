@@ -4,19 +4,43 @@ import json
 import re
 
 import arrow
+import pytest
 
 from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHostSession
+from aerie_cli.aerie_host import AerieHostSession, AuthMethod
 from aerie_cli.schemas.client import ActivityCreate
 from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
 from aerie_cli.schemas.client import ResourceType
 
+from pytest_options import PytestOptions
+
 BLANK_LINE_REGEX = r'^\s*$'
 EXPECTED_RESULTS_DIRECTORY = Path(
     __file__).parent.joinpath('files', 'expected_results')
 
+GRAPHQL_URL = "http://localhost:8080/v1/graphql"
+GATEWAY_URL = "http://localhost:9000"
+AUTH_URL = "http://localhost:9000/auth/login"
+AUTH_METHOD = AuthMethod.AERIE_NATIVE
+USERNAME = ""
+PASSWORD = ""
 
+session = AerieHostSession.session_helper(
+    AUTH_METHOD,
+    GRAPHQL_URL,
+    GATEWAY_URL,
+    AUTH_URL,
+    USERNAME,
+    PASSWORD
+)
+
+client = AerieClient(session)
+
+@pytest.fixture()
+def options(pytestconfig) -> PytestOptions:
+    PytestOptions.generate = pytestconfig.getoption('--g')
+ 
 def _preprocess_query(q) -> str:
     lines: List[str] = q.split('\n')
     lines = [ln.strip() for ln in lines if not re.match(BLANK_LINE_REGEX, ln)]
@@ -53,6 +77,7 @@ class MockAerieHostSession(AerieHostSession):
     def __init__(self, mock_query_name: str) -> None:
         mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
             f"{mock_query_name}.json")
+        self.mock_query_name = mock_query_name
         with open(mock_query_fn, 'r') as fid:
             self.mock_data: List = json.load(fid)
 
