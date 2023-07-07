@@ -34,6 +34,7 @@ session = AerieHostSession.session_helper(
     USERNAME,
     PASSWORD
 )
+session.session.headers["x-hasura-admin-secret"] = "aerie"
 
 client = AerieClient(session)
 
@@ -75,13 +76,23 @@ class MockAerieHostSession(AerieHostSession):
         __file__).parent.joinpath('files', 'mock_responses')
 
     def __init__(self, mock_query_name: str) -> None:
-        mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
-            f"{mock_query_name}.json")
         self.mock_query_name = mock_query_name
-        with open(mock_query_fn, 'r') as fid:
-            self.mock_data: List = json.load(fid)
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
+        mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
+            f"{self.mock_query_name}.json")
+        
+        # Generate mock responses if the user requested it
+        if PytestOptions.generate:
+            mock_query_fn = self.MOCK_QUERIES_DIRECTORY.joinpath(
+                f"{self.mock_query_name}.json")
+            with open(mock_query_fn, 'w') as fid:
+                response = client.host_session.post_to_graphql(query, **kwargs)
+                fid.write(json.dumps(response, indent=2))
+
+        # Read mock responses
+        with open(mock_query_fn, 'r') as fid:
+            self.mock_data: List = json.load(fid)
 
         # Get the next transaction being mocked
         mock_transaction = self.mock_data.pop(0)
