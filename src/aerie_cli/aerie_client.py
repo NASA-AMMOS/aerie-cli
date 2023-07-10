@@ -278,6 +278,49 @@ class AerieClient:
         )
         return resp["id"]
 
+    def get_all_activity_presets(self, m_id:int) -> List:
+        get_all_presets_query = """
+        query ($model_id: Int!) {
+            activity_presets (where: {model_id:{_eq:$model_id}}){
+                id
+                model_id
+                name
+                associated_activity_type
+                arguments
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_all_presets_query,
+            model_id=m_id
+        )
+        return resp
+
+    def upload_activity_presets(self, upload_obj):
+        upload_activity_presets_query = """
+        mutation upload_presets($object: [activity_presets_insert_input!]!) {
+            insert_activity_presets(objects: $object, 
+                                    on_conflict: {constraint: activity_presets_model_id_associated_activity_type_name_key, 
+                                                  update_columns: arguments}
+                                    ) {
+                returning {
+                    model_id
+                    id
+                    associated_activity_type
+                    arguments
+                    name
+                }
+            }
+        }"""
+
+        resp = self.host_session.post_to_graphql(
+            upload_activity_presets_query, 
+            object = upload_obj
+        )
+
+        return resp["returning"]
+
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
@@ -1361,30 +1404,65 @@ class AerieClient:
         )
 
         return typescript_dictionary_string
-    
-    def upload_scheduling_goal(self, model_id, name, definition):
-        upload_scheduling_goal_query = """
-        mutation InsertGoal($model_id: Int!, 
-                            $name: String!, 
-                            $definition: String!) {
-            insert_scheduling_goal_one(object: 
-                {
-                model_id: $model_id,
-                name: $name,
-                definition: $definition,
-                }) {
-                    id
-                }
-        }"""
 
+    def get_scheduling_goals_by_specification(self, spec_id):
+        list_all_goals_by_spec_query = """
+        query ($spec: Int!){
+            scheduling_specification_goals(where: {
+                specification_id:{_eq:$spec}
+            }){
+                goal{
+                    id
+                    model_id
+                    name
+                    description
+                    author
+                    last_modified_by
+                    created_date
+                    modified_date
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
+
+        return resp
+
+    def upload_scheduling_goal(self, model_id, name, definition):
+        obj = dict()
+        obj["name"] = name
+        obj["model_id"] = model_id
+        obj["definition"] = definition
+
+        return self.upload_scheduling_goals([obj])
+
+    def upload_scheduling_goals(self, upload_object):
+        """
+        Bulk upload operation for uploading scheduling goals.
+        @param upload_object should be JSON-like with keys name, model_id, definition
+        [
+            {
+                name: str,
+                model_id: int,
+                definition: str
+            },
+            ...
+        ]
+        """
+
+        upload_scheduling_goals_query = """
+        mutation InsertGoals($input:[scheduling_goal_insert_input!]!){
+            insert_scheduling_goal(objects: $input){
+                returning {id}
+            }
+        }"""
+        
         resp = self.host_session.post_to_graphql(
-            upload_scheduling_goal_query, 
-            model_id=model_id, 
-            name=name, 
-            definition=definition
+            upload_scheduling_goals_query,
+            input=upload_object
         )
 
-        return resp["id"]
+        return resp["returning"]
 
     def get_specification_for_plan(self, plan_id):
         get_specification_for_plan_query = """
@@ -1401,46 +1479,57 @@ class AerieClient:
         )
         return resp[0]["id"]
 
-    def add_goal_to_specification(self, specification_id, goal_id, priority):
+    def add_goals_to_specifications(self, upload_object):
+        """
+        Bulk operation to add goals to specification.
+        @param upload_object should be JSON-like with keys goal_id, specification_id
+        [
+            {
+                goal_id: int,
+                specification_id: int
+            },
+            ...
+        ]
+        """
+
         add_goal_to_specification_query = """
-        mutation AddGoalToSpecification($specification_id: Int!,
-                                        $goal_id: Int!,
-                                        $priority: Int!) {
-            insert_scheduling_specification_goals_one(object: {
-                goal_id: $goal_id,
-                specification_id: $specification_id
-                priority: $priority,
-                enabled: true,
-            }) {
-                priority
+        mutation MyMutation($object: [scheduling_specification_goals_insert_input!]!) {
+            insert_scheduling_specification_goals(objects: $object) {
+                returning {
+                    enabled
+                    goal_id
+                    priority
+                    simulate_after
+                    specification_id
+                }
             }
         }
         """
-
         resp = self.host_session.post_to_graphql(
             add_goal_to_specification_query, 
-            specification_id=specification_id, 
-            goal_id=goal_id, 
-            priority=priority
+            object = upload_object
         )
 
-        return resp['priority']
+        return resp['returning']
 
     def delete_scheduling_goal(self, goal_id):
-        delete_scheduling_goal_query = """
-        mutation DeleteSchedulingGoal($id: Int!) {
-            deleteSchedulingGoal: delete_scheduling_goal_by_pk(id: $id) {
-                id
+        return self.delete_scheduling_goals(list([goal_id]))
+
+    def delete_scheduling_goals(self, goal_id_list):
+        delete_scheduling_goals_query = """
+        mutation DeleteSchedulingGoals($id_list: [Int!]!) {
+            delete_scheduling_goal (where: {id: {_in:$id_list}}){
+                returning {id}
             }
         }
         """
 
         resp = self.host_session.post_to_graphql(
-            delete_scheduling_goal_query, 
-            id=goal_id
+            delete_scheduling_goals_query, 
+            id_list=goal_id_list
         )
 
-        return resp['id']
+        return resp["returning"]
 
     def get_plan_revision(self, planId):
         get_plan_revision_query = """
