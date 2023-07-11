@@ -57,7 +57,7 @@ def create_configuration(
 @app.command('update')
 def update_configuration(
     name: str = typer.Option(
-        None, help='Name of the configuration to update', metavar='NAME'
+        None, '--name', '-n', help='Name of the configuration to update', metavar='NAME'
     )
 ):
     """
@@ -139,7 +139,7 @@ def upload_configurations(
 @app.command('activate')
 def activate_session(
     name: str = typer.Option(
-        None, help='Name for this configuration', metavar='NAME')
+        None, '--name', '-n', help='Name for this configuration', metavar='NAME')
 ):
     """
     Activate a session with an Aerie host using a given configuration
@@ -219,7 +219,7 @@ def list_configurations():
 @app.command('delete')
 def delete_configuration(
     name: str = typer.Option(
-        "", help='Name for this configuration', metavar='NAME', show_default=False)
+        None, '--name', '-n', help='Name for this configuration', metavar='NAME', show_default=False)
 ):
     """
     Delete an Aerie host configuration

@@ -1,0 +1,40 @@
+[
+    {
+        "request": {
+            "query": "mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) { insert_activity_directive_metadata_schema(objects: $schemas) { returning { key schema } } }", 
+            "variables": {
+                "schemas": [
+                    { "key": "STRING_EXAMPLE", "schema": { "type": "string" } },
+                    { "key": "LONG_STRING_EXAMPLE", "schema": { "type": "long_string" } },
+                    {
+                    "key": "ENUM_EXAMPLE",
+                    "schema": { "enumerates": ["A", "B", "C"], "type": "enum" }
+                    }
+                ]
+            }
+        },
+        "response": {
+            "activity_directive_metadata_schema": [
+                {
+                    "key": "STRING_EXAMPLE",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "key": "LONG_STRING_EXAMPLE",
+                    "schema": {
+                        "type": "long_string"
+                    }
+                },
+                {
+                    "key": "ENUM_MULTISELECT_EXAMPLE",
+                    "schema": {
+                        "type": "enum_multiselect",
+                        "enumerates": ["D", "E", "F", "G"]
+                    }
+                }
+            ]
+        }
+    }
+]

@@ -278,6 +278,49 @@ class AerieClient:
         )
         return resp["id"]
 
+    def get_all_activity_presets(self, m_id:int) -> List:
+        get_all_presets_query = """
+        query ($model_id: Int!) {
+            activity_presets (where: {model_id:{_eq:$model_id}}){
+                id
+                model_id
+                name
+                associated_activity_type
+                arguments
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            get_all_presets_query,
+            model_id=m_id
+        )
+        return resp
+
+    def upload_activity_presets(self, upload_obj):
+        upload_activity_presets_query = """
+        mutation upload_presets($object: [activity_presets_insert_input!]!) {
+            insert_activity_presets(objects: $object, 
+                                    on_conflict: {constraint: activity_presets_model_id_associated_activity_type_name_key, 
+                                                  update_columns: arguments}
+                                    ) {
+                returning {
+                    model_id
+                    id
+                    associated_activity_type
+                    arguments
+                    name
+                }
+            }
+        }"""
+
+        resp = self.host_session.post_to_graphql(
+            upload_activity_presets_query, 
+            object = upload_obj
+        )
+
+        return resp["returning"]
+
     def simulate_plan(self, plan_id: int, poll_period: int = 5) -> int:
 
         simulate_query = """
@@ -1112,20 +1155,7 @@ class AerieClient:
                 seqId: $seq_id,
                 simulationDatasetId: $simulation_dataset_id
             ) {
-                seqJson {
-                    steps {
-                        args
-                        metadata
-                        stem
-                        type
-                        time {
-                            tag
-                            type
-                        }
-                    }
-                    metadata
-                    id
-                }
+                seqJson
             }
         }
         """
@@ -1361,30 +1391,65 @@ class AerieClient:
         )
 
         return typescript_dictionary_string
-    
-    def upload_scheduling_goal(self, model_id, name, definition):
-        upload_scheduling_goal_query = """
-        mutation InsertGoal($model_id: Int!, 
-                            $name: String!, 
-                            $definition: String!) {
-            insert_scheduling_goal_one(object: 
-                {
-                model_id: $model_id,
-                name: $name,
-                definition: $definition,
-                }) {
-                    id
-                }
-        }"""
 
+    def get_scheduling_goals_by_specification(self, spec_id):
+        list_all_goals_by_spec_query = """
+        query ($spec: Int!){
+            scheduling_specification_goals(where: {
+                specification_id:{_eq:$spec}
+            }){
+                goal{
+                    id
+                    model_id
+                    name
+                    description
+                    author
+                    last_modified_by
+                    created_date
+                    modified_date
+                }
+            }
+        }
+        """
+        resp = self.host_session.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
+
+        return resp
+
+    def upload_scheduling_goal(self, model_id, name, definition):
+        obj = dict()
+        obj["name"] = name
+        obj["model_id"] = model_id
+        obj["definition"] = definition
+
+        return self.upload_scheduling_goals([obj])
+
+    def upload_scheduling_goals(self, upload_object):
+        """
+        Bulk upload operation for uploading scheduling goals.
+        @param upload_object should be JSON-like with keys name, model_id, definition
+        [
+            {
+                name: str,
+                model_id: int,
+                definition: str
+            },
+            ...
+        ]
+        """
+
+        upload_scheduling_goals_query = """
+        mutation InsertGoals($input:[scheduling_goal_insert_input!]!){
+            insert_scheduling_goal(objects: $input){
+                returning {id}
+            }
+        }"""
+        
         resp = self.host_session.post_to_graphql(
-            upload_scheduling_goal_query, 
-            model_id=model_id, 
-            name=name, 
-            definition=definition
+            upload_scheduling_goals_query,
+            input=upload_object
         )
 
-        return resp["id"]
+        return resp["returning"]
 
     def get_specification_for_plan(self, plan_id):
         get_specification_for_plan_query = """
@@ -1401,46 +1466,57 @@ class AerieClient:
         )
         return resp[0]["id"]
 
-    def add_goal_to_specification(self, specification_id, goal_id, priority):
+    def add_goals_to_specifications(self, upload_object):
+        """
+        Bulk operation to add goals to specification.
+        @param upload_object should be JSON-like with keys goal_id, specification_id
+        [
+            {
+                goal_id: int,
+                specification_id: int
+            },
+            ...
+        ]
+        """
+
         add_goal_to_specification_query = """
-        mutation AddGoalToSpecification($specification_id: Int!,
-                                        $goal_id: Int!,
-                                        $priority: Int!) {
-            insert_scheduling_specification_goals_one(object: {
-                goal_id: $goal_id,
-                specification_id: $specification_id
-                priority: $priority,
-                enabled: true,
-            }) {
-                priority
+        mutation MyMutation($object: [scheduling_specification_goals_insert_input!]!) {
+            insert_scheduling_specification_goals(objects: $object) {
+                returning {
+                    enabled
+                    goal_id
+                    priority
+                    simulate_after
+                    specification_id
+                }
             }
         }
         """
-
         resp = self.host_session.post_to_graphql(
             add_goal_to_specification_query, 
-            specification_id=specification_id, 
-            goal_id=goal_id, 
-            priority=priority
+            object = upload_object
         )
 
-        return resp['priority']
+        return resp['returning']
 
     def delete_scheduling_goal(self, goal_id):
-        delete_scheduling_goal_query = """
-        mutation DeleteSchedulingGoal($id: Int!) {
-            deleteSchedulingGoal: delete_scheduling_goal_by_pk(id: $id) {
-                id
+        return self.delete_scheduling_goals(list([goal_id]))
+
+    def delete_scheduling_goals(self, goal_id_list):
+        delete_scheduling_goals_query = """
+        mutation DeleteSchedulingGoals($id_list: [Int!]!) {
+            delete_scheduling_goal (where: {id: {_in:$id_list}}){
+                returning {id}
             }
         }
         """
 
         resp = self.host_session.post_to_graphql(
-            delete_scheduling_goal_query, 
-            id=goal_id
+            delete_scheduling_goals_query, 
+            id_list=goal_id_list
         )
 
-        return resp['id']
+        return resp["returning"]
 
     def get_plan_revision(self, planId):
         get_plan_revision_query = """
@@ -1611,3 +1687,69 @@ class AerieClient:
             body=edsl_body
         )
         return resp["seqJson"]
+
+    def get_directive_metadata(self) -> list:
+        """Get metatdata
+
+        Returns:
+            list: a list of the metadata keys and schemas
+        """
+        get_metadata_query = """
+        query GetMetadata {
+            activity_directive_metadata_schema {
+                key
+                schema
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(get_metadata_query)
+        return resp
+
+    def add_directive_metadata_schemas(self, schemas: list) -> list:
+        """Add metadata schemas
+
+        The schema format should follow the documentation [here](https://nasa-ammos.github.io/aerie-docs/planning/activity-directive-metadata/).
+
+        Args:
+            schemas (list): a list of the schemas to add
+
+        Returns:
+            list: a list of the metadata keys and schemas that were added
+        """
+        add_schemas_query = """
+        mutation CreateActivityDirectiveMetadataSchemas($schemas: [activity_directive_metadata_schema_insert_input!]!) {
+            insert_activity_directive_metadata_schema(objects: $schemas) {
+                returning {
+                    key
+                    schema
+                }
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            add_schemas_query,
+            schemas=schemas
+        )
+        return resp
+        
+    def delete_directive_metadata_schema(self, key) -> list:
+        """Delete metadata schemas
+
+        Returns:
+            list: a list of the metadata keys that were deleted
+        """
+        delete_schema_query = """
+        mutation MyMutation($key: String!) {
+            delete_activity_directive_metadata_schema_by_pk(key: $key) {
+                key
+            }
+        }
+        """
+
+        resp = self.host_session.post_to_graphql(
+            delete_schema_query,
+            key=key
+        )
+        return resp["key"]

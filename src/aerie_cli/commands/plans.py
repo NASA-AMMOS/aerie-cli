@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
 
 app = typer.Typer()
@@ -15,15 +15,15 @@ app = typer.Typer()
 
 @app.command()
 def download(
-    id: int = typer.Option(..., help="Plan ID", prompt=True),
+    id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     full_args: str = typer.Option(
         "",
         help="true, false, or comma separated list of activity types for which to get full arguments.  Otherwise only modified arguments are returned.  Defaults to false.",
     ),
-    output: str = typer.Option(..., help="The output file destination", prompt=True)
+    output: str = typer.Option(..., "--output", "-o", help="The output file destination", prompt=True)
 ):
     """Download a plan and save it locally as a JSON file."""
-    plan = get_active_session_client().get_activity_plan_by_id(id, full_args)
+    plan = CommandContext.get_client().get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
     typer.echo(f"Wrote activity plan to {output}")
@@ -33,15 +33,15 @@ def download(
 def download_simulation(
     sim_id: int = typer.Option(
         ..., '--sim-id', '-s',
-        help="Simulation ID", prompt=True),
+        help="Simulation Dataset ID", prompt=True),
     output: str = typer.Option(
-        ..., '--output', '-s',
+        ..., '--output', '-o',
         help="The output file destination", prompt=True)
 ):
     """
     Download simulated activity instances and save to a JSON file
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     simulated_activities = client.get_simulation_results(sim_id)
     with open(output, "w") as out_file:
         out_file.write(json.dumps(simulated_activities, indent=2))
@@ -54,7 +54,7 @@ def download_resources(
         ..., '--sim-id', '-s',
         help="Simulation Dataset ID", prompt='Simulation Dataset ID'),
     csv: bool = typer.Option(
-        False, "--csv/--json", help="Download as CSV"
+        False, "--csv/--json", help="Specify file format. Defaults to JSON"
     ),
     output: str = typer.Option(
         ..., '--output', '-o',
@@ -75,7 +75,7 @@ def download_resources(
     CSV resource timeline relative timestamps are seconds since plan start time. Absolute timestamps are formatted the 
     same as the JSON outputs.
     """
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     # reads the states
     contents = []
@@ -160,15 +160,15 @@ def download_resources(
 @app.command()
 def upload(
     input: str = typer.Option(
-        ..., help="The input file from which to create an Aerie plan", prompt=True
+        ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
     ),
     model_id: int = typer.Option(
-        ..., help="The mission model ID to associate with the plan", prompt=True
+        ..., "--model-id", "-m", help="The mission model ID to associate with the plan", prompt=True
     ),
     time_tag: bool = typer.Option(False, help="Append time tag to plan name"),
 ):
     """Create a plan from an input JSON file."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     with open(input) as in_file:
         contents = in_file.read()
@@ -181,28 +181,26 @@ def upload(
 
 @app.command()
 def duplicate(
-    id: int = typer.Option(..., help="Plan ID", prompt=True),
+    id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     duplicated_plan_name: str = typer.Option(
-        ..., help="The name for the duplicated plan", prompt=True
+        ..., "--duplicate-plan-name", "-n", help="The name for the duplicated plan", prompt=True
     )
 ):
     """Duplicate an existing plan."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     plan = client.get_activity_plan_by_id(id)
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
     plan_to_duplicate.name = duplicated_plan_name
     duplicated_plan_id = client.create_activity_plan(plan.model_id, plan_to_duplicate)
-    typer.echo(
-        f"Duplicated activity plan at: {client.ui_path()}/plans/{duplicated_plan_id}"
-    )
+    typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
 
 @app.command()
 def simulate(
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: Union[str, None] = typer.Option(
-        None, help="The output file destination for simulation results (if desired)"
+        None, "--output", "-o", help="The output file destination for simulation results (if desired)"
     ),
     poll_period: int = typer.Option(
         5,
@@ -210,7 +208,7 @@ def simulate(
     ),
 ):
     """Simulate a plan and optionally download the results."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     start_time = arrow.utcnow()
     sim_dataset_id = client.simulate_plan(id, poll_period)
@@ -229,7 +227,7 @@ def simulate(
 def list():
     """List uploaded plans."""
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
     resp = client.list_all_activity_plans()
 
     # Create output table
@@ -270,7 +268,7 @@ def create_config(
     with open(arg_file) as fid:
         json_obj = json.load(fid)
 
-    resp = get_active_session_client().create_config_args(plan_id=plan_id, args=json_obj)
+    resp = CommandContext.get_client().create_config_args(plan_id=plan_id, args=json_obj)
 
     typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
@@ -289,7 +287,7 @@ def update_config(
     with open(arg_file) as fid:
         json_obj = json.load(fid)
 
-    resp = get_active_session_client().update_config_args(plan_id=plan_id, args=json_obj)
+    resp = CommandContext.get_client().update_config_args(plan_id=plan_id, args=json_obj)
 
     typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
@@ -298,18 +296,18 @@ def update_config(
 
 @app.command()
 def delete(
-    plan_id: int = typer.Option(..., help="Plan ID to be deleted", prompt=True),
+    plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to be deleted", prompt=True),
 ):
     """Delete an activity plan by its id."""
 
-    plan_name = get_active_session_client().delete_plan(plan_id)
+    plan_name = CommandContext.get_client().delete_plan(plan_id)
     typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
 @app.command()
 def clean():
     """Delete all activity plans."""
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     resp = client.get_all_activity_plans()
     for activity_plan in resp:
