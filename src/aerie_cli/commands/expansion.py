@@ -263,7 +263,7 @@ def download_sequence(
     seq_dict = client.get_expanded_sequence(seq_id, int(simulation_dataset_id))
 
     with open(output_fn, 'w') as fid:
-        json.dump(seq_dict, fid)
+        json.dump(seq_dict, fid, indent=2)
 
 # === Commands for expansion sets ===
 
