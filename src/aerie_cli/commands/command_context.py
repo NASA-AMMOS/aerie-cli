@@ -15,7 +15,7 @@ class CommandContext:
     @classmethod
     def get_client(cls) -> AerieClient:
         """Get the AerieClient for any command's execution.
-        
+        If an alternate configuration has been specified, this method will attempt to find the persistent configuration or load a file with that name. If no alternate configuration is specified, then the active session is used.
         Returns:
             AerieClient
         """
