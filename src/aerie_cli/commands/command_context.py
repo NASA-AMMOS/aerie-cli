@@ -1,6 +1,6 @@
 import typer
 from aerie_cli.aerie_client import AerieClient
-from aerie_cli.utils.sessions import get_active_session_client
+from aerie_cli.utils.sessions import get_active_session_client, start_session_from_configuration
 from aerie_cli.aerie_host import AerieHostConfiguration
 
 app = typer.Typer()
@@ -23,7 +23,7 @@ class CommandContext:
         # then the returned client will be derived from that configuration.
         client = None
         if cls.alternate_configuration != None and client == None:
-            session = cls.alternate_configuration.start_session()
+            session = start_session_from_configuration(cls.alternate_configuration)
             client = AerieClient(session)
 
         if client == None:
