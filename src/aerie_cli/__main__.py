@@ -35,10 +35,12 @@ def print_version(print_version: bool):
 def set_configuration(configuration: str):
     if configuration == None:
         return
-
-    found_configuration = find_configuration(configuration)
-    if found_configuration == None:
-        raise RuntimeError(f"No configuration exists with the path or name {configuration}")
+    try:
+        found_configuration = find_configuration(configuration)
+    except ValueError as e:
+        raise ValueError("File provided could not be converted to json")
+    except FileNotFoundError as e:
+        raise ValueError(f"No configuration exists with the path or name {configuration}")
 
     CommandContext.configuration = found_configuration
 
