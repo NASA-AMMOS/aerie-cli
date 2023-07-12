@@ -32,17 +32,17 @@ def print_version(print_version: bool):
         typer.echo(__version__)
         raise typer.Exit()
 
-def set_configuration(configuration: str):
-    if configuration == None:
+def set_alternate_configuration(configuration_identifier: str):
+    if configuration_identifier == None:
         return
     try:
-        found_configuration = find_configuration(configuration)
+        found_configuration = find_configuration(configuration_identifier)
     except ValueError as e:
         raise ValueError("File provided could not be converted to json")
     except FileNotFoundError as e:
-        raise ValueError(f"No configuration exists with the path or name {configuration}")
+        raise ValueError(f"No configuration exists with the path or name {configuration_identifier}")
 
-    CommandContext.configuration = found_configuration
+    CommandContext.alternate_configuration = found_configuration
 
 @app.callback()
 def app_callback(
@@ -61,7 +61,7 @@ def app_callback(
         None,
         "--configuration",
         "-c",
-        callback=set_configuration,
+        callback=set_alternate_configuration,
         help="Set a configuration to use rather than the persistent configuration.\n\
             Accepts either a configuration name or the path to a configuration json.\n\
             Configuration names are prioritized over paths.",

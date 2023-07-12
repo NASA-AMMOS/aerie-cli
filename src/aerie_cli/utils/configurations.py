@@ -3,10 +3,10 @@ from aerie_cli.persistent import PersistentConfigurationManager
 
 import json
 
-def find_configuration(configuration: str) -> AerieHostConfiguration:
+def find_configuration(configuration_identifier: str) -> AerieHostConfiguration:
     """Find a configuration by name or path.
     
-    configuration (str): The name or path of a configuration. Paths should be to a configuration json file.
+    configuration_identifier (str): The name or path of a configuration. Paths should be to a configuration json file.
 
     Raises:
         ValueError
@@ -17,12 +17,12 @@ def find_configuration(configuration: str) -> AerieHostConfiguration:
     """
     # search for configuration by name
     for persistent_configuration in PersistentConfigurationManager.get_configurations():
-        if persistent_configuration.name != configuration:
+        if persistent_configuration.name != configuration_identifier:
             continue
         return persistent_configuration
 
     # search for configuration by path
-    with open(configuration, 'r') as fid:
+    with open(configuration_identifier, 'r') as fid:
         found_configuration = json.load(fid)
     
     return AerieHostConfiguration.from_dict(found_configuration)
