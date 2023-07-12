@@ -35,12 +35,7 @@ def print_version(print_version: bool):
 def set_alternate_configuration(configuration_identifier: str):
     if configuration_identifier == None:
         return
-    try:
-        found_configuration = find_configuration(configuration_identifier)
-    except ValueError as e:
-        raise ValueError("File provided could not be converted to json")
-    except FileNotFoundError as e:
-        raise ValueError(f"No configuration exists with the path or name {configuration_identifier}")
+    found_configuration = find_configuration(configuration_identifier)
 
     CommandContext.alternate_configuration = found_configuration
 

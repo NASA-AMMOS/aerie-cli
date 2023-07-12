@@ -22,7 +22,13 @@ def find_configuration(configuration_identifier: str) -> AerieHostConfiguration:
         return persistent_configuration
 
     # search for configuration by path
-    with open(configuration_identifier, 'r') as fid:
-        found_configuration = json.load(fid)
+    try:
+        with open(configuration_identifier, 'r') as fid:
+            try:
+                found_configuration = json.load(fid)
+            except ValueError as e:
+                raise ValueError("File provided could not be converted to json")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"No configuration exists with the path or name {configuration_identifier}")
     
     return AerieHostConfiguration.from_dict(found_configuration)
