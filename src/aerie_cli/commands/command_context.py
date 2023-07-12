@@ -8,7 +8,6 @@ app = typer.Typer()
 class CommandContext:
     hasura_admin_secret: str = None
     alternate_configuration: AerieHostConfiguration = None
-    __client: AerieClient = None
 
     def __init__(self) -> None:
         raise NotImplementedError
@@ -22,15 +21,16 @@ class CommandContext:
         """
         # If the configuration was set in the CLI by the user,
         # then the returned client will be derived from that configuration.
-        if cls.alternate_configuration != None and cls.__client == None:
+        client = None
+        if cls.alternate_configuration != None and client == None:
             session = cls.alternate_configuration.start_session()
-            cls.__client = AerieClient(session)
+            client = AerieClient(session)
 
-        if cls.__client == None:
+        if client == None:
             # no configuration specified in CLI, so the active session will be used instead
-            cls.__client = get_active_session_client()
+            client = get_active_session_client()
 
         if cls.hasura_admin_secret:
-            cls.__client.host_session.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
+            client.host_session.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
 
-        return cls.__client
+        return client
