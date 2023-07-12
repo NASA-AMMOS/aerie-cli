@@ -15,6 +15,7 @@ from aerie_cli.commands import metadata
 from .persistent import NoActiveSessionError
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.__version__ import __version__
+from aerie_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
 app.add_typer(plans.app, name="plans")
@@ -31,6 +32,15 @@ def print_version(print_version: bool):
         typer.echo(__version__)
         raise typer.Exit()
 
+def set_configuration(configuration: str):
+    if configuration == None:
+        return
+
+    found_configuration = find_configuration(configuration)
+    if found_configuration == None:
+        raise RuntimeError(f"No configuration exists with the path or name {configuration}")
+
+    CommandContext.configuration = found_configuration
 
 @app.callback()
 def app_callback(
@@ -44,6 +54,15 @@ def app_callback(
     hasura_admin_secret=typer.Option(
         default="",
         help="Hasura admin secret that will be put in the header of graphql requests.",
+    ),
+    configuration=typer.Option(
+        None,
+        "--configuration",
+        "-c",
+        callback=set_configuration,
+        help="Set a configuration to use rather than the persistent configuration.\n\
+            Accepts either a configuration name or the path to a configuration json.\n\
+            Configuration names are prioritized over paths.",
     ),
 ):
     setup_global_command_context(hasura_admin_secret)
