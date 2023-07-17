@@ -42,7 +42,7 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 config_json = os.path.join(test_dir, "files/configuration/localhost_config.json")
 
 # Model Variables
-model_jar = os.path.join(test_dir, "files/models/banananation.jar")
+model_jar = os.path.join(test_dir, "files/models/banananation-1.6.2.jar")
 model_name = "banananation"
 version = "0.0.1"
 model_id = 0
