@@ -22,7 +22,7 @@ CONFIGURATION_FILE_DIRECTORY = Path(
 CONFIGURATION_FILE_PATH = CONFIGURATION_FILE_DIRECTORY.joinpath('config.json')
 
 SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_config_dir).resolve().absolute()
-SESSION_TIMESTAMP_FSTRING = r'%Y-%jT%H:%M:%S.%f'
+SESSION_TIMESTAMP_FSTRING = r'%Y-%jT%H-%M-%S.%f'
 SESSION_TIMEOUT = timedelta(hours=12)
 
 
@@ -84,13 +84,13 @@ class PersistentConfigurationManager:
     @classmethod
     def write_configurations(cls) -> None:
         confs = [c.to_dict() for c in cls._configurations]
-        CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True)
+        CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True, parents=True)
         with open(CONFIGURATION_FILE_PATH, 'w') as fid:
             json.dump(confs, fid, indent=2)
 
     @classmethod
     def read_configurations(cls) -> None:
-        CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True)
+        CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True, parents=True)
         if CONFIGURATION_FILE_PATH.is_file():
             with open(CONFIGURATION_FILE_PATH, 'r') as fid:
                 try:
