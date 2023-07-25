@@ -207,9 +207,10 @@ class AerieHostSession:
                     token = resp.json().get("token")
                     if token is not None:  # a string token should include prefix
                         token = "Bearer " + token
-                    session.headers["x-auth-sso-token"] = token
+                    session.headers["Authorization"] = token
                 else:
-                    session.headers["x-auth-sso-token"] = resp.json()["ssoToken"]
+                    token = "Bearer " + resp.json()["ssoToken"]
+                    session.headers["Authorization"] = token
             else:
                 raise RuntimeError(f"Failed to authenticate at route: {auth_url}")
 

@@ -42,7 +42,7 @@ def get_preauthenticated_client_native(sso_token: str, graphql_url: str, gateway
         AerieClient
     """
     session = requests.Session()
-    session.headers['x-auth-sso-token'] = sso_token
+    session.headers['Authorization'] = "Bearer " + sso_token
     aerie_session = AerieHostSession(session, graphql_url, gateway_url)
     if not aerie_session.ping_gateway():
         raise RuntimeError(f"Failed to connect to host")
