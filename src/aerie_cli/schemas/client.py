@@ -1,9 +1,14 @@
+"""
+Client dataclasses store data in accessible formats and provide helper methods to convert to/from the API dataclasses.
+"""
+
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Union
 from typing import Optional
 
 import arrow
@@ -11,67 +16,62 @@ from arrow import Arrow
 from dataclasses_json import config
 from dataclasses_json import dataclass_json
 
-from ..utils.serialization import postgres_duration_to_timedelta
-from .api import ApiActivityCreate
-from .api import ApiActivityPlanCreate
-from .api import ApiActivityPlanRead
-from .api import ApiActivityRead
-from .api import ApiAsSimulatedActivity
-from .api import ApiResourceSampleResults
-from .api import ApiSimulatedResourceSample
-from .api import ApiSimulationResults
+from aerie_cli.utils.serialization import parse_timedelta_str
+from aerie_cli.schemas.api import ApiActivityCreate
+from aerie_cli.schemas.api import ApiActivityPlanCreate
+from aerie_cli.schemas.api import ApiActivityPlanRead
+from aerie_cli.schemas.api import ApiActivityRead
+from aerie_cli.schemas.api import ApiAsSimulatedActivity
+from aerie_cli.schemas.api import ApiResourceSampleResults
+from aerie_cli.schemas.api import ApiSimulatedResourceSample
+from aerie_cli.schemas.api import ApiSimulationResults
+from aerie_cli.schemas.api import ActivityBase
 
 
 @dataclass_json
 @dataclass
-class ActivityCreate:
-    type: str
-    start_time: Arrow = field(
-        metadata=config(decoder=arrow.get, encoder=Arrow.isoformat)
+class Activity(ActivityBase):
+    """Activity Directive
+    
+    Dataclass designed for client-side manipulation of activity directives.
+    Use helper methods to covert to and from API-compatible dataclasses.
+    """
+    start_offset: timedelta = field(
+        metadata=config(
+            decoder=parse_timedelta_str,
+            encoder=timedelta.__str__
+        )
     )
-    parameters: dict[str, Any]
-    name: str
-    tags: list[str]
-    metadata: dict[str, str]
+    id: Optional[int] = field(default=None)
 
-    def to_api_create(self, plan_id: int, plan_start_time: Arrow):
+    def to_api_create(self, plan_id: int):
         return ApiActivityCreate(
             type=self.type,
             plan_id=plan_id,
-            start_offset=self.start_time - plan_start_time,
-            arguments=self.parameters,
+            start_offset=self.start_offset,
+            arguments=self.arguments,
             name=self.name,
-            tags=self.to_api_array(self.tags),
-            metadata=self.metadata
+            tags=self.tags,
+            metadata=self.metadata,
+            anchor_id=self.anchor_id,
+            anchored_to_start=self.anchored_to_start
         )
-
-    def to_api_array(self, entries: list[str]):
-        """
-        Format an array of strings as a Postgres style array.
-        """
-        vals = ",".join(entries)
-        return f"{{{vals}}}"  # Wrap items in {}
-
-
-@dataclass_json
-@dataclass
-class ActivityRead(ActivityCreate):
-    id: int
 
     @classmethod
     def from_api_read(
-        cls, api_activity_read: ApiActivityRead, plan_start_time: Arrow
-    ) -> "ActivityRead":
-        return ActivityRead(
+        cls, api_activity_read: ApiActivityRead
+    ) -> "Activity":
+        return Activity(
             id=api_activity_read.id,
             name=api_activity_read.name,
             type=api_activity_read.type,
-            start_time=plan_start_time + api_activity_read.start_offset,
-            parameters=api_activity_read.arguments,
+            start_offset=api_activity_read.start_offset,
+            arguments=api_activity_read.arguments,
             tags=api_activity_read.tags,
             metadata=api_activity_read.metadata,
+            anchor_id=api_activity_read.anchor_id,
+            anchored_to_start=api_activity_read.anchored_to_start
         )
-
 
 @dataclass_json
 @dataclass
@@ -90,7 +90,7 @@ class EmptyActivityPlan:
 @dataclass_json
 @dataclass
 class ActivityPlanCreate(EmptyActivityPlan):
-    activities: list[ActivityCreate]
+    activities: list[Activity]
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
@@ -116,7 +116,41 @@ class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     sim_id: int
-    activities: Optional[List[ActivityRead]] = None
+    activities: Optional[List[Activity]] = None
+
+    def get_activity_start_time(self, activity: Union[int, Activity]) -> arrow.Arrow:
+        """Get the effective start time of an activity instance
+
+        Args:
+            activity (Union[int, Activity]): Either the Activity Directive ID or actual object
+
+        Returns:
+            arrow.Arrow: Effective activity start time
+        """
+
+        # If an ID was given, get the activity
+        if isinstance(activity, int):
+            try:
+                activity = next(filter(lambda a: a.id == activity, self.activities))
+            except StopIteration:
+                raise ValueError(f"Cannot find anchor for activity with ID {activity}")
+
+        # If the current activity is anchored to the plan, evaluate the start time rel. to the plan
+        if activity.anchor_id is None:
+            if activity.anchored_to_start:
+                return self.start_time + activity.start_offset
+            else:
+                return self.end_time + activity.start_offset
+
+        # If the current activity is anchored to another activity, evaluate the start time rel. to that act
+        if activity.anchored_to_start:
+            return (
+                self.get_activity_start_time(activity.anchor_id) + activity.start_offset
+            )
+        else:
+            raise ValueError(
+                f"Cannot evaluate activity start time for Activity with ID {activity.id} because it is anchored to the end of another activity"
+            )
 
     @classmethod
     def from_api_read(cls, api_plan_read: ApiActivityPlanRead) -> "ActivityPlanRead":
@@ -129,7 +163,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             start_time=plan_start,
             end_time=plan_start + api_plan_read.duration,
             activities= None if api_plan_read.activity_directives is None else [
-                ActivityRead.from_api_read(api_activity, plan_start)
+                Activity.from_api_read(api_activity)
                 for api_activity in api_plan_read.activity_directives
             ],
         )
@@ -146,7 +180,7 @@ class AsSimulatedActivity:
     )
     children: list[str]
     duration: timedelta = field(
-        metadata=config(decoder=postgres_duration_to_timedelta,
+        metadata=config(decoder=parse_timedelta_str,
                         encoder=timedelta.__str__)
     )
     parameters: dict[str, Any]
