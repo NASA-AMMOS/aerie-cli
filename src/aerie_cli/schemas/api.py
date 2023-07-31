@@ -14,6 +14,8 @@ from typing import Union
 from attrs import define, field
 from attrs import converters
 from attrs import asdict
+from attrs import Attribute
+
 import arrow
 from arrow import Arrow
 
@@ -31,11 +33,13 @@ def convert_to_time_delta(t: Union[str, timedelta]) -> timedelta:
         return t
     return postgres_interval_to_timedelta(t)
 
-def serialize_timedelta_to_postgres(inst, field, value):
+def serialize_api(inst: type, field: Attribute, value: Any):
     if isinstance(value, timedelta):
         return timedelta_to_postgres_interval(value)
     if isinstance(value, Arrow):
         return str(value)
+    if isinstance(value, List) and field.name == "tags":
+        return "{" + ",".join(value) + "}"
     return value
 
 class ApiSerialize:
@@ -43,7 +47,7 @@ class ApiSerialize:
     def from_dict(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**dictionary)
     def to_dict(self) -> Dict:
-        return asdict(self, value_serializer=serialize_timedelta_to_postgres)
+        return asdict(self, value_serializer=serialize_api)
     @classmethod
     def from_json(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**json.loads(dictionary))
@@ -90,9 +94,7 @@ class ApiActivityCreate(ActivityBase):
     """
 
     plan_id: int
-    tags: List[str] = field(
-        converter = lambda ts: "{" + ",".join(ts) + "}"
-    )
+    tags: List[str]
 
 
 @define
