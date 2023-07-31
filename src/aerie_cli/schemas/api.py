@@ -35,12 +35,12 @@ def serialize_timedelta_to_postgres(inst, field, value):
 
 class ApiSerialize:
     @classmethod
-    def from_dict(cls, dictionary: dict) -> "ApiSerialize":
+    def from_dict(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**dictionary)
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict:
         return asdict(self, value_serializer=serialize_timedelta_to_postgres)
     @classmethod
-    def from_json(cls, dictionary: dict) -> "ApiSerialize":
+    def from_json(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**json.loads(dictionary))
 
 @define
