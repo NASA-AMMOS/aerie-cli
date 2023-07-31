@@ -26,7 +26,7 @@ def convert_to_time_delta(t) -> timedelta:
         return t
     return postgres_interval_to_timedelta(t)
 
-def serialize_timedelta_to_postgress(inst, field, value):
+def serialize_timedelta_to_postgres(inst, field, value):
     if isinstance(value, timedelta):
         return timedelta_to_postgres_interval(value)
     if isinstance(value, Arrow):
@@ -38,7 +38,7 @@ class ApiSerialize:
     def from_dict(cls, dictionary: dict) -> "ApiSerialize":
         return cls(**dictionary)
     def to_dict(self) -> dict:
-        return asdict(self, value_serializer=serialize_timedelta_to_postgress)
+        return asdict(self, value_serializer=serialize_timedelta_to_postgres)
     @classmethod
     def from_json(cls, dictionary: dict) -> "ApiSerialize":
         return cls(**json.loads(dictionary))
