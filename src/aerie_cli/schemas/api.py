@@ -9,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import List
+from typing import Union
 
 from attrs import define, field
 from attrs import converters
@@ -21,7 +22,11 @@ from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 
 import json
 
-def convert_to_time_delta(t) -> timedelta:
+def convert_to_time_delta(t: Union[str, timedelta]) -> timedelta:
+    """Convert a string to timedelta.
+
+    If the input is of type timedelta, does nothing and returns the input.
+    This is used in certain fields to accept both strings and timedeltas."""
     if isinstance(t, timedelta):
         return t
     return postgres_interval_to_timedelta(t)
