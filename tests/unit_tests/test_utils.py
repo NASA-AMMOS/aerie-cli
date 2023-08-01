@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from attrs import define, field
 from datetime import timedelta
 
 import pytest
@@ -9,7 +9,7 @@ from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 from aerie_cli.utils.serialization import parse_timedelta_str
 
 
-@dataclass
+@define
 class ExampleDuration:
     as_timedelta: timedelta
     as_postgres_output: str
