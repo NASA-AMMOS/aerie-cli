@@ -154,15 +154,13 @@ class AerieHostSession:
         else:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
-    def ping_gateway(self) -> bool:
-
+    def check_auth(self) -> bool:
         try:
-            resp = self.session.get(self.gateway_url + "/health")
+            resp = self.session.get(self.gateway_url + "/auth/session")
         except requests.exceptions.ConnectionError:
             return False
         try:
-            if "uptimeMinutes" in resp.json().keys():
-                return True
+            return resp.json()["success"]
         except Exception:
             return False
 
@@ -225,7 +223,7 @@ class AerieHostSession:
 
         aerie_session = cls(session, graphql_url, gateway_url, configuration_name)
 
-        if not aerie_session.ping_gateway():
+        if not aerie_session.check_auth():
             raise RuntimeError(f"Failed to open session")
 
         return aerie_session
