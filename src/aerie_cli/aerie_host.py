@@ -155,6 +155,11 @@ class AerieHostSession:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
     def check_auth(self) -> bool:
+        """Checks if authentication was successful. Looks for errors received after pinging GATEWAY_URL/auth/session.
+        
+        Returns:
+            bool: True if there were no errors in a ping against GATEWAY_URL/auth/session, False otherwise
+        """
         try:
             resp = self.session.get(self.gateway_url + "/auth/session")
         except requests.exceptions.ConnectionError:
