@@ -20,12 +20,8 @@ class MockAerieHostSession(AerieHostSession):
         self.graphql_url = "Test"
         self.gateway_url = "Test"
 
-    def ping_gateway(self) -> bool:
+    def check_auth(self) -> bool:
         return self.ping_success
-
-
-TEST_TIME = datetime.datetime(2025, 1, 1, 0, 0, 0)
-
 
 @pytest.fixture
 def persistent_path(tmp_path: Path):
