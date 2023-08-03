@@ -1,22 +1,24 @@
 {
-  "name": "banana",
-  "start_time": "2023-07-07T00:00:00+00:00",
-  "end_time": "2023-07-09T00:00:00+00:00",
-  "id": 14,
-  "model_id": 32,
-  "sim_id": 13,
+  "name": "bake_bread_plan",
+  "start_time": "2023-08-03T00:00:00+00:00",
+  "end_time": "2023-08-05T00:00:00+00:00",
+  "id": 55,
+  "model_id": 72,
+  "sim_id": 53,
   "activities": [
     {
       "type": "BakeBananaBread",
-      "start_time": "2023-07-07T13:12:00+00:00",
-      "parameters": {
+      "start_offset": "8:29:33.796000",
+      "tags": [],
+      "metadata": {},
+      "name": "BakeBananaBread",
+      "arguments": {
         "tbSugar": 1,
         "glutenFree": true
       },
-      "name": "BakeBananaBread",
-      "tags": [],
-      "metadata": {},
-      "id": 7
+      "anchor_id": null,
+      "anchored_to_start": true,
+      "id": 84
     }
   ]
 }
