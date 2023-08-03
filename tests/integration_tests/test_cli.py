@@ -24,6 +24,8 @@ AUTH_URL = "http://localhost:9000/auth/login"
 AUTH_METHOD = AuthMethod.AERIE_NATIVE
 USERNAME = ""
 PASSWORD = ""
+# This should only ever be set to the admin secret for a local instance of aerie
+HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 
 session = AerieHostSession.session_helper(
     AUTH_METHOD,
@@ -33,7 +35,7 @@ session = AerieHostSession.session_helper(
     USERNAME,
     PASSWORD
 )
-session.session.headers["x-hasura-admin-secret"] = "aerie"
+session.session.headers["x-hasura-admin-secret"] = HASURA_ADMIN_SECRET
 client = AerieClient(session)
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -70,7 +72,7 @@ def set_up_environment(request):
         "Aerie instances are mismatched. Ensure test URLs are the same."
 
 def test_model_clean():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "clean"])
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"])
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
@@ -82,7 +84,7 @@ def test_model_clean():
 def cli_upload_banana_model():
     return runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "models", "upload", "--time-tag-version"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "upload", "--time-tag-version"],
         input=model_jar 
         + "\n"
         + model_name
@@ -93,6 +95,7 @@ def cli_upload_banana_model():
     )
 
 def test_model_upload():
+    print(f"<<{HASURA_ADMIN_SECRET}>>")
     result = cli_upload_banana_model()
 
     # Get model_id of uploaded mission model
@@ -110,7 +113,7 @@ def test_model_upload():
     )
 
 def test_model_list():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "list"])
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"])
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
@@ -131,7 +134,7 @@ def test_plan_upload():
     # Test plan upload
     result = runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "plans", "upload", "--time-tag"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "upload", "--time-tag"],
         input=plan_json + "\n" + str(model_id) + "\n",
     )
     assert result.exit_code == 0, \
@@ -152,7 +155,7 @@ def test_plan_upload():
 def test_plan_duplicate():
     result = runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "plans", "duplicate"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
         input=str(plan_id) + "\n" + dup_plan_name + "\n",
     )
     assert result.exit_code == 0, \
@@ -168,7 +171,7 @@ def test_plan_duplicate():
 
 
 def test_plan_list():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "list"])
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "list"])
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
@@ -178,7 +181,7 @@ def test_plan_list():
 def test_plan_simulate():
     result = runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "plans", "simulate", "--output", "temp.json"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "simulate", "--output", "temp.json"],
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )
@@ -191,7 +194,7 @@ def test_plan_simulate():
 def test_plan_create_config():
     result = runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "plans", "create-config"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "create-config"],
         input=str(plan_id) + "\n" + args_init + "\n",
     )
     assert result.exit_code == 0, \
@@ -205,7 +208,7 @@ def test_plan_create_config():
 def test_plan_update_config():
     result = runner.invoke(
         app,
-        ["--hasura-admin-secret", "aerie", "plans", "update-config"],
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "update-config"],
         input=str(plan_id) + "\n" + args_update + "\n",
     )
     assert result.exit_code == 0, \
@@ -217,7 +220,7 @@ def test_plan_update_config():
 
 
 def test_plan_delete():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "delete"], input=str(plan_id) + "\n")
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "delete"], input=str(plan_id) + "\n")
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
@@ -225,7 +228,7 @@ def test_plan_delete():
 
 
 def test_plan_clean():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "plans", "clean"])
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "clean"])
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
@@ -235,7 +238,7 @@ def test_plan_clean():
     )
 
 def test_model_delete():
-    result = runner.invoke(app, ["--hasura-admin-secret", "aerie", "models", "delete"], input=str(model_id))
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"], input=str(model_id))
     assert result.exit_code == 0, \
     f"\nOutput was: \n\n{result.stdout}"\
     f"\nError was: \n\n {result.stderr}"
