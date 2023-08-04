@@ -67,7 +67,7 @@ sim_id = 0
 
 # Schedule Variables
 goals_path = os.path.join(files_path, "goals")
-goal_path = os.path.join(goals_path, "goal1")
+goal_path = os.path.join(goals_path, "goal1.ts")
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
@@ -287,6 +287,40 @@ def test_plans_duplicate():
         catch_exceptions=False,)
     assert result.exit_code == 0
     assert "Duplicate activity plan created" in result.stdout
+
+def test_schedule_upload():
+    schedule_file_path = os.path.join(goals_path, "schedule1.txt")
+    with open(schedule_file_path, "x") as fid:
+        fid.write(goal_path)
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "upload"],
+        input=str(model_id) + "\n" + str(sim_id) + "\n" + schedule_file_path + "\n",
+        catch_exceptions=False,
+        )
+    os.remove(schedule_file_path)
+    assert result.exit_code == 0
+    assert "Assigned goals in priority order" in result.stdout
+
+def test_schedule_delete():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete"],
+        input=str(model_id) + "\n" + str(sim_id) + "\n" + goal_path + "\n",
+        catch_exceptions=False,
+        )
+    assert result.exit_code == 0
+    assert f"Successfully deleted Goal" in result.stdout
+
+def test_schedule_delete_all():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete-all-goals-for-plan"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False,
+        )
+    assert result.exit_code == 0
+    assert "No goals to delete." in result.stdout
 
 def test_plan_delete():
     result = runner.invoke(
