@@ -130,7 +130,9 @@ def test_model_clean():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"],
         catch_exceptions=False,
         )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert (
         f"All mission models have been deleted"
         in result.stdout
@@ -145,7 +147,9 @@ def test_model_upload():
     global model_id
     model_id = latest_model.id
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert (
         f"Created new mission model: {model_name} with Model ID: {model_id}"
         in result.stdout
@@ -156,7 +160,9 @@ def test_model_list():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Current Mission Models" in result.stdout
 
 #######################
@@ -183,7 +189,9 @@ def test_plan_upload():
         input=plan_json + "\n" + str(model_id) + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     
     # Get uploaded plan id
     resp = client.get_all_activity_plans()
@@ -200,7 +208,9 @@ def test_plan_duplicate():
         input=str(plan_id) + "\n" + dup_plan_name + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
 
     # Get duplicated plan id
     resp = client.get_all_activity_plans()
@@ -213,7 +223,9 @@ def test_plan_duplicate():
 def test_plan_list():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "list"],
                                    catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Current Activity Plans" in result.stdout
 
 #######################
@@ -226,7 +238,9 @@ def test_plan_simulate():
     sim_ids = client.get_simulation_dataset_ids_by_plan_id(plan_id)
     global sim_id
     sim_id = sim_ids[-1]
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Simulation completed" in result.stdout
 
 def test_plan_download():
@@ -239,7 +253,9 @@ def test_plan_download():
     path_to_plan = Path(DOWNLOADED_FILE_NAME)
     assert path_to_plan.exists()
     path_to_plan.unlink()
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Wrote activity plan" in result.stdout
 
 def test_plan_download_resources():
@@ -252,7 +268,9 @@ def test_plan_download_resources():
     path_to_resources = Path(DOWNLOADED_FILE_NAME)
     assert path_to_resources.exists()
     path_to_resources.unlink()
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Wrote resource timelines" in result.stdout
 
 def test_plan_download_simulation():
@@ -265,7 +283,9 @@ def test_plan_download_simulation():
     path_to_resources = Path(DOWNLOADED_FILE_NAME)
     assert path_to_resources.exists()
     path_to_resources.unlink()
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Wrote activity plan" in result.stdout
 
 def test_plan_create_config():
@@ -275,14 +295,18 @@ def test_plan_create_config():
         input=str(plan_id) + "\n" + args_init + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "initialPlantCount: 2" in result.stdout
     assert "initialProducer: nobody" in result.stdout
 
 def test_simulate_after_create_config():
     result = cli_plan_simulate()
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Simulation completed" in result.stdout
 
 def test_plan_update_config():
@@ -292,14 +316,18 @@ def test_plan_update_config():
         input=str(plan_id) + "\n" + args_update + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "initialPlantCount: 3" in result.stdout
     assert "initialProducer: somebody" in result.stdout
 
 def test_simulate_after_update_config():
     result = cli_plan_simulate()
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Simulation completed" in result.stdout
 
 def test_plans_duplicate():
@@ -308,7 +336,9 @@ def test_plans_duplicate():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
         input=str(plan_id) + "\n" + "duplicated_plan" + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Duplicate activity plan created" in result.stdout
 
 #######################
@@ -322,7 +352,9 @@ def test_expansion_sequence_create():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "create"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + str(2) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Successfully created sequence" in result.stdout
 
 def test_expansion_sequence_list():
@@ -331,7 +363,9 @@ def test_expansion_sequence_list():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "All sequences for Simulation Dataset" in result.stdout
 
 def test_expansion_sequence_download():
@@ -340,7 +374,9 @@ def test_expansion_sequence_download():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "download"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     path_to_sequence = Path(DOWNLOADED_FILE_NAME)
     assert path_to_sequence.exists()
     path_to_sequence.unlink()
@@ -383,7 +419,6 @@ def test_expansion_set_create():
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
-        
     global expansion_set_id
     for line in result.stdout.splitlines():
         if not "Created expansion set: " in line:
@@ -400,7 +435,9 @@ def test_expansion_set_get():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "get"],
         input=str(expansion_set_id) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Expansion Set" in result.stdout and "Contents" in result.stdout
 
 def test_expansion_set_list():
@@ -408,7 +445,9 @@ def test_expansion_set_list():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "list"],
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Expansion Sets" in result.stdout
 
 #######################
@@ -421,7 +460,9 @@ def test_expansion_run_create():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "create"],
         input=str(sim_id) + "\n" + str(expansion_set_id) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Expansion Run ID: " in result.stdout
 
 def test_expansion_runs_list():
@@ -430,7 +471,9 @@ def test_expansion_runs_list():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Expansion Runs" in result.stdout
 
 #######################
@@ -449,7 +492,9 @@ def test_schedule_upload():
         catch_exceptions=False,
         )
     os.remove(schedule_file_path)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "Assigned goals in priority order" in result.stdout
 
 def test_schedule_delete():
@@ -459,7 +504,9 @@ def test_schedule_delete():
         input=str(model_id) + "\n" + str(sim_id) + "\n" + goal_path + "\n",
         catch_exceptions=False,
         )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"Successfully deleted Goal" in result.stdout
 
 def test_schedule_delete_all():
@@ -469,7 +516,9 @@ def test_schedule_delete_all():
         input=str(plan_id) + "\n",
         catch_exceptions=False,
         )
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert "No goals to delete." in result.stdout
 
 #######################
@@ -482,7 +531,9 @@ def test_plan_delete():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "delete"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"ID: {plan_id} has been removed." in result.stdout
 
 
@@ -491,7 +542,9 @@ def test_plan_clean():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "clean"],
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert (
         f"All activity plans have been deleted"
         in result.stdout
@@ -507,5 +560,7 @@ def test_model_delete():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
-    assert result.exit_code == 0
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
     assert f"ID: {model_id} has been removed" in result.stdout
