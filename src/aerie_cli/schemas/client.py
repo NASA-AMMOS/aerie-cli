@@ -330,7 +330,7 @@ class ExpansionSet(ClientSerialize):
     created_at: Arrow = field(
         converter = arrow.get
     )
-    command_dictionary_id: int
+    command_dict_id: int
     expansion_rules: List[int] = field(
         converter = lambda x: [i['id'] for i in x])
 

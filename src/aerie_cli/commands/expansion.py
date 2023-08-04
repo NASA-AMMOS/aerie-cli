@@ -289,9 +289,9 @@ def list_expansion_sets():
     for e_set in sets:
         table.add_row(
             str(e_set.id),
-            cmd_dicts[e_set.command_dictionary_id].mission,
-            cmd_dicts[e_set.command_dictionary_id].version,
-            str(e_set.command_dictionary_id),
+            cmd_dicts[e_set.command_dict_id].mission,
+            cmd_dicts[e_set.command_dict_id].version,
+            str(e_set.command_dict_id),
             e_set.created_at.ctime()
         )
 
