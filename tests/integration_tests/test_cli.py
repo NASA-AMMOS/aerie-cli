@@ -8,6 +8,7 @@ src_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../sr
 sys.path.insert(0, src_path)
 
 from typer.testing import CliRunner
+from pathlib import Path
 
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession, AuthMethod
@@ -55,6 +56,9 @@ dup_plan_name = os.path.join(test_dir, "files/plans/bake_bread_plan_2.json")
 plan_id = 0
 args_init = os.path.join(test_dir, "files/plans/create_config.json")
 args_update = os.path.join(test_dir, "files/plans/update_config.json")
+
+# Simulation Variables
+sim_id = 0
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
@@ -184,9 +188,53 @@ def test_plan_list():
 
 def test_plan_simulate():
     result = cli_plan_simulate()
+    sim_ids = client.get_simulation_dataset_ids_by_plan_id(plan_id)
+    global sim_id
+    sim_id = sim_ids[-1]
     assert result.exit_code == 0
     assert f"Simulation completed" in result.stdout
 
+def test_plan_download():
+    DOWNLOADED_FILE_NAME = "downloaded_file.test"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download"],
+        input=str(plan_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
+        catch_exceptions=False,
+    )
+    path_to_plan = Path(DOWNLOADED_FILE_NAME)
+    assert path_to_plan.exists()
+    path_to_plan.unlink()
+    assert result.exit_code == 0
+    assert f"Wrote activity plan" in result.stdout
+
+def test_plan_download_resources():
+    DOWNLOADED_FILE_NAME = "downloaded_file.test"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-resources"],
+        input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
+        catch_exceptions=False,
+    )
+    path_to_resources = Path(DOWNLOADED_FILE_NAME)
+    assert path_to_resources.exists()
+    path_to_resources.unlink()
+    assert result.exit_code == 0
+    assert f"Wrote resource timelines" in result.stdout
+
+def test_plan_download_simulation():
+    DOWNLOADED_FILE_NAME = "downloaded_file.test"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-simulation"],
+        input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
+        catch_exceptions=False,
+    )
+    path_to_resources = Path(DOWNLOADED_FILE_NAME)
+    assert path_to_resources.exists()
+    path_to_resources.unlink()
+    assert result.exit_code == 0
+    assert f"Wrote activity plan" in result.stdout
 
 def test_plan_create_config():
     result = runner.invoke(
