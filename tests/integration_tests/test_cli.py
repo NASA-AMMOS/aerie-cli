@@ -43,6 +43,8 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 
 files_path = os.path.join(test_dir, "files")
 
+DOWNLOADED_FILE_NAME = "downloaded_file.test"
+
 # Configuration Variables
 configurations_path = os.path.join(files_path, "configuration")
 config_json = os.path.join(configurations_path, "localhost_config.json")
@@ -69,6 +71,20 @@ sim_id = 0
 goals_path = os.path.join(files_path, "goals")
 goal_path = os.path.join(goals_path, "goal1.ts")
 
+
+# Command Dictionary Variables
+command_dictionaries_path = os.path.join(files_path, "command_dicts")
+command_dictionary_path = os.path.join(command_dictionaries_path, "command_banananation.xml")
+
+# setup command dictionary
+command_dictionary_id = 0
+with open(command_dictionary_path, 'r') as fid:
+    command_dictionary_id = client.upload_command_dictionary(fid.read())
+
+# Expansion Variables
+expansion_set_id = -1
+expansion_sequence_id = 1
+
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
     # Resets the configurations and adds localhost
@@ -76,12 +92,12 @@ def set_up_environment(request):
     delete_all_persistent_files()
     upload_configurations(config_json)
     activate_session("localhost")
-    client = None
+    persisent_client = None
     try:
-        client = get_active_session_client()
+        persisent_client = get_active_session_client()
     except:
         raise RuntimeError("Configuration is not active!")
-    assert client.host_session.gateway_url == GATEWAY_URL,\
+    assert persisent_client.host_session.gateway_url == GATEWAY_URL,\
         "Aerie instances are mismatched. Ensure test URLs are the same."
 
 def cli_upload_banana_model():
@@ -200,6 +216,11 @@ def test_plan_list():
     assert result.exit_code == 0
     assert "Current Activity Plans" in result.stdout
 
+#######################
+# SIMULATE PLAN
+# Uses plan
+#######################
+
 def test_plan_simulate():
     result = cli_plan_simulate()
     sim_ids = client.get_simulation_dataset_ids_by_plan_id(plan_id)
@@ -209,7 +230,6 @@ def test_plan_simulate():
     assert f"Simulation completed" in result.stdout
 
 def test_plan_download():
-    DOWNLOADED_FILE_NAME = "downloaded_file.test"
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download"],
@@ -223,7 +243,6 @@ def test_plan_download():
     assert f"Wrote activity plan" in result.stdout
 
 def test_plan_download_resources():
-    DOWNLOADED_FILE_NAME = "downloaded_file.test"
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-resources"],
@@ -237,7 +256,6 @@ def test_plan_download_resources():
     assert f"Wrote resource timelines" in result.stdout
 
 def test_plan_download_simulation():
-    DOWNLOADED_FILE_NAME = "downloaded_file.test"
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-simulation"],
@@ -292,6 +310,128 @@ def test_plans_duplicate():
         catch_exceptions=False,)
     assert result.exit_code == 0
     assert "Duplicate activity plan created" in result.stdout
+
+#######################
+# TEST EXPANSION SEQUENCES
+# Uses plan and simulation dataset
+#######################
+
+def test_expansion_sequence_create():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "create"],
+        input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + str(2) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Successfully created sequence" in result.stdout
+
+def test_expansion_sequence_list():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "list"],
+        input="2" + "\n" + str(sim_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "All sequences for Simulation Dataset" in result.stdout
+
+def test_expansion_sequence_download():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "download"],
+        input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    path_to_sequence = Path(DOWNLOADED_FILE_NAME)
+    assert path_to_sequence.exists()
+    path_to_sequence.unlink()
+
+def test_expansion_sequence_delete():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "delete"],
+        input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Successfully deleted sequence" in result.stdout
+
+#######################
+# TEST EXPANSION SETS
+# Uses model, command dictionary, and activity types
+#######################
+
+def test_expansion_set_create():
+    client.create_expansion_rule(
+        expansion_logic="""
+            export default function MyExpansion(props: {
+            activityInstance: ActivityType
+            }): ExpansionReturn {
+            const { activityInstance } = props;
+            return [];
+            }
+            """,
+        activity_name="BakeBananaBread",
+        model_id=model_id,
+        command_dictionary_id=command_dictionary_id
+    )
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "create"],
+        input=str(model_id) + "\n" + str(command_dictionary_id) + "\n" + "BakeBananaBread" + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+        
+    global expansion_set_id
+    for line in result.stdout.splitlines():
+        if not "Created expansion set: " in line:
+            continue
+        # get expansion id from the end of the line
+        expansion_set_id = int(line.split(": ")[1])
+    assert expansion_set_id != -1, "Could not find expansion run ID, expansion create may have failed"\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+
+def test_expansion_set_get():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "get"],
+        input=str(expansion_set_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Expansion Set" in result.stdout and "Contents" in result.stdout
+
+def test_expansion_set_list():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "list"],
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Expansion Sets" in result.stdout
+
+#######################
+# TEST EXPANSION RUNS
+# Uses plan and simulation dataset
+#######################
+def test_expansion_run_create():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "create"],
+        input=str(sim_id) + "\n" + str(expansion_set_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Expansion Run ID: " in result.stdout
+
+def test_expansion_runs_list():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "list"],
+        input="2" + "\n" + str(sim_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Expansion Runs" in result.stdout
 
 #######################
 # TEST SCHEDULE
