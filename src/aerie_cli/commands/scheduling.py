@@ -65,7 +65,7 @@ def delete_all_goals_for_plan(
     ),
 ):
 
-    client = get_active_session_client()
+    client = CommandContext.get_client()
 
     specification = client.get_specification_for_plan(plan_id)
     clear_goals = client.get_scheduling_goals_by_specification(specification) #response is in asc order
