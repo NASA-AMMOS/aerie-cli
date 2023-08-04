@@ -95,6 +95,13 @@ def cli_upload_banana_model():
         + "\n",
         catch_exceptions=False,
     )
+def cli_plan_simulate():
+    return runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "simulate", "--output", "temp.json"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False
+    )
 
 def test_model_upload():
     result = cli_upload_banana_model()
@@ -176,12 +183,7 @@ def test_plan_list():
 
 
 def test_plan_simulate():
-    result = runner.invoke(
-        app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "simulate", "--output", "temp.json"],
-        input=str(plan_id) + "\n",
-        catch_exceptions=False
-    )
+    result = cli_plan_simulate()
     assert result.exit_code == 0
     assert f"Simulation completed" in result.stdout
 
@@ -195,9 +197,13 @@ def test_plan_create_config():
     )
     assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
-    assert "foo: arg1" in result.stdout
-    assert "num: 5" in result.stdout
+    assert "initialPlantCount: 2" in result.stdout
+    assert "initialProducer: nobody" in result.stdout
 
+def test_simulate_after_create_config():
+    result = cli_plan_simulate()
+    assert result.exit_code == 0
+    assert f"Simulation completed" in result.stdout
 
 def test_plan_update_config():
     result = runner.invoke(
@@ -208,9 +214,13 @@ def test_plan_update_config():
     )
     assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
-    assert "foo: arg2" in result.stdout
-    assert "num: 5" in result.stdout
+    assert "initialPlantCount: 3" in result.stdout
+    assert "initialProducer: somebody" in result.stdout
 
+def test_simulate_after_update_config():
+    result = cli_plan_simulate()
+    assert result.exit_code == 0
+    assert f"Simulation completed" in result.stdout
 
 def test_plan_delete():
     result = runner.invoke(
