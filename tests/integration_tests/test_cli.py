@@ -84,18 +84,6 @@ def set_up_environment(request):
     assert client.host_session.gateway_url == GATEWAY_URL,\
         "Aerie instances are mismatched. Ensure test URLs are the same."
 
-def test_model_clean():
-    result = runner.invoke(
-        app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"],
-        catch_exceptions=False,
-        )
-    assert result.exit_code == 0
-    assert (
-        f"All mission models have been deleted"
-        in result.stdout
-    )
-
 def cli_upload_banana_model():
     return runner.invoke(
         app,
@@ -114,6 +102,22 @@ def cli_plan_simulate():
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "simulate", "--output", "temp.json"],
         input=str(plan_id) + "\n",
         catch_exceptions=False
+    )
+
+#######################
+# TEST AND SETUP MODEL
+#######################
+
+def test_model_clean():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"],
+        catch_exceptions=False,
+        )
+    assert result.exit_code == 0
+    assert (
+        f"All mission models have been deleted"
+        in result.stdout
     )
 
 def test_model_upload():
@@ -138,6 +142,11 @@ def test_model_list():
         catch_exceptions=False,)
     assert result.exit_code == 0
     assert "Current Mission Models" in result.stdout
+
+#######################
+# TEST AND SETUP PLAN
+# Uses model
+#######################
 
 def test_plan_upload():
     # Clean out plans first
@@ -168,9 +177,6 @@ def test_plan_upload():
 
     assert f"Created plan ID: {plan_id}" in result.stdout
 
-
-
-
 def test_plan_duplicate():
     result = runner.invoke(
         app,
@@ -193,7 +199,6 @@ def test_plan_list():
                                    catch_exceptions=False,)
     assert result.exit_code == 0
     assert "Current Activity Plans" in result.stdout
-
 
 def test_plan_simulate():
     result = cli_plan_simulate()
@@ -288,6 +293,11 @@ def test_plans_duplicate():
     assert result.exit_code == 0
     assert "Duplicate activity plan created" in result.stdout
 
+#######################
+# TEST SCHEDULE
+# Uses both model and plan
+#######################
+
 def test_schedule_upload():
     schedule_file_path = os.path.join(goals_path, "schedule1.txt")
     with open(schedule_file_path, "x") as fid:
@@ -322,6 +332,10 @@ def test_schedule_delete_all():
     assert result.exit_code == 0
     assert "No goals to delete." in result.stdout
 
+#######################
+# DELETE PLANS
+#######################
+
 def test_plan_delete():
     result = runner.invoke(
         app,
@@ -342,6 +356,10 @@ def test_plan_clean():
         f"All activity plans have been deleted"
         in result.stdout
     )
+
+#######################
+# DELETE MODELS
+#######################
 
 def test_model_delete():
     result = runner.invoke(
