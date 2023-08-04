@@ -50,6 +50,9 @@ class ClientSerialize:
     @classmethod
     def from_json(cls, dictionary: dict) -> "ClientSerialize":
         return cls(**json.loads(dictionary))
+    def to_json(self, indent = 1) -> dict:
+        self_as_dict = self.to_dict()
+        return json.dumps(self_as_dict, indent=indent)
 
 @define
 class Activity(ActivityBase, ClientSerialize):
