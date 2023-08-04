@@ -222,6 +222,15 @@ def test_simulate_after_update_config():
     assert result.exit_code == 0
     assert f"Simulation completed" in result.stdout
 
+def test_plans_duplicate():
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
+        input=str(plan_id) + "\n" + "duplicated_plan" + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
+    assert "Duplicate activity plan created" in result.stdout
+
 def test_plan_delete():
     result = runner.invoke(
         app,
