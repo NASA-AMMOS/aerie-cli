@@ -107,7 +107,32 @@ class EmptyActivityPlan(ClientSerialize):
 
 @define
 class ActivityPlanCreate(EmptyActivityPlan):
-    activities: List[Activity]
+    activities: List[Activity] = field(
+        converter=converters.optional(
+            lambda listOfDicts: [Activity.from_dict(d) if isinstance(d, dict) else d for d in listOfDicts])
+    )
+
+    id: Optional[int] = field(
+        default=None
+    )
+    name: Optional[str] = field(
+        default=None
+    )
+    start_time: Optional[Arrow] = field(
+        default = None,
+        converter = arrow.get
+    )
+    end_time: Optional[Arrow] = field(
+        default = None,
+        converter = arrow.get
+    )
+    model_id: Optional[int] = field(
+        default=None
+    )
+    sim_id: Optional[int] = field(
+        default=None
+    )
+
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
