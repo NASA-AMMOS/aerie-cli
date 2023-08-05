@@ -75,11 +75,7 @@ goal_path = os.path.join(goals_path, "goal1.ts")
 # Command Dictionary Variables
 command_dictionaries_path = os.path.join(files_path, "command_dicts")
 command_dictionary_path = os.path.join(command_dictionaries_path, "command_banananation.xml")
-
-# setup command dictionary
 command_dictionary_id = 0
-with open(command_dictionary_path, 'r') as fid:
-    command_dictionary_id = client.upload_command_dictionary(fid.read())
 
 # Expansion Variables
 expansion_set_id = -1
@@ -99,6 +95,10 @@ def set_up_environment(request):
         raise RuntimeError("Configuration is not active!")
     assert persisent_client.host_session.gateway_url == GATEWAY_URL,\
         "Aerie instances are mismatched. Ensure test URLs are the same."
+    
+    global command_dictionary_id
+    with open(command_dictionary_path, 'r') as fid:
+        command_dictionary_id = client.upload_command_dictionary(fid.read())
 
 def cli_upload_banana_model():
     return runner.invoke(
