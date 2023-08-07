@@ -1,0 +1,49 @@
+from typer.testing import CliRunner
+
+from .conftest import client, HASURA_ADMIN_SECRET
+from aerie_cli.__main__ import app
+
+import os
+
+runner = CliRunner(mix_stderr = False)
+
+test_dir = os.path.dirname(os.path.abspath(__file__))
+
+files_path = os.path.join(test_dir, "files")
+
+metadata_schemas_path = os.path.join(files_path, "metadata_schemas")
+metadata_schema_path = os.path.join(metadata_schemas_path, "metadata_schema.json")
+
+def test_metadata_list():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "list"],
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Metadata Schemas" in result.stdout
+
+def test_metadata_clean():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "clean"],
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "All metadata schemas have been deleted" in result.stdout
+
+def test_metadata_upload():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "upload"],
+                           input=metadata_schema_path,
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "2 new schema have been added" in result.stdout
+
+def test_metadata_delete():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "delete"],
+                           input="STRING_EXAMPLE",
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Schema `STRING_EXAMPLE` has been removed" in result.stdout

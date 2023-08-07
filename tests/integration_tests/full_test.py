@@ -47,6 +47,10 @@ command_dictionary_id = 0
 expansion_set_id = -1
 expansion_sequence_id = 1
 
+# Metadata Schema Variables
+metadata_schemas_path = os.path.join(files_path, "metadata_schemas")
+metadata_schema_path = os.path.join(metadata_schemas_path, "metadata_schema.json")
+
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
     global command_dictionary_id
@@ -72,6 +76,44 @@ def cli_plan_simulate():
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )
+
+#######################
+# TEST METADATA
+#######################
+
+def test_metadata_list():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "list"],
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Metadata Schemas" in result.stdout
+
+def test_metadata_clean():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "clean"],
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "All metadata schemas have been deleted" in result.stdout
+
+def test_metadata_upload():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "upload"],
+                           input=metadata_schema_path,
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "2 new schema have been added" in result.stdout
+
+def test_metadata_delete():
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "delete"],
+                           input="STRING_EXAMPLE",
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Schema `STRING_EXAMPLE` has been removed" in result.stdout
 
 #######################
 # TEST AND SETUP MODEL
