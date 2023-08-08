@@ -7,12 +7,12 @@ import os
 
 runner = CliRunner(mix_stderr = False)
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
-metadata_schemas_path = os.path.join(files_path, "metadata_schemas")
-metadata_schema_path = os.path.join(metadata_schemas_path, "metadata_schema.json")
+METADATA_SCHEMAS_PATH = os.path.join(FILES_PATH, "metadata_schemas")
+METADATA_SCHEMA_PATH = os.path.join(METADATA_SCHEMAS_PATH, "metadata_schema.json")
 
 def test_metadata_list():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "list"],
@@ -32,7 +32,7 @@ def test_metadata_clean():
 
 def test_metadata_upload():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "metadata", "upload"],
-                           input=metadata_schema_path,
+                           input=METADATA_SCHEMA_PATH,
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\

@@ -18,7 +18,7 @@ MODELS_PATH = os.path.join(FILES_PATH, "models")
 MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
-model_id = 0
+model_id = -1
 
 def test_model_clean():
     result = runner.invoke(

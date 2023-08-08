@@ -11,25 +11,25 @@ import arrow
 
 runner = CliRunner(mix_stderr = False)
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Model Variables
-models_path = os.path.join(files_path, "models")
-model_jar = os.path.join(models_path, "banananation-1.6.2.jar")
-model_name = "banananation"
-version = "0.0.1"
-model_id = 0
+MODELS_PATH = os.path.join(FILES_PATH, "models")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_NAME = "banananation"
+MODEL_VERSION = "0.0.1"
+model_id = -1
 
 # Plan Variables
-plans_path = os.path.join(files_path, "plans")
-plan_json = os.path.join(plans_path, "bake_bread_plan.json")
-plan_id = 0
+PLANS_PATH = os.path.join(FILES_PATH, "plans")
+PLAN_PATH = os.path.join(PLANS_PATH, "bake_bread_plan.json")
+plan_id = -1
 
 # Constraint Variables
-constraints_path = os.path.join(files_path, "constraints")
-constraint_path = os.path.join(constraints_path, "constraint.ts")
+CONSTRAINTS_PATH = os.path.join(FILES_PATH, "constraints")
+CONSTRAINT_PATH = os.path.join(CONSTRAINTS_PATH, "constraint.ts")
 constraint_id = -1
 
 @pytest.fixture(scope="module", autouse=True)
@@ -40,13 +40,13 @@ def set_up_environment(request):
     
     global model_id
     model_id = client.upload_mission_model(
-        mission_model_path=model_jar,
-        project_name=model_name, 
+        mission_model_path=MODEL_JAR,
+        project_name=MODEL_NAME, 
         mission="",
-        version=version)
+        version=MODEL_VERSION)
     
     # upload plan
-    with open(plan_json) as fid:
+    with open(PLAN_PATH) as fid:
         contents = fid.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
     plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
@@ -55,7 +55,7 @@ def set_up_environment(request):
 
 def test_constraint_upload():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "constraints", "upload"],
-                           input="Test" + "\n" + constraint_path + "\n" + str(model_id) + "\n",
+                           input="Test" + "\n" + CONSTRAINT_PATH + "\n" + str(model_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -73,7 +73,7 @@ def test_constraint_upload():
 
 def test_constraint_update():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "constraints", "update"],
-                           input=str(constraint_id) + "\n" + constraint_path + "\n",
+                           input=str(constraint_id) + "\n" + CONSTRAINT_PATH + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -82,7 +82,7 @@ def test_constraint_update():
 
 def test_constraint_delete():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "constraints", "delete"],
-                           input=str(constraint_id) + "\n" + constraint_path + "\n",
+                           input=str(constraint_id) + "\n" + CONSTRAINT_PATH + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\

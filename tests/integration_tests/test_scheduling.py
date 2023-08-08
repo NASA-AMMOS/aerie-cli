@@ -12,30 +12,30 @@ from .conftest import client, HASURA_ADMIN_SECRET
 
 runner = CliRunner(mix_stderr = False)
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
-models_path = os.path.join(files_path, "models")
-model_jar = os.path.join(models_path, "banananation-1.6.2.jar")
-model_name = "banananation"
-version = "0.0.1"
+MODELS_PATH = os.path.join(FILES_PATH, "models")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_NAME = "banananation"
+MODEL_VERSION = "0.0.1"
 model_id = 0
 
 # Plan Variables
-plans_path = os.path.join(files_path, "plans")
-plan_json = os.path.join(plans_path, "bake_bread_plan.json")
+PLANS_PATH = os.path.join(FILES_PATH, "plans")
+PLAN_PATH = os.path.join(PLANS_PATH, "bake_bread_plan.json")
 plan_id = 0
 
 # Simulation Variables
 sim_id = 0
 
 # Schedule Variables
-goals_path = os.path.join(files_path, "goals")
-goal_path = os.path.join(goals_path, "goal1.ts")
+GOALS_PATH = os.path.join(FILES_PATH, "goals")
+GOAL_PATH = os.path.join(GOALS_PATH, "goal1.ts")
 
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
@@ -45,13 +45,13 @@ def set_up_environment(request):
     
     global model_id
     model_id = client.upload_mission_model(
-        mission_model_path=model_jar,
-        project_name=model_name, 
+        mission_model_path=MODEL_JAR,
+        project_name=MODEL_NAME, 
         mission="",
-        version=version)
+        version=MODEL_VERSION)
     
     # upload plan
-    with open(plan_json) as fid:
+    with open(PLAN_PATH) as fid:
         contents = fid.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
     plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
@@ -68,9 +68,9 @@ def set_up_environment(request):
 #######################
 
 def test_schedule_upload():
-    schedule_file_path = os.path.join(goals_path, "schedule1.txt")
+    schedule_file_path = os.path.join(GOALS_PATH, "schedule1.txt")
     with open(schedule_file_path, "x") as fid:
-        fid.write(goal_path)
+        fid.write(GOAL_PATH)
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "upload"],
@@ -87,7 +87,7 @@ def test_schedule_delete():
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete"],
-        input=str(model_id) + "\n" + str(sim_id) + "\n" + goal_path + "\n",
+        input=str(model_id) + "\n" + str(sim_id) + "\n" + GOAL_PATH + "\n",
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\

@@ -11,26 +11,26 @@ from .conftest import client, HASURA_ADMIN_SECRET, DOWNLOADED_FILE_NAME
 
 runner = CliRunner(mix_stderr = False)
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
-models_path = os.path.join(files_path, "models")
-model_jar = os.path.join(models_path, "banananation-1.6.2.jar")
-model_name = "banananation"
-version = "0.0.1"
-model_id = 0
+MODELS_PATH = os.path.join(FILES_PATH, "models")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_NAME = "banananation"
+MODEL_VERSION = "0.0.1"
+model_id = -1
 
 # Plan Variables
-plans_path = os.path.join(files_path, "plans")
-plan_json = os.path.join(plans_path, "bake_bread_plan.json")
-dup_plan_name = os.path.join(plans_path, "bake_bread_plan_2.json")
-plan_id = 0
-args_init = os.path.join(plans_path, "create_config.json")
-args_update = os.path.join(plans_path, "update_config.json")
+PLANS_PATH = os.path.join(FILES_PATH, "plans")
+PLAN_JSON = os.path.join(PLANS_PATH, "bake_bread_plan.json")
+DUP_PLAN_NAME = os.path.join(PLANS_PATH, "bake_bread_plan_2.json")
+plan_id = -1
+PLAN_ARGS_INIT = os.path.join(PLANS_PATH, "create_config.json")
+PLAN_ARGS_UPDATE = os.path.join(PLANS_PATH, "update_config.json")
 
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
@@ -40,10 +40,10 @@ def set_up_environment(request):
 
     global model_id
     model_id = client.upload_mission_model(
-        mission_model_path=model_jar,
-        project_name=model_name, 
+        mission_model_path=MODEL_JAR,
+        project_name=MODEL_NAME, 
         mission="",
-        version=version)
+        version=MODEL_VERSION)
 
 def cli_plan_simulate():
     return runner.invoke(
@@ -66,7 +66,7 @@ def test_plan_upload():
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "upload", "--time-tag"],
-        input=plan_json + "\n" + str(model_id) + "\n",
+        input=PLAN_JSON + "\n" + str(model_id) + "\n",
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
@@ -85,7 +85,7 @@ def test_plan_duplicate():
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
-        input=str(plan_id) + "\n" + dup_plan_name + "\n",
+        input=str(plan_id) + "\n" + DUP_PLAN_NAME + "\n",
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
@@ -173,7 +173,7 @@ def test_plan_create_config():
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "create-config"],
-        input=str(plan_id) + "\n" + args_init + "\n",
+        input=str(plan_id) + "\n" + PLAN_ARGS_INIT + "\n",
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
@@ -194,7 +194,7 @@ def test_plan_update_config():
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "update-config"],
-        input=str(plan_id) + "\n" + args_update + "\n",
+        input=str(plan_id) + "\n" + PLAN_ARGS_UPDATE + "\n",
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\

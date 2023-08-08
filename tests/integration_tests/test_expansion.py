@@ -12,31 +12,31 @@ from .conftest import client, HASURA_ADMIN_SECRET
 
 runner = CliRunner(mix_stderr = False)
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
-models_path = os.path.join(files_path, "models")
-model_jar = os.path.join(models_path, "banananation-1.6.2.jar")
-model_name = "banananation"
-version = "0.0.1"
-model_id = 0
+MODELS_PATH = os.path.join(FILES_PATH, "models")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_NAME = "banananation"
+MODEL_VERSION = "0.0.1"
+model_id = -1
 
 # Plan Variables
-plans_path = os.path.join(files_path, "plans")
-plan_json = os.path.join(plans_path, "bake_bread_plan.json")
-plan_id = 0
+PLANS_PATH = os.path.join(FILES_PATH, "plans")
+PLAN_PATH = os.path.join(PLANS_PATH, "bake_bread_plan.json")
+plan_id = -1
 
 # Simulation Variables
-sim_id = 0
+sim_id = -1
 
 # Command Dictionary Variables
-command_dictionaries_path = os.path.join(files_path, "command_dicts")
-command_dictionary_path = os.path.join(command_dictionaries_path, "command_banananation.xml")
-command_dictionary_id = 0
+COMMAND_DICTIONARIES_PATH = os.path.join(FILES_PATH, "command_dicts")
+COMMAND_DICTIONARY_PATH = os.path.join(COMMAND_DICTIONARIES_PATH, "command_banananation.xml")
+command_dictionary_id = -1
 
 # Expansion Variables
 expansion_set_id = -1
@@ -50,17 +50,17 @@ def set_up_environment(request):
     
     global model_id
     model_id = client.upload_mission_model(
-        mission_model_path=model_jar,
-        project_name=model_name, 
+        mission_model_path=MODEL_JAR,
+        project_name=MODEL_NAME, 
         mission="",
-        version=version)
+        version=MODEL_VERSION)
 
     global command_dictionary_id
-    with open(command_dictionary_path, 'r') as fid:
+    with open(COMMAND_DICTIONARY_PATH, 'r') as fid:
         command_dictionary_id = client.upload_command_dictionary(fid.read())
     
     # upload plan
-    with open(plan_json) as fid:
+    with open(PLAN_PATH) as fid:
         contents = fid.read()
     plan_to_create = ActivityPlanCreate.from_json(contents)
     plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")

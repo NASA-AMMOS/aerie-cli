@@ -37,20 +37,20 @@ client = AerieClient(session)
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
-test_dir = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-files_path = os.path.join(test_dir, "files")
+FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Configuration Variables
-configurations_path = os.path.join(files_path, "configuration")
-config_json = os.path.join(configurations_path, "localhost_config.json")
+CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
+CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_environment(request):
     # Resets the configurations and adds localhost
     deactivate_session()
     delete_all_persistent_files()
-    upload_configurations(config_json)
+    upload_configurations(CONFIGURATION_PATH)
     activate_session("localhost")
     persisent_client = None
     try:
