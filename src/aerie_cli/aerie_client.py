@@ -1628,7 +1628,6 @@ class AerieClient:
                 model_id
                 plan_id
                 name
-                summary
                 definition
                 description
             }
