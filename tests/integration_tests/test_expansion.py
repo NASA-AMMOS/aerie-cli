@@ -33,11 +33,6 @@ plan_id = 0
 # Simulation Variables
 sim_id = 0
 
-# Schedule Variables
-goals_path = os.path.join(files_path, "goals")
-goal_path = os.path.join(goals_path, "goal1.ts")
-
-
 # Command Dictionary Variables
 command_dictionaries_path = os.path.join(files_path, "command_dicts")
 command_dictionary_path = os.path.join(command_dictionaries_path, "command_banananation.xml")
