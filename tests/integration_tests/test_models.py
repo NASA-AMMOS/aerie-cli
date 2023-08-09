@@ -1,11 +1,10 @@
 import os
-import pytest
 
 from typer.testing import CliRunner
 
 from aerie_cli.__main__ import app
 
-from .conftest import client, HASURA_ADMIN_SECRET, DOWNLOADED_FILE_NAME
+from .conftest import client, HASURA_ADMIN_SECRET
 
 runner = CliRunner(mix_stderr = False)
 
