@@ -45,9 +45,13 @@ expansion_sequence_id = 1
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
     resp = client.get_mission_models()
+    # delete all plans and models
     for api_mission_model in resp:
         client.delete_mission_model(api_mission_model.id)
-    
+    for plan in client.get_all_activity_plans():
+        client.delete_plan(plan.id)
+
+    # upload model
     global model_id
     model_id = client.upload_mission_model(
         mission_model_path=MODEL_JAR,
