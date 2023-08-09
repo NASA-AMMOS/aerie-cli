@@ -3,7 +3,6 @@
 # The scope is global either way, but this allows for easier debugging, type hints, and autofill
 import os
 import sys
-import pytest
 
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession, AuthMethod
@@ -18,8 +17,8 @@ GRAPHQL_URL = "http://localhost:8080/v1/graphql"
 GATEWAY_URL = "http://localhost:9000"
 AUTH_URL = "http://localhost:9000/auth/login"
 AUTH_METHOD = AuthMethod.AERIE_NATIVE
-USERNAME = ""
-PASSWORD = ""
+USERNAME = "a"
+PASSWORD = "a"
 # This should only ever be set to the admin secret for a local instance of aerie
 HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 
