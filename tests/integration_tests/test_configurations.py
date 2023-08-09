@@ -54,7 +54,8 @@ def test_configurations_clean():
 
     if not no_session_error:
         # We raise an error to prevent tests running when configurations are broken
-        pytest.exit("CONFIGURATION SHOULD NOT BE ACTIVE", returncode=pytest.ExitCode.TESTS_FAILED)
+        pytest.exit(f"CONFIGURATION SHOULD NOT EXIST. Failed when using active -c option {other}\n",
+                     returncode=pytest.ExitCode.TESTS_FAILED)
     try:
         runner.invoke(
             app,
@@ -64,19 +65,29 @@ def test_configurations_clean():
         return
     except Exception as other:
         # We raise an error to prevent tests running when configurations are broken
-        pytest.exit("CONFIGURATION SHOULD NOT BE ACTIVE. Failed when using active -c option\n",
-                     returncode=pytest.ExitCode.TESTS_FAILED)
+        pytest.exit(
+            f"CONFIGURATION SHOULD NOT EXIST. Failed when using active configuration. UNEXPECTED ERROR: {other}\n",
+                returncode=pytest.ExitCode.TESTS_FAILED)
     # We raise an error to prevent tests running when configurations are broken
-    pytest.exit("CONFIGURATION SHOULD NOT BE ACTIVE. Failed when using active configuration\n",
+    pytest.exit("CONFIGURATION SHOULD NOT EXIST. Failed when using active configuration\n",
                 returncode=pytest.ExitCode.TESTS_FAILED)
 
-def test_configurations_load():
+def test_configurations_create():
     result = runner.invoke(
         app,
-        ["configurations", "load"],
-        input=CONFIGURATION_PATH + "\n",
+        ["configurations", "create"],
+        input=CONFIGURATION_NAME + "\n"
+        + GRAPHQL_URL + "\n"
+        + GATEWAY_URL + "\n"
+        + "None" + "\n"
+        + "y" + "\n"
+        + USERNAME + "\n",
         catch_exceptions=False,
     )
+
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
 
     global configuration_id
     for i, configuration in enumerate(PersistentConfigurationManager.get_configurations()):
@@ -84,14 +95,6 @@ def test_configurations_load():
             continue
         configuration_id = i
     assert configuration_id != -1, "CONFIGURATION NOT LOADED, is it's name localhost?"
-
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
-    assert (
-        "Added configurations"
-        in result.stdout
-    )
 
 def test_configurations_activate():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
@@ -133,19 +136,27 @@ def test_configurations_deactivate():
         f"Deactivated session: {CONFIGURATION_NAME}"
         in result.stdout
     )
+    
     try:
-        after_clean = runner.invoke(
+        runner.invoke(
             app,
-            ["plans", "list"],
-            input=CONFIGURATION_PATH + "\n"
-        )
+            ["--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
+            catch_exceptions=False,)
     except NoActiveSessionError as err:
         return
     except Exception as other:
         # We raise an error to prevent tests running when configurations are broken
-        pytest.exit("CONFIGURATION SHOULD NOT BE ACTIVE", returncode=pytest.ExitCode.TESTS_FAILED)
+        pytest.exit(
+            f"CONFIGURATION SHOULD NOT BE ACTIVE. UNEXPECTED ERROR: {other}\n",
+                returncode=pytest.ExitCode.TESTS_FAILED)
+    try:
+        active_config = PersistentSessionManager.get_active_session().configuration_name
+    except Exception as e:
+        active_config = str(type(e))
     # We raise an error to prevent tests running when configurations are broken
-    pytest.exit("CONFIGURATION SHOULD NOT BE ACTIVE", returncode=pytest.ExitCode.TESTS_FAILED)
+    pytest.exit(
+        f"CONFIGURATION SHOULD NOT BE ACTIVE. Active config: {active_config}",
+        returncode=pytest.ExitCode.TESTS_FAILED)
 
 def test_configurations_delete():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
@@ -171,23 +182,21 @@ def test_configurations_delete():
         f"{result.stdout}"\
         f"{result.stderr}"
 
-def test_configurations_create():
+def test_configurations_load():
     result = runner.invoke(
         app,
-        ["configurations", "create"],
-        input=CONFIGURATION_NAME + "\n"
-        + GRAPHQL_URL + "\n"
-        + GATEWAY_URL + "\n"
-        + "Native" + "\n"
-        + AUTH_URL + "\n"
-        + "y" + "\n"
-        + USERNAME + "\n",
+        ["configurations", "load"],
+        input=CONFIGURATION_PATH + "\n",
         catch_exceptions=False,
     )
 
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
+    assert (
+        "Added configurations"
+        in result.stdout
+    )
 
 def test_configurations_update():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
@@ -202,10 +211,7 @@ def test_configurations_update():
         input=str(configuration_id) + "\n"
         + GRAPHQL_URL + "\n"
         + GATEWAY_URL + "\n"
-        + "2" + "\n"
-        + AUTH_URL + "\n"
-        + "y" + "\n"
-        + USERNAME + "\n",
+        + "1" + "\n",
         catch_exceptions=False,
     )
 
@@ -217,7 +223,6 @@ def test_configurations_list():
     result = runner.invoke(
         app,
         ["configurations", "list"],
-        input=CONFIGURATION_PATH + "\n",
         catch_exceptions=False,
     )
 
