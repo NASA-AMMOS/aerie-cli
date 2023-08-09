@@ -242,3 +242,5 @@ def delete_all_files(
             return
 
     delete_all_persistent_files()
+    # Update the PersistentConfigurationManager's cached configurations to account for the clean
+    PersistentConfigurationManager.read_configurations()
