@@ -200,6 +200,19 @@ class PersistentSessionManager:
         cls._active_session = None
         return name
 
+    @classmethod
+    def reset(cls) -> None:
+        cls._active_session = None
+
+        # Get any/all open sessions. List in chronological order, newest first
+        fs: List[Path] = [
+            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+        if not len(fs):
+            return
+        # Delete all session files
+        for fn in fs:
+            fn.unlink()
+
 
 class NoActiveSessionError(Exception):
     pass
