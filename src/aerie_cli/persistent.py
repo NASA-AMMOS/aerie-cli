@@ -103,6 +103,10 @@ class PersistentConfigurationManager:
         else:
             cls._configurations = []
 
+    @classmethod
+    def reset(cls) -> None:
+        cls._configurations = None
+
 
 class PersistentSessionManager:
     _active_session = None
