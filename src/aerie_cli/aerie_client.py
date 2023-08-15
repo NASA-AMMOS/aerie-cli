@@ -103,10 +103,11 @@ class AerieClient:
     
     def get_all_activity_plans_by_model(self, model_id: int) -> List[ActivityPlanRead]: 
         get_all_plans_by_model_query = """
-        query get_plans_by_model($model_id: Int!) {
-            plan(where: {model_id: {_eq: $model_id}}) {
-                id
-                name
+        query get_all_plans_by_model_id(id: $model_id) {
+            mission_model_by_pk(id: $model_id) {
+                plans {
+                    id
+                }
             }
         }
         """

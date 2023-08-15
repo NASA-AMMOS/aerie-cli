@@ -8,12 +8,12 @@ app = typer.Typer()
 def upload(
     model_id: int = typer.Option(
         ..., help="The mission model ID to associate with the scheduling goal", prompt=True
-    ),
-    plan_id: int = typer.Option(
-        ..., help="Plan ID", prompt=False #how do i make this optional??
-    ),
+    ),   
     schedule: str = typer.Option(
         ..., help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=True
+    ),
+    plan_id: int = typer.Option(
+        ..., help="Plan ID", prompt=False
     )
 ): 
     """Upload scheduling goal"""
@@ -47,10 +47,11 @@ def upload(
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
         #get all plan ids from model id if no plan id is provided 
-        resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
-        all_plans_in_model = resp
-        #may be too slow - create new query? 
-        # all_plans_in_model = [plan for plan in resp if plan.model_id == model_id]
+        resp = CommandContext.get_client().list_all_activity_plans()
+        # resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
+        # all_plans_in_model = resp
+
+        all_plans_in_model = [plan for plan in resp if plan.model_id == model_id]
 
         for plan in all_plans_in_model: 
             specification = client.get_specification_for_plan(plan.id) #will plans have id
