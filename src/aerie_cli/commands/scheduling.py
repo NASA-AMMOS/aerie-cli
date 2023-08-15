@@ -9,11 +9,11 @@ def upload(
     model_id: int = typer.Option(
         ..., help="The mission model ID to associate with the scheduling goal", prompt=True
     ),   
+    plan_id: int = typer.Option(
+        default="", help="Plan ID", prompt=False
+    ),
     schedule: str = typer.Option(
         ..., help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=True
-    ),
-    plan_id: int = typer.Option(
-        ..., help="Plan ID", prompt=False
     )
 ): 
     """Upload scheduling goal"""
