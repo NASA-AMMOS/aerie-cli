@@ -72,10 +72,12 @@ def set_up_environment(request):
         "Aerie instances are mismatched. Ensure test URLs are the same."
 
 def test_model_clean():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"],
+        catch_exceptions=False,
+        )
+    assert result.exit_code == 0
     assert (
         f"All mission models have been deleted"
         in result.stdout
@@ -91,11 +93,10 @@ def cli_upload_banana_model():
         + "\n"
         + version
         + "\n",
-        catch_exceptions=False
+        catch_exceptions=False,
     )
 
 def test_model_upload():
-    print(f"<<{HASURA_ADMIN_SECRET}>>")
     result = cli_upload_banana_model()
 
     # Get model_id of uploaded mission model
@@ -104,19 +105,18 @@ def test_model_upload():
     global model_id
     model_id = latest_model.id
 
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
     assert (
         f"Created new mission model: {model_name} with Model ID: {model_id}"
         in result.stdout
     )
 
 def test_model_list():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
+        catch_exceptions=False,)
+    assert result.exit_code == 0
     assert "Current Mission Models" in result.stdout
 
 def test_plan_upload():
@@ -136,10 +136,9 @@ def test_plan_upload():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "upload", "--time-tag"],
         input=plan_json + "\n" + str(model_id) + "\n",
+        catch_exceptions=False,
     )
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
     
     # Get uploaded plan id
     resp = client.get_all_activity_plans()
@@ -157,10 +156,9 @@ def test_plan_duplicate():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
         input=str(plan_id) + "\n" + dup_plan_name + "\n",
+        catch_exceptions=False,
     )
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
 
     # Get duplicated plan id
     resp = client.get_all_activity_plans()
@@ -171,10 +169,9 @@ def test_plan_duplicate():
 
 
 def test_plan_list():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "list"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "list"],
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0
     assert "Current Activity Plans" in result.stdout
 
 
@@ -185,9 +182,7 @@ def test_plan_simulate():
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
     assert f"Simulation completed" in result.stdout
 
 
@@ -196,10 +191,9 @@ def test_plan_create_config():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "create-config"],
         input=str(plan_id) + "\n" + args_init + "\n",
+        catch_exceptions=False,
     )
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "foo: arg1" in result.stdout
     assert "num: 5" in result.stdout
@@ -210,36 +204,40 @@ def test_plan_update_config():
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "update-config"],
         input=str(plan_id) + "\n" + args_update + "\n",
+        catch_exceptions=False,
     )
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    assert result.exit_code == 0
     assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
     assert "foo: arg2" in result.stdout
     assert "num: 5" in result.stdout
 
 
 def test_plan_delete():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "delete"], input=str(plan_id) + "\n")
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "delete"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0
     assert f"ID: {plan_id} has been removed." in result.stdout
 
 
 def test_plan_clean():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "clean"])
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "clean"],
+        catch_exceptions=False,)
+    assert result.exit_code == 0
     assert (
         f"All activity plans have been deleted"
         in result.stdout
     )
 
 def test_model_delete():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"], input=str(model_id))
-    assert result.exit_code == 0, \
-    f"\nOutput was: \n\n{result.stdout}"\
-    f"\nError was: \n\n {result.stderr}"
+    result = runner.invoke(
+        app,
+        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"],
+        input=str(model_id),
+        catch_exceptions=False,)
+    assert result.exit_code == 0
     assert f"ID: {model_id} has been removed" in result.stdout

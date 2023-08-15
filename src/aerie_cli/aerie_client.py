@@ -104,7 +104,7 @@ class AerieClient:
             activity_plans.append(plan)
         return activity_plans
 
-    def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
+    def get_all_activity_plans(self, full_args: str = None) -> List[ActivityPlanRead]:
         """Get all activity plans
 
         Args:
@@ -114,7 +114,7 @@ class AerieClient:
             Disabled if missing, None, "false", or "".
 
         Returns:
-            list[ActivityPlanRead]
+            List[ActivityPlanRead]
         """
 
         # List all plans then loop to get activities from each
@@ -254,7 +254,7 @@ class AerieClient:
         """
         resp = self.host_session.post_to_graphql(
             insert_activity_mutation,
-            activity=api_activity_create.to_dict(),
+            activity=api_activity_create.to_dict()
         )
         activity_id = resp["id"]
 
@@ -267,8 +267,8 @@ class AerieClient:
         plan_id: int
     ) -> int:
         activity_dict: Dict = activity_to_update.to_api_create(
-            plan_id
-        ).to_dict()
+                plan_id
+            ).to_dict()
         update_activity_mutation = """
         mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
             updateActivity: update_activity_directive_by_pk(
@@ -632,7 +632,7 @@ class AerieClient:
 
         return resp["name"]
 
-    def get_mission_models(self) -> list[ApiMissionModelRead]:
+    def get_mission_models(self) -> List[ApiMissionModelRead]:
 
         get_mission_model_query = """
         query getMissionModels {
@@ -1628,7 +1628,6 @@ class AerieClient:
                 model_id
                 plan_id
                 name
-                summary
                 definition
                 description
             }
