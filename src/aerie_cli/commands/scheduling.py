@@ -10,7 +10,7 @@ def upload(
         ..., help="The mission model ID to associate with the scheduling goal", prompt=True
     ),
     plan_id: int = typer.Option(
-        ..., help="Plan ID", prompt=True
+        ..., help="Plan ID", prompt=False #how do i make this optional??
     ),
     schedule: str = typer.Option(
         ..., help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=True
@@ -35,15 +35,29 @@ def upload(
 
     uploaded_ids = [kv["id"] for kv in resp]
 
-    #priority order is order of filenames in decreasing priority order
-    #will append to existing goals in specification priority order
-    specification = client.get_specification_for_plan(plan_id)
+    if(plan_id):
+        #priority order is order of filenames in decreasing priority order
+        #will append to existing goals in specification priority order
+        specification = client.get_specification_for_plan(plan_id)
 
-    upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
+        upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
 
-    client.add_goals_to_specifications(upload_to_spec)
+        client.add_goals_to_specifications(upload_to_spec)
 
-    typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
+        typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
+    else: 
+        #get all plan ids from model id if no plan id is provided 
+        resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
+        all_plans_in_model = resp
+        #may be too slow - create new query? 
+        # all_plans_in_model = [plan for plan in resp if plan.model_id == model_id]
+
+        for plan in all_plans_in_model: 
+            specification = client.get_specification_for_plan(plan.id) #will plans have id
+            upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
+            client.add_goals_to_specifications(upload_to_spec)
+
+        typer.echo(f"Assigned goals in priority order to all plans to model ID {model_id}.")
 
 
 @app.command()
