@@ -112,3 +112,12 @@ def list():
 
     console = Console()
     console.print(table)
+
+@app.command()
+def get_all_plans_from_id(model_id: int = typer.Option(
+    ..., help="The mission model ID to associate with the scheduling goal", prompt=True
+)): 
+    """Get all plans from model id test"""
+    resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
+
+    Console().print(resp)
