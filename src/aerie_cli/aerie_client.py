@@ -113,12 +113,12 @@ class AerieClient:
         """
 
         resp = self.host_session.post_to_graphql(get_all_plans_by_model_query, model_id=model_id)
-        model_activity_plans = []
-        for plan in resp['plans']:
-            plan = ApiActivityPlanRead.from_dict(plan)
-            plan = ActivityPlanRead.from_api_read(plan)
-            model_activity_plans.append(plan)
-        return model_activity_plans
+        # model_activity_plans = []
+        # for plan in resp['plans']:
+        #     plan = ApiActivityPlanRead.from_dict(plan)
+        #     plan = ActivityPlanRead.from_api_read(plan)
+        #     model_activity_plans.append(plan)
+        return resp['plans']
 
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
