@@ -47,12 +47,10 @@ def upload(
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
         #get all plan ids from model id if no plan id is provided 
-        # resp = CommandContext.get_client().list_all_activity_plans()
         resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
-        # all_plans_in_model = [plan for plan in resp if plan.model_id == model_id]
 
         for plan in resp: 
-            specification = client.get_specification_for_plan(plan.id)
+            specification = client.get_specification_for_plan(plan["id"])
             upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
             client.add_goals_to_specifications(upload_to_spec)
 
