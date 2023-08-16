@@ -101,20 +101,6 @@ class AerieClient:
             activity_plans.append(plan)
         return activity_plans
     
-    def get_all_activity_plans_by_model(self, model_id: int) -> List[ActivityPlanRead]: 
-        get_all_plans_by_model_query = """
-        query get_all_plans_by_model_id($model_id: Int!) {
-            mission_model_by_pk(id: $model_id) {
-                plans {
-                    id
-                }
-            }
-        }
-        """
-
-        resp = self.host_session.post_to_graphql(get_all_plans_by_model_query, model_id=model_id)
-        return resp['plans']
-
     def get_all_activity_plans(self, full_args: str = None) -> list[ActivityPlanRead]:
         get_all_plans_query = """
         query get__all_plans {

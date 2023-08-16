@@ -1,22 +1,34 @@
 import typer
 
 from aerie_cli.commands.command_context import CommandContext
+from aerie_cli.utils.prompts import select_from_list
 
 app = typer.Typer()
 
 @app.command()
 def upload(
     model_id: int = typer.Option(
-        ..., help="The mission model ID to associate with the scheduling goal", prompt=True
+        None, '--model-id', '-m', help="The mission model ID to associate with the scheduling goal", prompt=False
     ),   
     plan_id: int = typer.Option(
-        help="Plan ID (optional)", default=-1, prompt=True #how to make this optional
+        None, '--plan-id', '-p', help="Plan ID", prompt=False
     ),
     schedule: str = typer.Option(
-        ..., help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=True
+        None, '--file-path', '-f', help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=False
     )
 ): 
     """Upload scheduling goal"""
+    
+    if(model_id is None and plan_id is None and schedule is None):
+        choices = ["Upload goals to a single plan", "Upload goals to all plans for a specified model"]
+        choice = select_from_list(choices)
+
+        if(choices.index(choice) == 0):
+            plan_id = typer.prompt('Plan ID')
+
+        model_id = typer.prompt('Mission model ID to associate with the scheduling goal')
+        schedule = typer.prompt('Text file with one path on each line to a scheduling rule file, in decreasing priority order')
+
     client = CommandContext.get_client()
 
     upload_obj = []
@@ -29,7 +41,7 @@ def upload(
                 d = dict(zip(keys, [filename, model_id, f.read()]))
                 upload_obj.append(d)
     
-    if(plan_id != -1):
+    if(plan_id is not None):
         #uploading to single plan
         resp = client.upload_scheduling_goals(upload_obj)
             
@@ -46,15 +58,17 @@ def upload(
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
         #get all plan ids from model id if no plan id is provided 
-        resp = client.get_all_activity_plans_by_model(model_id)
+        resp = client.list_all_activity_plans()
+        all_plans_in_model = filter(lambda p: p.model_id == model_id, resp)
 
-        for plan in resp: 
+        for plan in all_plans_in_model: 
+            plan_id = plan.id
             #each schedule goal needs own ID - add each goal for each plan
             resp = client.upload_scheduling_goals(upload_obj)
             typer.echo(f"Uploaded scheduling goals to venue.")
             uploaded_ids = [kv["id"] for kv in resp]
 
-            specification = client.get_specification_for_plan(plan["id"])
+            specification = client.get_specification_for_plan(plan_id)
             upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
             client.add_goals_to_specifications(upload_to_spec)
 
