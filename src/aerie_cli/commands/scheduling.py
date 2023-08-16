@@ -29,27 +29,31 @@ def upload(
                 d = dict(zip(keys, [filename, model_id, f.read()]))
                 upload_obj.append(d)
     
-    resp = client.upload_scheduling_goals(upload_obj)
-            
-    typer.echo(f"Uploaded scheduling goals to venue.")
-
-    uploaded_ids = [kv["id"] for kv in resp]
-
     if(plan_id != -1):
+        #uploading to single plan
+        resp = client.upload_scheduling_goals(upload_obj)
+            
+        typer.echo(f"Uploaded scheduling goals to venue.")
+
+        uploaded_ids = [kv["id"] for kv in resp]
+
         #priority order is order of filenames in decreasing priority order
         #will append to existing goals in specification priority order
         specification = client.get_specification_for_plan(plan_id)
 
         upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
-
         client.add_goals_to_specifications(upload_to_spec)
-
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
         #get all plan ids from model id if no plan id is provided 
-        resp = CommandContext.get_client().get_all_activity_plans_by_model(model_id)
+        resp = client.get_all_activity_plans_by_model(model_id)
 
         for plan in resp: 
+            #each schedule goal needs own ID - add each goal for each plan
+            resp = client.upload_scheduling_goals(upload_obj)
+            typer.echo(f"Uploaded scheduling goals to venue.")
+            uploaded_ids = [kv["id"] for kv in resp]
+
             specification = client.get_specification_for_plan(plan["id"])
             upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
             client.add_goals_to_specifications(upload_to_spec)
