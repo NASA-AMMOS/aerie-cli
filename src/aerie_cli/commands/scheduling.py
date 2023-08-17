@@ -17,19 +17,28 @@ def upload(
         None, '--file-path', '-f', help="Text file with one path on each line to a scheduling rule file, in decreasing priority order", prompt=False
     )
 ): 
-    """Upload scheduling goal"""
+    """Upload scheduling goal to single plan or to all plans in a model"""
     
-    if(model_id is None and plan_id is None and schedule is None):
+    if(model_id is None and plan_id is None):
         choices = ["Upload goals to a single plan", "Upload goals to all plans for a specified model"]
         choice = select_from_list(choices)
 
-        if(choices.index(choice) == 0):
+        if(choice == choices[0]):
             plan_id = typer.prompt('Plan ID')
+        else:    
+            model_id = typer.prompt('Mission model ID to associate with the scheduling goal')
 
-        model_id = typer.prompt('Mission model ID to associate with the scheduling goal')
+    if(schedule is None):
         schedule = typer.prompt('Text file with one path on each line to a scheduling rule file, in decreasing priority order')
 
     client = CommandContext.get_client()
+
+    all_plans_list = client.list_all_activity_plans()
+    if(plan_id is not None and model_id is None):
+        #get model id if not specified
+        plan = next((p for p in all_plans_list if p.id == plan_id), None)
+        model_id = plan.model_id
+        assert(model_id is not None)
 
     upload_obj = []
     keys = ["name", "model_id", "definition"]
@@ -39,7 +48,7 @@ def upload(
             filename = filepath.split("/")[-1]
             with open(filepath, "r") as f:
                 d = dict(zip(keys, [filename, model_id, f.read()]))
-                upload_obj.append(d)
+                upload_obj.append(d) 
     
     if(plan_id is not None):
         #uploading to single plan
@@ -58,14 +67,13 @@ def upload(
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
         #get all plan ids from model id if no plan id is provided 
-        resp = client.list_all_activity_plans()
-        all_plans_in_model = filter(lambda p: p.model_id == model_id, resp)
+        all_plans_in_model = [p for p in all_plans_list if p.model_id == model_id]
 
         for plan in all_plans_in_model: 
             plan_id = plan.id
             #each schedule goal needs own ID - add each goal for each plan
             resp = client.upload_scheduling_goals(upload_obj)
-            typer.echo(f"Uploaded scheduling goals to venue.")
+            typer.echo(f"Uploaded scheduling goals to venue for plan ID ${plan_id}")
             uploaded_ids = [kv["id"] for kv in resp]
 
             specification = client.get_specification_for_plan(plan_id)
