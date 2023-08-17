@@ -24,9 +24,9 @@ def upload(
         choice = select_from_list(choices)
 
         if(choice == choices[0]):
-            plan_id = typer.prompt('Plan ID')
+            plan_id = int(typer.prompt('Plan ID'))
         else:    
-            model_id = typer.prompt('Mission model ID to associate with the scheduling goal')
+            model_id = int(typer.prompt('Mission model ID to associate with the scheduling goal'))
 
     if(schedule is None):
         schedule = typer.prompt('Text file with one path on each line to a scheduling rule file, in decreasing priority order')
@@ -66,14 +66,12 @@ def upload(
         client.add_goals_to_specifications(upload_to_spec)
         typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
     else: 
-        #get all plan ids from model id if no plan id is provided 
-        all_plans_in_model = [p for p in all_plans_list if p.model_id == model_id]
-
-        for plan in all_plans_in_model: 
+        #upload to all plans within model  
+        for plan in filter(lambda p: p.model_id == model_id, all_plans_list): 
             plan_id = plan.id
             #each schedule goal needs own ID - add each goal for each plan
             resp = client.upload_scheduling_goals(upload_obj)
-            typer.echo(f"Uploaded scheduling goals to venue for plan ID ${plan_id}")
+            typer.echo(f"Uploaded scheduling goals to venue for plan ID {plan_id}")
             uploaded_ids = [kv["id"] for kv in resp]
 
             specification = client.get_specification_for_plan(plan_id)
