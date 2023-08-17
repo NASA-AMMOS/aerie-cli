@@ -3,18 +3,19 @@ from typing import Dict, List
 import json
 import re
 
-import arrow
+import pytest
 
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHostSession
-from aerie_cli.schemas.client import ActivityCreate
+from aerie_cli.schemas.client import Activity
 from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.client import ActivityPlanRead
+from aerie_cli.schemas.client import ActivityPlanCreate
 from aerie_cli.schemas.client import ResourceType
 
-BLANK_LINE_REGEX = r'^\s*$'
-EXPECTED_RESULTS_DIRECTORY = Path(
-    __file__).parent.joinpath('files', 'expected_results')
+BLANK_LINE_REGEX = r"^\s*$"
+EXPECTED_RESULTS_DIRECTORY = Path(__file__).parent.joinpath("files", "expected_results")
+INPUTS_DIRECTORY = Path(__file__).parent.joinpath("files", "inputs")
 
 
 def _preprocess_query(q) -> str:
@@ -112,40 +113,39 @@ def test_create_activity():
     host_session = MockAerieHostSession('create_activity')
     client = AerieClient(host_session)
 
-    activity = ActivityCreate.from_dict({
-        "type": "NoOp",
-        "start_time": "2030-01-01T00:00:00+00:00",
-        "parameters": {
-            "aParameter": "2030-001T00:00:00Z"
-        },
-        "name": "My Activity",
-        "tags": [],
-        "metadata": {}
-    })
+    activity = Activity.from_dict(
+        {
+            "id": 1,
+            "type": "NoOp",
+            "start_offset": "00:00:00",
+            "arguments": {"aParameter": "2030-001T00:00:00Z"},
+            "name": "My Activity",
+            "tags": [],
+            "metadata": {},
+            "anchor_id": None,
+            "anchored_to_start": True,
+        }
+    )
 
-    res = client.create_activity(
-        activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
+    res = client.create_activity(activity, 1)
 
     assert res == 15
 
 
 def test_update_activity():
-    host_session = MockAerieHostSession('update_activity')
+    host_session = MockAerieHostSession("update_activity")
     client = AerieClient(host_session)
 
-    activity = ActivityCreate.from_dict({
-        "type": "NoOp",
-        "start_time": "2030-01-01T00:00:00+00:00",
-        "parameters": {
-            "aParameter": "2030-001T00:00:00Z"
-        },
-        "name": "My Activity",
-        "tags": [],
-        "metadata": {}
-    })
+    activity = Activity.from_dict(
+        {
+            "type": "NoOp",
+            "start_offset": "00:00:00",
+            "arguments": {"aParameter": "2030-001T00:00:00Z"},
+            "name": "My Activity",
+        }
+    )
 
-    res = client.update_activity(
-        15, activity, 1, arrow.get("2030-01-01T00:00:00+00:00"))
+    res = client.update_activity(15, activity, 1)
 
     assert res == 15
 
@@ -160,7 +160,6 @@ def test_get_resource_samples():
         expected = json.load(fid)
 
     res = client.get_resource_samples(1)
-    print(json.dumps(res, indent=2))
     assert res == expected
 
     # CASE 2: Get only speicifc states
@@ -171,8 +170,34 @@ def test_get_resource_samples():
         expected = json.load(fid)
 
     res = client.get_resource_samples(1, ["hardwareState"])
-    print(json.dumps(res, indent=2))
     assert res == expected
+
+
+def test_get_activity_plan_by_id():
+    host_session = MockAerieHostSession("get_activity_plan_by_id")
+    client = AerieClient(host_session)
+
+    with open(
+        EXPECTED_RESULTS_DIRECTORY.joinpath("get_activity_plan_by_id.json"), "r"
+    ) as fid:
+        expected = json.load(fid)
+
+    res = client.get_activity_plan_by_id(1).to_dict()
+    assert res == expected
+
+
+@pytest.mark.parametrize(["case_name"], [("create_activity_plan_1",), ("create_activity_plan_2",)])
+def test_create_activity_plan(case_name: str):
+    host_session = MockAerieHostSession(case_name)
+    client = AerieClient(host_session)
+
+    with open(INPUTS_DIRECTORY.joinpath(f"{case_name}.json"), "r") as fid:
+        input_plan = ActivityPlanCreate.from_plan_read(ActivityPlanRead.from_json(fid.read()))
+
+    res = client.create_activity_plan(7, input_plan)
+
+    # Expected plan ID from mock response is 456
+    assert res == 456
 
 
 def test_get_resource_types():

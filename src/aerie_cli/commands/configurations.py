@@ -12,7 +12,7 @@ from rich.table import Table
 from aerie_cli.aerie_host import AuthMethod, AerieHostConfiguration
 from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
 from aerie_cli.utils.prompts import select_from_list
-
+from aerie_cli.utils.sessions import start_session_from_configuration
 
 app = typer.Typer()
 
@@ -150,17 +150,7 @@ def activate_session(
 
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
-    if conf.auth_method != AuthMethod.NONE:
-        if conf.username is None:
-            username = typer.prompt('Username')
-        else:
-            username = conf.username
-        password = typer.prompt('Password', hide_input=True)
-    else:
-        username = None
-        password = None
-
-    session = conf.start_session(username, password)
+    session = start_session_from_configuration(conf)
     PersistentSessionManager.set_active_session(session)
 
 
@@ -252,3 +242,6 @@ def delete_all_files(
             return
 
     delete_all_persistent_files()
+    # Update the PersistentConfigurationManager's cached configurations to account for the clean
+    PersistentSessionManager.reset()
+    PersistentConfigurationManager.reset()

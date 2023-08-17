@@ -1,0 +1,48 @@
+{
+  "name": "example-plan",
+  "start_time": "2030-01-01T00:00:00+00:00",
+  "end_time": "2030-01-01T12:00:00+00:00",
+  "id": 1,
+  "model_id": 1,
+  "sim_id": 1,
+  "activities": [
+    {
+      "type": "ACT_One",
+      "start_offset": "0:00:00",
+      "tags": [
+        "first_tag",
+        "second_tag"
+      ],
+      "metadata": {},
+      "name": "Anchor",
+      "arguments": {},
+      "anchor_id": null,
+      "anchored_to_start": true,
+      "id": 1
+    },
+    {
+      "type": "ACT_Two",
+      "start_offset": "2:00:00",
+      "tags": [],
+      "metadata": {},
+      "name": "Anchored_to_start",
+      "arguments": {},
+      "anchor_id": 1,
+      "anchored_to_start": true,
+      "id": 2
+    },
+    {
+      "type": "ACT_Three",
+      "start_offset": "4:00:00",
+      "tags": [],
+      "metadata": {},
+      "name": "Anchored_to_end",
+      "arguments": {
+        "test": "test"
+      },
+      "anchor_id": 1,
+      "anchored_to_start": false,
+      "id": 3
+    }
+  ]
+}

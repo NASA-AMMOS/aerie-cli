@@ -7,14 +7,16 @@
                 "plan_id": 1,
                 "activity": {
                     "type": "NoOp",
+                    "start_offset": "0 seconds 0 microseconds",
+                    "tags": "{}",
+                    "metadata": {},
+                    "name": "My Activity",
                     "arguments": {
                         "aParameter": "2030-001T00:00:00Z"
                     },
-                    "name": "My Activity",
-                    "tags": "{}",
-                    "metadata": {},
-                    "plan_id": 1,
-                    "start_offset": "0 seconds 0 milliseconds"
+                    "anchor_id": null,
+                    "anchored_to_start": true,
+                    "plan_id": 1
                 }
             }
         },

@@ -1,0 +1,62 @@
+[
+    {
+        "request": {
+            "query": "query get_plans ($plan_id: Int!) { plan_by_pk(id: $plan_id) { id model_id name start_time duration simulations{ id } activity_directives(order_by: { start_offset: asc }) { id name type start_offset arguments metadata tags anchor_id anchored_to_start } } }",
+            "variables": {
+                "plan_id": 1
+            }
+        },
+        "response": {
+            "id": 1,
+            "model_id": 1,
+            "name": "example-plan",
+            "start_time": "2030-01-01T00:00:00+00:00",
+            "duration": "12:00:00",
+            "simulations": [
+                {
+                    "id": 1
+                }
+            ],
+            "activity_directives": [
+                {
+                    "id": 1,
+                    "name": "Anchor",
+                    "type": "ACT_One",
+                    "start_offset": "00:00:00",
+                    "arguments": {},
+                    "metadata": {},
+                    "tags": [
+                        "first_tag",
+                        "second_tag"
+                    ],
+                    "anchor_id": null,
+                    "anchored_to_start": true
+                },
+                {
+                    "id": 2,
+                    "name": "Anchored_to_start",
+                    "type": "ACT_Two",
+                    "start_offset": "02:00:00",
+                    "arguments": {},
+                    "metadata": {},
+                    "tags": [],
+                    "anchor_id": 1,
+                    "anchored_to_start": true
+                },
+                {
+                    "id": 3,
+                    "name": "Anchored_to_end",
+                    "type": "ACT_Three",
+                    "start_offset": "04:00:00",
+                    "arguments": {
+                        "test": "test"
+                    },
+                    "metadata": {},
+                    "tags": [],
+                    "anchor_id": 1,
+                    "anchored_to_start": false
+                }
+            ]
+        }
+    }
+]

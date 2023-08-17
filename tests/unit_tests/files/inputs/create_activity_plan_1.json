@@ -1,0 +1,48 @@
+{
+  "name": "upload-test-1",
+  "start_time": "2030-01-01T00:00:00+00:00",
+  "end_time": "2030-01-01T12:00:00+00:00",
+  "id": 123,
+  "model_id": 7,
+  "sim_id": 321,
+  "activities": [
+    {
+      "type": "ACT_One",
+      "arguments": {},
+      "name": "Anchor",
+      "tags": [
+        "first_tag",
+        "second_tag"
+      ],
+      "metadata": {},
+      "anchor_id": null,
+      "anchored_to_start": true,
+      "start_offset": "0:00:00",
+      "id": 1
+    },
+    {
+      "type": "ACT_Two",
+      "arguments": {},
+      "name": "Anchored_to_start",
+      "tags": [],
+      "metadata": {},
+      "anchor_id": 1,
+      "anchored_to_start": true,
+      "start_offset": "2:00:00",
+      "id": 2
+    },
+    {
+      "type": "ACT_Three",
+      "arguments": {
+        "test": "test"
+      },
+      "name": "Anchored_to_end",
+      "tags": [],
+      "metadata": {},
+      "anchor_id": 1,
+      "anchored_to_start": false,
+      "start_offset": "4:00:00",
+      "id": 3
+    }
+  ]
+}
