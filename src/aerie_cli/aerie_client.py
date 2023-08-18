@@ -1664,8 +1664,8 @@ class AerieClient:
         """
 
         get_resource_types_query = """
-        query ResourceTypes($missionModelId: ID!) {
-            resourceTypes(missionModelId: $missionModelId) {
+        query ResourceTypes($missionModelId: Int!) {
+            resourceTypes: resource_type(where: {model_id: {_eq: $missionModelId}}) {
                 name
                 schema
             }
