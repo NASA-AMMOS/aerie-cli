@@ -56,12 +56,12 @@ Aerie CLI provides a command-line interface and user-extendable Python backend f
 
 This short procedure will get you up and running with the basics of Aerie CLI. Read the following sections for more information.
 
-1. Install/update to Python 3.9
+1. Install/update to Python >=3.9
 
 2. Install Aerie CLI from Github:
 
    ```sh
-   python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git#main
+   python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@main
    ```
 
 3. Configure access to an Aerie host
