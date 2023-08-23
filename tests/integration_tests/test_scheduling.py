@@ -36,6 +36,7 @@ sim_id = 0
 # Schedule Variables
 GOALS_PATH = os.path.join(FILES_PATH, "goals")
 GOAL_PATH = os.path.join(GOALS_PATH, "goal1.ts")
+goal_id = -1
 
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
@@ -67,27 +68,41 @@ def set_up_environment(request):
 # Uses model, plan, and simulation
 #######################
 
-def test_schedule_upload():
+def cli_schedule_upload():
     schedule_file_path = os.path.join(GOALS_PATH, "schedule1.txt")
     with open(schedule_file_path, "x") as fid:
         fid.write(GOAL_PATH)
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "upload"],
-        input=str(model_id) + "\n" + str(sim_id) + "\n" + schedule_file_path + "\n",
+        input=str(model_id) + "\n" + str(plan_id) + "\n" + schedule_file_path + "\n",
         catch_exceptions=False,
         )
     os.remove(schedule_file_path)
+    return result
+
+def test_schedule_upload():
+    result = cli_schedule_upload()
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
     assert "Assigned goals in priority order" in result.stdout
-
+    global goal_id
+    for line in result.stdout.splitlines():
+        if not "Assigned goals in priority order" in line:
+            continue
+        # get expansion id from the end of the line
+        goal_id = int(line.split("ID ")[1][:-1])
+    assert goal_id != -1, "Could not find goal ID, goal upload may have failed"\
+        f"{result.stdout}"\
+        f"{result.stderr}"
 def test_schedule_delete():
+    assert goal_id != -1, "Goal id was not set"
+
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete"],
-        input=str(model_id) + "\n" + str(sim_id) + "\n" + GOAL_PATH + "\n",
+        input=str(goal_id) + "\n",
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\
@@ -96,6 +111,10 @@ def test_schedule_delete():
     assert f"Successfully deleted Goal" in result.stdout
 
 def test_schedule_delete_all():
+    # Upload a goal to delete
+    cli_schedule_upload()
+    
+    # Delete all goals
     result = runner.invoke(
         app,
         ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete-all-goals-for-plan"],
@@ -105,4 +124,4 @@ def test_schedule_delete_all():
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
-    assert "No goals to delete." in result.stdout
+    assert f"Deleting goals for Plan ID {plan_id}" in result.stdout
