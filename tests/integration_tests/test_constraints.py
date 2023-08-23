@@ -82,7 +82,7 @@ def test_constraint_update():
 
 def test_constraint_delete():
     result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "constraints", "delete"],
-                           input=str(constraint_id) + "\n" + CONSTRAINT_PATH + "\n",
+                           input=str(constraint_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
