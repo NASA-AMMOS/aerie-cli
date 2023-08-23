@@ -160,7 +160,7 @@ class PersistentSessionManager:
     @classmethod
     def set_active_session(cls, session: AerieHostSession) -> bool:
 
-        if not session.ping_gateway():
+        if not session.check_auth():
             return False
 
         fs: List[Path] = [
