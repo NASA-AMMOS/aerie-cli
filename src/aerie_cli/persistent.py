@@ -135,8 +135,11 @@ class PersistentSessionManager:
 
         # Get timestamp of newest session
         fn = fs[0]
-        t = datetime.strptime(
-            fn.name[:-(len('.aerie_cli.session'))], SESSION_TIMESTAMP_FSTRING)
+        try:
+            t = datetime.strptime(
+                fn.name[:-(len('.aerie_cli.session'))], SESSION_TIMESTAMP_FSTRING)
+        except Exception:
+            raise RuntimeError(f"Cannot parse session timestamp: {fn.name}. Try deactivating your session.")
 
         # If session hasn't been used since timeout, mark as inactive
         if (datetime.utcnow() - t) > SESSION_TIMEOUT:
@@ -144,8 +147,12 @@ class PersistentSessionManager:
             raise NoActiveSessionError
 
         # Un-pickle the session
-        with open(fn, 'rb') as fid:
-            session: AerieHostSession = pickle.load(fid)
+        try:
+            with open(fn, 'rb') as fid:
+                session: AerieHostSession = pickle.load(fid)
+        except Exception:
+            fn.unlink()
+            raise NoActiveSessionError
 
         # If gateway ping fails, mark session as inactive
         if not cls.set_active_session(session):
