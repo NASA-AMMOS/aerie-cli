@@ -1,7 +1,7 @@
 [
     {
         "request": {
-            "query": "query get_plans ($plan_id: Int!) { plan_by_pk(id: $plan_id) { id model_id name start_time duration simulations{ id } activity_directives(order_by: { start_offset: asc }) { id name type start_offset arguments metadata tags anchor_id anchored_to_start } } }",
+            "query": "query get_plans ($plan_id: Int!) { plan_by_pk(id: $plan_id) { id model_id name start_time duration simulations{ id } activity_directives(order_by: { start_offset: asc }) { id name type start_offset arguments metadata anchor_id anchored_to_start } } }",
             "variables": {
                 "plan_id": 1
             }
@@ -25,10 +25,6 @@
                     "start_offset": "00:00:00",
                     "arguments": {},
                     "metadata": {},
-                    "tags": [
-                        "first_tag",
-                        "second_tag"
-                    ],
                     "anchor_id": null,
                     "anchored_to_start": true
                 },
@@ -39,7 +35,6 @@
                     "start_offset": "02:00:00",
                     "arguments": {},
                     "metadata": {},
-                    "tags": [],
                     "anchor_id": 1,
                     "anchored_to_start": true
                 },
@@ -52,7 +47,6 @@
                         "test": "test"
                     },
                     "metadata": {},
-                    "tags": [],
                     "anchor_id": 1,
                     "anchored_to_start": false
                 }

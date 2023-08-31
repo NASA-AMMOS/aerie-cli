@@ -73,7 +73,6 @@ class Activity(ActivityBase, ClientSerialize):
             start_offset=self.start_offset,
             arguments=self.arguments,
             name=self.name,
-            tags=self.tags,
             metadata=self.metadata,
             anchor_id=self.anchor_id,
             anchored_to_start=self.anchored_to_start
@@ -89,7 +88,6 @@ class Activity(ActivityBase, ClientSerialize):
             type=api_activity_read.type,
             start_offset=api_activity_read.start_offset,
             arguments=api_activity_read.arguments,
-            tags=api_activity_read.tags,
             metadata=api_activity_read.metadata,
             anchor_id=api_activity_read.anchor_id,
             anchored_to_start=api_activity_read.anchored_to_start

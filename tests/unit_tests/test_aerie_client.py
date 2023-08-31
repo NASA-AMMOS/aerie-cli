@@ -120,7 +120,6 @@ def test_create_activity():
             "start_offset": "00:00:00",
             "arguments": {"aParameter": "2030-001T00:00:00Z"},
             "name": "My Activity",
-            "tags": [],
             "metadata": {},
             "anchor_id": None,
             "anchored_to_start": True,

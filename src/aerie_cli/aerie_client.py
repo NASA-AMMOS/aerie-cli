@@ -69,7 +69,6 @@ class AerieClient:
                     start_offset
                     arguments
                     metadata
-                    tags
                     anchor_id
                     anchored_to_start
                 }

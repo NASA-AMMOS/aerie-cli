@@ -23,7 +23,6 @@
                 "activity": {
                     "type": "ACT_One",
                     "start_offset": "0 seconds 0 microseconds",
-                    "tags": "{first_tag,second_tag}",
                     "metadata": {},
                     "name": "Anchor",
                     "arguments": {},
@@ -44,7 +43,6 @@
                 "activity": {
                     "type": "ACT_Three",
                     "start_offset": "14400 seconds 0 microseconds",
-                    "tags": "{}",
                     "metadata": {},
                     "name": "Anchored_to_end",
                     "arguments": {
@@ -67,7 +65,6 @@
                 "activity": {
                     "type": "ACT_Two",
                     "start_offset": "7200 seconds 0 microseconds",
-                    "tags": "{}",
                     "metadata": {},
                     "name": "Anchored_to_start",
                     "arguments": {},

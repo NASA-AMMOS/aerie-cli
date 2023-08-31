@@ -6,7 +6,6 @@
                 "activity": {
                     "type": "NoOp",
                     "start_offset": "0 seconds 0 microseconds",
-                    "tags": "{}",
                     "metadata": {},
                     "name": "My Activity",
                     "arguments": {
