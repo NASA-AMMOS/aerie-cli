@@ -12,7 +12,6 @@ from rich.table import Table
 from aerie_cli.aerie_host import AuthMethod, AerieHostConfiguration
 from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
 from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.utils.sessions import start_session_from_configuration
 
 app = typer.Typer()
 
@@ -135,35 +134,6 @@ def upload_configurations(
     if len(updated_confs):
         Console().print(f"Updated configurations: {', '.join(updated_confs)}")
 
-
-@app.command('activate')
-def activate_session(
-    name: str = typer.Option(
-        None, '--name', '-n', help='Name for this configuration', metavar='NAME')
-):
-    """
-    Activate a session with an Aerie host using a given configuration
-    """
-    if name is None:
-        name = select_from_list(
-            [c.name for c in PersistentConfigurationManager.get_configurations()])
-
-    conf = PersistentConfigurationManager.get_configuration_by_name(name)
-
-    session = start_session_from_configuration(conf)
-    PersistentSessionManager.set_active_session(session)
-
-
-@app.command('deactivate')
-def deactivate_session():
-    """
-    Deactivate any active session
-    """
-    name = PersistentSessionManager.unset_active_session()
-    if name is None:
-        Console().print("No active session")
-    else:
-        Console().print(f"Deactivated session: {name}")
 
 
 @app.command('list')
