@@ -15,13 +15,16 @@ from aerie_cli.commands import metadata
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.__version__ import __version__
-from aerie_cli.utils.configurations import find_configuration
 from aerie_cli.persistent import (
     PersistentConfigurationManager,
     PersistentSessionManager,
 )
 from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.utils.sessions import start_session_from_configuration
+from aerie_cli.utils.sessions import (
+    start_session_from_configuration,
+    get_active_session_client,
+)
+from aerie_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
 app.add_typer(plans.app, name="plans")
@@ -107,3 +110,39 @@ def deactivate_session():
         typer.echo("No active session")
     else:
         typer.echo(f"Deactivated session: {name}")
+
+
+@app.command("role")
+def change_role(
+    role: str = typer.Option(
+        None, "--role", "-r", help="New role to selec", metavar="ROLE"
+    )
+):
+    """
+    Change Aerie permissions role for the active session
+    """
+    client = get_active_session_client()
+
+    if role is None:
+        typer.echo(f"Active Role: {client.host_session.aerie_jwt.active_role}")
+        role = select_from_list(client.host_session.aerie_jwt.allowed_roles)
+
+    client.host_session.change_role(role)
+
+    PersistentSessionManager.set_active_session(client.host_session)
+
+    typer.echo(f"Changed role to: {client.host_session.aerie_jwt.active_role}")
+
+
+@app.command("status")
+def print_status():
+    """
+    Returns information about the current Aerie session.
+    """
+
+    client = CommandContext.get_client()
+
+    if client.host_session.configuration_name:
+        typer.echo(f"Active configuration: {client.host_session.configuration_name}")
+
+    typer.echo(f"Active role: {client.host_session.aerie_jwt.active_role}")

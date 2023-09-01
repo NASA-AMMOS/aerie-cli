@@ -1,7 +1,7 @@
 import requests
 import typer
 
-from aerie_cli.aerie_host import AerieHostSession, AerieHostConfiguration, AuthMethod
+from aerie_cli.aerie_host import AerieHostSession, AerieHostConfiguration
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.persistent import PersistentSessionManager
 
@@ -73,14 +73,10 @@ def get_preauthenticated_client_cookie(cookie_name: str, cookie_value: str, grap
     return AerieClient(aerie_session)
 
 def start_session_from_configuration(configuration: AerieHostConfiguration):
-    if configuration.auth_method != AuthMethod.NONE:
-        if configuration.username is None:
-            username = typer.prompt('Username')
-        else:
-            username = configuration.username
-        password = typer.prompt('Password', hide_input=True)
+    if configuration.username is None:
+        username = typer.prompt('Username')
     else:
-        username = None
-        password = None
+        username = configuration.username
+    password = typer.prompt('Password', hide_input=True)
 
     return configuration.start_session(username, password)

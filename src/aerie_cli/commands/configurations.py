@@ -9,7 +9,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.aerie_host import AuthMethod, AerieHostConfiguration
+from aerie_cli.aerie_host import AerieHostConfiguration
 from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
 from aerie_cli.utils.prompts import select_from_list
 
@@ -24,13 +24,6 @@ def create_configuration(
         ..., prompt='GraphQL URL', help='URL of GraphQL API endpoint', metavar='GRAPHQL_URL'),
     gateway_url: str = typer.Option(
         ..., prompt='Gateway URL', help='URL of Aerie Gateway', metavar='GATEWAY_URL'),
-    auth_method: AuthMethod = typer.Option(
-        'None', prompt='Authentication method', help='Authentication method',
-        case_sensitive=False
-    ),
-    auth_url: str = typer.Option(
-        None, help='URL of Authentication endpoint', metavar='AUTH_URL'
-    ),
     username: str = typer.Option(
         None, help='Username for authentication', metavar='USERNAME'
     )
@@ -38,18 +31,13 @@ def create_configuration(
     """
     Define a configuration for an Aerie host
     """
-    # Auth-only fields
-    if auth_method is not AuthMethod.NONE:
-        if auth_url is None:
-            auth_url = typer.prompt('URL of Authentication endpoint')
-        if username is None:
-            if typer.confirm('Specify username'):
-                username = typer.prompt('Username')
-            else:
-                username = None
+    if typer.confirm('Specify username'):
+        username = typer.prompt('Username')
+    else:
+        username = None
 
     conf = AerieHostConfiguration(
-        name, graphql_url, gateway_url, auth_method, auth_url, username)
+        name, graphql_url, gateway_url, username)
     PersistentConfigurationManager.create_configuration(conf)
 
 
@@ -75,18 +63,10 @@ def update_configuration(
         'Url of GraphQL API endpoint', conf.graphql_url)
     conf.gateway_url = typer.prompt('Url of Aerie Gateway', conf.gateway_url)
 
-    # Prompt user to select an auth method
-    auth_methods = [e.value for e in AuthMethod]
-    conf.auth_method = AuthMethod.from_string(select_from_list(auth_methods))
-
-    # Auth-only fields
-    if conf.auth_method is not AuthMethod.NONE:
-        conf.auth_url = typer.prompt(
-            'URL of Authentication endpoint', conf.auth_url)
-        if typer.confirm('Specify username', default=(conf.username is None)):
-            conf.username = typer.prompt('Username')
-        else:
-            conf.username = None
+    if typer.confirm('Specify username', default=(conf.username is None)):
+        conf.username = typer.prompt('Username')
+    else:
+        conf.username = None
 
     PersistentConfigurationManager.update_configuration(conf)
 
@@ -135,7 +115,6 @@ def upload_configurations(
         Console().print(f"Updated configurations: {', '.join(updated_confs)}")
 
 
-
 @app.command('list')
 def list_configurations():
     """
@@ -157,7 +136,6 @@ def list_configurations():
     table.add_column('Host Name', no_wrap=True)
     table.add_column('GraphQL API URL', no_wrap=True)
     table.add_column('Aerie Gateway URL', no_wrap=True)
-    table.add_column('Authentication Method', no_wrap=True)
     table.add_column('Username', no_wrap=True)
     for c in PersistentConfigurationManager.get_configurations():
         if c.name == active_config:
@@ -168,7 +146,6 @@ def list_configurations():
             c.name,
             c.graphql_url,
             c.gateway_url,
-            c.auth_method.value,
             c.username if c.username else "",
             style=style
         )
