@@ -41,34 +41,35 @@ def create_configuration(
     PersistentConfigurationManager.create_configuration(conf)
 
 
-@app.command('update') # TODO update to edit the latest configurations format
-def update_configuration(
-    name: str = typer.Option(
-        None, '--name', '-n', help='Name of the configuration to update', metavar='NAME'
-    )
-):
-    """
-    Update an existing configuration for an Aerie host
-    """
+# TODO either pull this command if it doesn't see regular use, or update to support the latest config format
+# @app.command('update') 
+# def update_configuration(
+#     name: str = typer.Option(
+#         None, '--name', '-n', help='Name of the configuration to update', metavar='NAME'
+#     )
+# ):
+#     """
+#     Update an existing configuration for an Aerie host
+#     """
 
-    # Give user prompt if no name is given
-    if name is None:
-        name = select_from_list(
-            [c.name for c in PersistentConfigurationManager.get_configurations()])
+#     # Give user prompt if no name is given
+#     if name is None:
+#         name = select_from_list(
+#             [c.name for c in PersistentConfigurationManager.get_configurations()])
 
-    # Get corresponding configuration
-    conf = PersistentConfigurationManager.get_configuration_by_name(name)
+#     # Get corresponding configuration
+#     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
-    conf.graphql_url = typer.prompt(
-        'Url of GraphQL API endpoint', conf.graphql_url)
-    conf.gateway_url = typer.prompt('Url of Aerie Gateway', conf.gateway_url)
+#     conf.graphql_url = typer.prompt(
+#         'Url of GraphQL API endpoint', conf.graphql_url)
+#     conf.gateway_url = typer.prompt('Url of Aerie Gateway', conf.gateway_url)
 
-    if typer.confirm('Specify username', default=(conf.username is None)):
-        conf.username = typer.prompt('Username')
-    else:
-        conf.username = None
+#     if typer.confirm('Specify username', default=(conf.username is None)):
+#         conf.username = typer.prompt('Username')
+#     else:
+#         conf.username = None
 
-    PersistentConfigurationManager.update_configuration(conf)
+#     PersistentConfigurationManager.update_configuration(conf)
 
 
 @app.command('load')
