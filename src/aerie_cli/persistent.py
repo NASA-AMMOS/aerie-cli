@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from appdirs import AppDirs
 
-from aerie_cli.aerie_host import AerieHostSession, AerieHostConfiguration
+from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
 
 # TODO add app version s.t. changes to configuration formats can be managed
 APP_DIRS = AppDirs('aerie_cli')
@@ -149,7 +149,7 @@ class PersistentSessionManager:
         # Un-pickle the session
         try:
             with open(fn, 'rb') as fid:
-                session: AerieHostSession = pickle.load(fid)
+                session: AerieHost = pickle.load(fid)
         except Exception:
             fn.unlink()
             raise NoActiveSessionError
@@ -160,12 +160,12 @@ class PersistentSessionManager:
             raise NoActiveSessionError
 
     @classmethod
-    def get_active_session(cls) -> AerieHostSession:
+    def get_active_session(cls) -> AerieHost:
         cls._load_active_session()
         return cls._active_session
 
     @classmethod
-    def set_active_session(cls, session: AerieHostSession) -> bool:
+    def set_active_session(cls, session: AerieHost) -> bool:
 
         if not session.check_auth():
             return False

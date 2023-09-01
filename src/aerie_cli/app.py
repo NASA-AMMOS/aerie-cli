@@ -134,14 +134,14 @@ def change_role(
     client = get_active_session_client()
 
     if role is None:
-        typer.echo(f"Active Role: {client.host_session.aerie_jwt.active_role}")
-        role = select_from_list(client.host_session.aerie_jwt.allowed_roles)
+        typer.echo(f"Active Role: {client.aerie_host.aerie_jwt.active_role}")
+        role = select_from_list(client.aerie_host.aerie_jwt.allowed_roles)
 
-    client.host_session.change_role(role)
+    client.aerie_host.change_role(role)
 
-    PersistentSessionManager.set_active_session(client.host_session)
+    PersistentSessionManager.set_active_session(client.aerie_host)
 
-    typer.echo(f"Changed role to: {client.host_session.aerie_jwt.active_role}")
+    typer.echo(f"Changed role to: {client.aerie_host.aerie_jwt.active_role}")
 
 
 @app.command("status")
@@ -152,7 +152,7 @@ def print_status():
 
     client = CommandContext.get_client()
 
-    if client.host_session.configuration_name:
-        typer.echo(f"Active configuration: {client.host_session.configuration_name}")
+    if client.aerie_host.configuration_name:
+        typer.echo(f"Active configuration: {client.aerie_host.configuration_name}")
 
-    typer.echo(f"Active role: {client.host_session.aerie_jwt.active_role}")
+    typer.echo(f"Active role: {client.aerie_host.aerie_jwt.active_role}")

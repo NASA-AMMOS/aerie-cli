@@ -3,7 +3,7 @@ from typing import Dict
 import typer
 from copy import deepcopy
 
-from aerie_cli.aerie_host import AerieHostSession, AerieHostConfiguration, ExternalAuthConfiguration, AerieJWT
+from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration, ExternalAuthConfiguration, AerieJWT
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.persistent import PersistentSessionManager
 
@@ -21,7 +21,7 @@ def get_active_session_client():
 
 
 def get_localhost_client() -> AerieClient:
-    aerie_session = AerieHostSession("http://localhost:8080/v1/graphql", "http://localhost:9000")
+    aerie_session = AerieHost("http://localhost:8080/v1/graphql", "http://localhost:9000")
     if not aerie_session.ping_gateway():
         raise RuntimeError(f"Failed to connect to host")
     return AerieClient(aerie_session)
@@ -41,7 +41,7 @@ def get_preauthenticated_client_native(encoded_jwt: str, graphql_url: str, gatew
     Returns:
         AerieClient
     """
-    aerie_session = AerieHostSession(graphql_url, gateway_url)
+    aerie_session = AerieHost(graphql_url, gateway_url)
     aerie_session.aerie_jwt = AerieJWT(encoded_jwt)
     if not aerie_session.check_auth():
         raise RuntimeError(f"Failed to connect to host")
@@ -67,7 +67,7 @@ def get_preauthenticated_client_cookie(cookie_name: str, cookie_value: str, enco
     session = requests.Session()
     session.cookies = requests.cookies.cookiejar_from_dict(
         {cookie_name: cookie_value})
-    aerie_session = AerieHostSession(graphql_url, gateway_url, session=session)
+    aerie_session = AerieHost(graphql_url, gateway_url, session=session)
     aerie_session.aerie_jwt = AerieJWT(encoded_jwt)
     if not aerie_session.check_auth():
         raise RuntimeError(f"Failed to connect to host")
@@ -140,7 +140,7 @@ def start_session_from_configuration(
         secret_post_vars (Dict[str, str], optional): Optionally provide values for some or all secret post request variable values. Defaults to None.
 
     Returns:
-        AerieHostSession: 
+        AerieHost: 
     """
 
     if configuration.external_auth is None:
@@ -148,7 +148,7 @@ def start_session_from_configuration(
     else:
         session = authenticate_with_external(configuration.external_auth, secret_post_vars)
 
-    hs = AerieHostSession(
+    hs = AerieHost(
         configuration.graphql_url,
         configuration.gateway_url,
         session,

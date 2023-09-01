@@ -54,9 +54,9 @@ class AerieJWT:
         self.encoded_jwt = encoded_jwt
 
 
-class AerieHostSession:
+class AerieHost:
     """
-    Encapsulate an authenticated session with an Aerie host.
+    Abstracted interface for the Hasura and Aerie Gateway APIs of an Aerie instance.
 
     An instance stores the necessary URLs and authenticates using header or
     cookie information stored in the `requests.Session` object, if necessary.
