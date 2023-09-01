@@ -20,7 +20,7 @@ DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
 model_id = -1
@@ -83,7 +83,7 @@ def set_up_environment(request):
 def test_expansion_sequence_create():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "create"],
+        ["expansion", "sequences", "create"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + str(2) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -94,7 +94,7 @@ def test_expansion_sequence_create():
 def test_expansion_sequence_list():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "list"],
+        ["expansion", "sequences", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -105,7 +105,7 @@ def test_expansion_sequence_list():
 def test_expansion_sequence_download():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "download"],
+        ["expansion", "sequences", "download"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -118,7 +118,7 @@ def test_expansion_sequence_download():
 def test_expansion_sequence_delete():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sequences", "delete"],
+        ["expansion", "sequences", "delete"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -147,7 +147,7 @@ def test_expansion_set_create():
     )
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "create"],
+        ["expansion", "sets", "create"],
         input=str(model_id) + "\n" + str(command_dictionary_id) + "\n" + "BakeBananaBread" + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -166,7 +166,7 @@ def test_expansion_set_create():
 def test_expansion_set_get():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "get"],
+        ["expansion", "sets", "get"],
         input=str(expansion_set_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -177,7 +177,7 @@ def test_expansion_set_get():
 def test_expansion_set_list():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "sets", "list"],
+        ["expansion", "sets", "list"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -191,7 +191,7 @@ def test_expansion_set_list():
 def test_expansion_run_create():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "create"],
+        ["expansion", "runs", "create"],
         input=str(sim_id) + "\n" + str(expansion_set_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -202,7 +202,7 @@ def test_expansion_run_create():
 def test_expansion_runs_list():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "expansion", "runs", "list"],
+        ["expansion", "runs", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -217,7 +217,7 @@ def test_expansion_runs_list():
 def test_model_delete():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"],
+        ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\

@@ -14,7 +14,7 @@ FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Model Variables
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
 model_id = -1
@@ -22,7 +22,7 @@ model_id = -1
 def test_model_clean():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "clean"],
+        ["models", "clean"],
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\
@@ -36,7 +36,7 @@ def test_model_clean():
 def test_model_upload():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "upload", "--time-tag-version"],
+        ["models", "upload", "--time-tag-version"],
         input=MODEL_JAR 
         + "\n"
         + MODEL_NAME
@@ -63,7 +63,7 @@ def test_model_upload():
 def test_model_list():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
+        ["models", "list"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -73,7 +73,7 @@ def test_model_list():
 def test_model_delete():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"],
+        ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\

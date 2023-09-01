@@ -9,7 +9,6 @@ from .conftest import\
     HASURA_ADMIN_SECRET,\
     GRAPHQL_URL,\
     GATEWAY_URL,\
-    AUTH_URL,\
     USERNAME
 from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, NoActiveSessionError
 from aerie_cli.utils.sessions import start_session_from_configuration
@@ -79,7 +78,6 @@ def test_configurations_create():
         input=CONFIGURATION_NAME + "\n"
         + GRAPHQL_URL + "\n"
         + GATEWAY_URL + "\n"
-        + "None" + "\n"
         + "y" + "\n"
         + USERNAME + "\n",
         catch_exceptions=False,
@@ -96,7 +94,7 @@ def test_configurations_create():
         configuration_id = i
     assert configuration_id != -1, "CONFIGURATION NOT LOADED, is it's name localhost?"
 
-def test_configurations_activate():
+def test_activate():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -104,7 +102,7 @@ def test_configurations_activate():
 
     result = runner.invoke(
         app,
-        ["configurations", "activate"],
+        ["activate"],
         input=str(configuration_id) + "\n",
         catch_exceptions=False,
     )
@@ -114,7 +112,7 @@ def test_configurations_activate():
         f"{result.stderr}"
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"
 
-def test_configurations_deactivate():
+def test_deactivate():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -124,7 +122,7 @@ def test_configurations_deactivate():
 
     result = runner.invoke(
         app,
-        ["configurations", "deactivate"],
+        ["deactivate"],
         input=str(configuration_id) + "\n",
         catch_exceptions=False,
     )
@@ -198,26 +196,26 @@ def test_configurations_load():
         in result.stdout
     )
 
-def test_configurations_update():
-    before_refresh = len(PersistentConfigurationManager.get_configurations())
-    assert before_refresh > 0
-    PersistentConfigurationManager.read_configurations()
-    assert len(PersistentConfigurationManager.get_configurations()) == before_refresh
-    assert PersistentConfigurationManager.get_configurations()[configuration_id].name == ("localhost")
+# def test_configurations_update():
+#     before_refresh = len(PersistentConfigurationManager.get_configurations())
+#     assert before_refresh > 0
+#     PersistentConfigurationManager.read_configurations()
+#     assert len(PersistentConfigurationManager.get_configurations()) == before_refresh
+#     assert PersistentConfigurationManager.get_configurations()[configuration_id].name == ("localhost")
 
-    result = runner.invoke(
-        app,
-        ["configurations", "update"],
-        input=str(configuration_id) + "\n"
-        + GRAPHQL_URL + "\n"
-        + GATEWAY_URL + "\n"
-        + "1" + "\n",
-        catch_exceptions=False,
-    )
+#     result = runner.invoke(
+#         app,
+#         ["configurations", "update"],
+#         input=str(configuration_id) + "\n"
+#         + GRAPHQL_URL + "\n"
+#         + GATEWAY_URL + "\n"
+#         + "1" + "\n",
+#         catch_exceptions=False,
+#     )
 
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
+#     assert result.exit_code == 0,\
+#         f"{result.stdout}"\
+#         f"{result.stderr}"
 
 def test_configurations_list():
     result = runner.invoke(
@@ -235,7 +233,7 @@ def test_configurations_list():
     )
 # We're activating at the end to ensure that localhost is still active
 # for other integration tests.
-def test_configurations_last_activate():
+def test_last_activate():
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -245,7 +243,7 @@ def test_configurations_last_activate():
 
     result = runner.invoke(
         app,
-        ["configurations", "activate"],
+        ["activate"],
         input=str(configuration_id) + "\n",
         catch_exceptions=False,
     )

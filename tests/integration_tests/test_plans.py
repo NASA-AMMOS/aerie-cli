@@ -19,7 +19,7 @@ DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
 model_id = -1
@@ -48,7 +48,7 @@ def set_up_environment(request):
 def cli_plan_simulate():
     return runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "simulate", "--output", "temp.json"],
+        ["plans", "simulate", "--output", "temp.json"],
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )
@@ -65,7 +65,7 @@ def test_plan_upload():
     # Test plan upload
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "upload", "--time-tag"],
+        ["plans", "upload", "--time-tag"],
         input=PLAN_JSON + "\n" + str(model_id) + "\n",
         catch_exceptions=False,
     )
@@ -84,7 +84,7 @@ def test_plan_upload():
 def test_plan_duplicate():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "duplicate"],
+        ["plans", "duplicate"],
         input=str(plan_id) + "\n" + DUP_PLAN_NAME + "\n",
         catch_exceptions=False,
     )
@@ -101,7 +101,7 @@ def test_plan_duplicate():
 
 
 def test_plan_list():
-    result = runner.invoke(app, ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "list"],
+    result = runner.invoke(app, ["plans", "list"],
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -127,7 +127,7 @@ def test_plan_simulate():
 def test_plan_download():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download"],
+        ["plans", "download"],
         input=str(plan_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,
     )
@@ -142,7 +142,7 @@ def test_plan_download():
 def test_plan_download_resources():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-resources"],
+        ["plans", "download-resources"],
         input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,
     )
@@ -157,7 +157,7 @@ def test_plan_download_resources():
 def test_plan_download_simulation():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "download-simulation"],
+        ["plans", "download-simulation"],
         input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,
     )
@@ -172,7 +172,7 @@ def test_plan_download_simulation():
 def test_plan_create_config():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "create-config"],
+        ["plans", "create-config"],
         input=str(plan_id) + "\n" + PLAN_ARGS_INIT + "\n",
         catch_exceptions=False,
     )
@@ -193,7 +193,7 @@ def test_simulate_after_create_config():
 def test_plan_update_config():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "update-config"],
+        ["plans", "update-config"],
         input=str(plan_id) + "\n" + PLAN_ARGS_UPDATE + "\n",
         catch_exceptions=False,
     )
@@ -218,7 +218,7 @@ def test_simulate_after_update_config():
 def test_plan_delete():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "delete"],
+        ["plans", "delete"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -230,7 +230,7 @@ def test_plan_delete():
 def test_plan_clean():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "plans", "clean"],
+        ["plans", "clean"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -247,7 +247,7 @@ def test_plan_clean():
 def test_model_delete():
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "delete"],
+        ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\
