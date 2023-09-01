@@ -8,27 +8,25 @@ from base64 import b64decode
 from attrs import define, field
 
 
-def process_hasura_response(resp: requests.Response) -> dict:
-    """Throw a RuntimeError if the Hasura response is malformed or contains errors
+def process_gateway_response(resp: requests.Response) -> dict:
+    """Throw a RuntimeError if the Gateway response is malformed or contains errors
 
     Args:
-        resp (requests.Response): Response from a Hasura request
+        resp (requests.Response): from a request to the gateway
 
     Returns:
         dict: Contents of response JSON
     """
     if not resp.ok:
-        raise RuntimeError(f"Bad response from Hasura.")
+        raise RuntimeError(f"Bad response from Aerie Gateway.")
 
     try:
         resp_json = resp.json()
     except requests.exceptions.JSONDecodeError:
         raise RuntimeError(f"Failed to get response JSON")
 
-    if "errors" in resp_json.keys():
-        raise RuntimeError(f"GraphQL Error: {json.dumps(resp_json['errors'])}")
-    elif "success" in resp_json.keys() and not resp_json["success"]:
-        raise RuntimeError(f"Hasura request was not successful")
+    if "success" in resp_json.keys() and not resp_json["success"]:
+        raise RuntimeError(f"Aerie Gateway request was not successful")
 
     return resp_json
 
@@ -66,20 +64,20 @@ class AerieHostSession:
 
     def __init__(
         self,
-        session: requests.Session,
         graphql_url: str,
         gateway_url: str,
+        session: requests.Session = None,
         configuration_name: str = None,
     ) -> None:
         """
 
         Args:
-            session (requests.Session): HTTP session, with auth headers/cookies if necessary
             graphql_url (str): Route to Aerie host's GraphQL API
             gateway_url (str): Route to Aerie Gateway
+            session (requests.Session, optional): Session with headers/cookies for external authentication
             configuration_name (str, optional): Name of configuration for this session
         """
-        self.session = session
+        self.session = session if session else requests.Session()
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
@@ -209,7 +207,7 @@ class AerieHostSession:
         )
 
         try:
-            resp_json = process_hasura_response(resp)
+            resp_json = process_gateway_response(resp)
             self.aerie_jwt = AerieJWT(resp_json["token"])
         except (RuntimeError, KeyError):
             raise RuntimeError(f"Failed to select new role")
@@ -271,7 +269,7 @@ class AerieHostSession:
         )
 
         try:
-            resp_json = process_hasura_response(resp)
+            resp_json = process_gateway_response(resp)
         except RuntimeError:
             raise RuntimeError("Failed to authenticate")
 
