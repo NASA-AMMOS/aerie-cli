@@ -1325,11 +1325,6 @@ class AerieClient:
         ) {
             uploadDictionary(dictionary: $command_dictionary_string) {
                 id
-                command_types_typescript_path
-                mission
-                version
-                created_at
-                updated_at
             }
         }
         """
@@ -1640,13 +1635,13 @@ class AerieClient:
         get_violations_query = """
         query ($plan_id: Int!){
             constraintViolations(planId: $plan_id) {
-                constraintViolations
+                violations
             }
         }
         """
 
         resp = self.aerie_host.post_to_graphql(get_violations_query, plan_id=plan_id)
-        return resp["constraintViolations"]
+        return resp["violations"]
 
     def get_resource_types(self, model_id: int) -> List[ResourceType]:
         """Get resource types (value schema)
