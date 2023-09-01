@@ -67,7 +67,6 @@ class AerieHostSession:
     def __init__(
         self,
         session: requests.Session,
-        aerie_jwt: AerieJWT,
         graphql_url: str,
         gateway_url: str,
         configuration_name: str = None,
@@ -81,10 +80,10 @@ class AerieHostSession:
             configuration_name (str, optional): Name of configuration for this session
         """
         self.session = session
-        self.aerie_jwt = aerie_jwt
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
+        self.aerie_jwt = None
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -210,24 +209,23 @@ class AerieHostSession:
         )
 
         try:
-            resp_json = resp.json()
-        except json.decoder.JSONDecodeError:
-            raise RuntimeError(f"Bad response")
-
-        if "success" in resp_json.keys() and resp_json["success"]:
-            try:
-                self.aerie_jwt = AerieJWT(resp_json["token"])
-            except KeyError:
-                raise RuntimeError
-        else:
+            resp_json = process_hasura_response(resp)
+            self.aerie_jwt = AerieJWT(resp_json["token"])
+        except (RuntimeError, KeyError):
             raise RuntimeError(f"Failed to select new role")
 
     def check_auth(self) -> bool:
-        """Checks if authentication was successful. Looks for errors received after pinging GATEWAY_URL/auth/session.
+        """Checks if session is correctly authenticated with Aerie host
+        
+        Looks for errors received after pinging GATEWAY_URL/auth/session.
+        Also returns False if the session has not yet been authenticated (no JWT).
 
         Returns:
             bool: True if there were no errors in a ping against GATEWAY_URL/auth/session, False otherwise
         """
+        if self.aerie_jwt is None:
+            return False
+
         try:
             resp = self.session.get(
                 self.gateway_url + "/auth/session", headers=self.get_auth_headers()
@@ -245,70 +243,46 @@ class AerieHostSession:
             "x-hasura-role": self.aerie_jwt.active_role,
         }
 
-    @classmethod
-    def session_helper(
-        cls,
-        session: requests.Session,
-        graphql_url: str,
-        gateway_url: str,
-        username: str,
-        password: str = None,
-        configuration_name: str = None,
-    ) -> "AerieHostSession":
-        """Helper function to create a session with an Aerie host
-
-        Args:
-            session: (requests.Session): Browser-like session authenticated to make requests against the Aerie instance
-            graphql_url (str): Route to Graphql API
-            gateway_url (str): Route to Aerie Gateway
-            username (str): Username with Aerie
-            password (str, optional): Password for Authentication. Ignore if authentication is disabled.
-            configuration_name (str, optional): Name of source configuration. Ignore if not instantiating from a config.
+    def is_auth_enabled(self) -> bool:
+        """Check if authentication is enabled on an Aerie host
 
         Returns:
-            AerieHostSession: Client-side abstraction for authenticated interactions with Aerie
+            bool: False if authentication is disabled, otherwise True
         """
+        resp = self.session.get(self.gateway_url + "/auth/user")
+        if resp.ok:
+            try:
+                resp_json = resp.json()
+                if (
+                    "message" in resp_json.keys()
+                    and resp_json["message"] == "Authentication is disabled"
+                ):
+                    return False
+            except requests.exceptions.JSONDecodeError:
+                pass
 
-        # # Check if authentication is enabled on this Aerie host
-        # resp = session.get(gateway_url + "/auth/user")
-        # auth_enabled = True
-        # if resp.ok:
-        #     try:
-        #         resp_json = resp.json()
-        #         if resp_json["message"] == "Authentication is disabled":
-        #             auth_enabled = False
-        #     except (json.decoder.JSONDecodeError, KeyError):
-        #         pass
+        return True
 
-        # if auth_enabled:
+    def authenticate(self, username: str, password: str = None):
 
-        resp = session.post(
-            gateway_url + "/auth/login",
+        resp = self.session.post(
+            self.gateway_url + "/auth/login",
             json={"username": username, "password": password},
         )
 
-        if resp.ok:
-            resp_json = resp.json()
-        else:
-            raise RuntimeError(f"Bad request. Response: {resp}")
+        try:
+            resp_json = process_hasura_response(resp)
+        except RuntimeError:
+            raise RuntimeError("Failed to authenticate")
 
-        if not resp_json["success"]:
-            raise ValueError(f"Failed to authenticate")
+        self.aerie_jwt = AerieJWT(resp_json["token"])
 
-        aerie_jwt = AerieJWT(resp_json["token"])
-
-        aerie_session = cls(
-            session, aerie_jwt, graphql_url, gateway_url, configuration_name
-        )
-
-        if not aerie_session.check_auth():
+        if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
-
-        return aerie_session
 
 
 @define
-class AerieHostConfiguration:  # TODO add proxy information; make password optional?
+class AerieHostConfiguration:  # TODO add proxy information
     name: str
     graphql_url: str
     gateway_url: str
@@ -335,27 +309,7 @@ class AerieHostConfiguration:  # TODO add proxy information; make password optio
             "name": self.name,
             "graphql_url": self.graphql_url,
             "gateway_url": self.gateway_url,
+            "username": self.username
         }
 
-        retval["username"] = self.username
-
         return retval
-
-    def start_session(self, username=None, password: str = None) -> AerieHostSession:
-        """Start an Aerie host session from this configuration
-
-        Args:
-            username (str, optional): Override stored username. Defaults to None.
-            password (str, optional): Provide a password, if necessary. Defaults to None.
-
-        Returns:
-            AerieHostSession
-        """
-        return AerieHostSession.session_helper(
-            requests.Session(),
-            self.graphql_url,
-            self.gateway_url,
-            username if username else self.username,
-            password,
-            self.name,
-        )

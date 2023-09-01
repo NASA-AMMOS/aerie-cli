@@ -72,11 +72,40 @@ def get_preauthenticated_client_cookie(cookie_name: str, cookie_value: str, grap
         raise RuntimeError(f"Failed to connect to host")
     return AerieClient(aerie_session)
 
-def start_session_from_configuration(configuration: AerieHostConfiguration):
+def start_session_from_configuration(
+    configuration: AerieHostConfiguration, username: str = None, password: str = None
+):
+    """Start and authenticate an Aerie Host session, with prompts if necessary
+
+    If username is not provided, it will be requested via CLI prompt.
+
+    If password is not provided but the Aerie instance has authentication enabled, it will be requested via CLI prompt.
+    If the Aerie instance has authentication disabled, a password is not necessary.
+
+    Args:
+        configuration (AerieHostConfiguration): Configuration of host to connect
+        username (str, optional): Aerie username.
+        password (str, optional): Aerie password.
+
+    Returns:
+        AerieHostSession: 
+    """
+
+    hs = AerieHostSession(
+        requests.Session(),
+        configuration.graphql_url,
+        configuration.gateway_url,
+        configuration.name,
+    )
+
     if configuration.username is None:
-        username = typer.prompt('Username')
+        username = typer.prompt("Username")
     else:
         username = configuration.username
-    password = typer.prompt('Password', hide_input=True)
 
-    return configuration.start_session(username, password)
+    if password is None and hs.is_auth_enabled():
+        password = typer.prompt("Password", hide_input=True)
+
+    hs.authenticate(username, password)
+
+    return hs
