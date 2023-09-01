@@ -84,6 +84,9 @@ def app_callback(
 def activate_session(
     name: str = typer.Option(
         None, "--name", "-n", help="Name for this configuration", metavar="NAME"
+    ),
+    role: str = typer.Option(
+        None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
     )
 ):
     """
@@ -97,6 +100,13 @@ def activate_session(
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
     session = start_session_from_configuration(conf)
+
+    if role is not None:
+        if role in session.aerie_jwt.allowed_roles:
+            session.change_role(role)
+        else:
+            typer.echo(f"Role {role} not in allowed roles")
+
     PersistentSessionManager.set_active_session(session)
 
 
