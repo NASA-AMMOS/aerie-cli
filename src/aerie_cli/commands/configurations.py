@@ -41,7 +41,7 @@ def create_configuration(
     PersistentConfigurationManager.create_configuration(conf)
 
 
-@app.command('update')
+@app.command('update') # TODO update to edit the latest configurations format
 def update_configuration(
     name: str = typer.Option(
         None, '--name', '-n', help='Name of the configuration to update', metavar='NAME'

@@ -282,11 +282,45 @@ class AerieHostSession:
 
 
 @define
-class AerieHostConfiguration:  # TODO add proxy information
+class ExternalAuthConfiguration:
+    """Configure additional external authentication necessary for connecting to an Aerie host.
+
+    Define configuration for a server which can provide additional authentication via cookies. 
+
+    auth_url (str): URL to send request for authentication
+    static_post_vars (dict[str, str]): key-value constants to include in the post request variables
+    secret_post_vars (list[str]): keys for secret values to include in the post request variables
+    """
+    auth_url: str
+    static_post_vars: dict
+    secret_post_vars: list
+
+    @classmethod
+    def from_dict(cls, config: Dict) -> "ExternalAuthConfiguration":
+        try:
+            auth_url = config["auth_url"]
+            static_post_vars = config["static_post_vars"]
+            secret_post_vars = config["secret_post_vars"]
+        
+        except KeyError as e:
+            raise ValueError(f"External auth configuration missing required field: {e.args[0]}")
+        
+        if not isinstance(static_post_vars, dict):
+            raise ValueError("Invalid value for 'static_post_vars' in external auth configuration")
+        
+        if not isinstance(secret_post_vars, list):
+            raise ValueError("Invalid value for 'secret_post_vars' in external auth configuration")
+
+        return cls(auth_url, static_post_vars, secret_post_vars)
+
+
+@define
+class AerieHostConfiguration:
     name: str
     graphql_url: str
     gateway_url: str
     username: Optional[str] = field(default=None)
+    external_auth: Optional[ExternalAuthConfiguration] = field(default=None)
 
     @classmethod
     def from_dict(cls, config: Dict) -> "AerieHostConfiguration":
@@ -294,22 +328,25 @@ class AerieHostConfiguration:  # TODO add proxy information
             name = config["name"]
             graphql_url = config["graphql_url"]
             gateway_url = config["gateway_url"]
-            if "username" in config.keys():
-                username = config["username"]
-            else:
-                username = None
+            username = config["username"] if "username" in config.keys() else None
+            external_auth = ExternalAuthConfiguration.from_dict(config["external_auth"]) if "external_auth" in config.keys() else None
 
         except KeyError as e:
             raise ValueError(f"Configuration missing required field: {e.args[0]}")
 
-        return cls(name, graphql_url, gateway_url, username)
+        return cls(name, graphql_url, gateway_url, username, external_auth)
 
     def to_dict(self) -> Dict:
         retval = {
             "name": self.name,
             "graphql_url": self.graphql_url,
-            "gateway_url": self.gateway_url,
-            "username": self.username
+            "gateway_url": self.gateway_url
         }
+
+        if self.username is not None:
+            retval["username"] = self.username
+
+        if self.external_auth is not None:
+            retval["external_auth"] = self.external_auth
 
         return retval
