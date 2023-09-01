@@ -32,5 +32,6 @@ class CommandContext:
 
         if cls.hasura_admin_secret:
             client.host_session.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
+            client.host_session.session.headers["x-hasura-role"] = "aerie_admin"
 
         return client
