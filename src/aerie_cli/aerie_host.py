@@ -284,12 +284,13 @@ class AerieHost:
 class ExternalAuthConfiguration:
     """Configure additional external authentication necessary for connecting to an Aerie host.
 
-    Define configuration for a server which can provide additional authentication via cookies. 
+    Define configuration for a server which can provide additional authentication via cookies.
 
     auth_url (str): URL to send request for authentication
     static_post_vars (dict[str, str]): key-value constants to include in the post request variables
     secret_post_vars (list[str]): keys for secret values to include in the post request variables
     """
+
     auth_url: str
     static_post_vars: dict
     secret_post_vars: list
@@ -300,17 +301,30 @@ class ExternalAuthConfiguration:
             auth_url = config["auth_url"]
             static_post_vars = config["static_post_vars"]
             secret_post_vars = config["secret_post_vars"]
-        
+
         except KeyError as e:
-            raise ValueError(f"External auth configuration missing required field: {e.args[0]}")
-        
+            raise ValueError(
+                f"External auth configuration missing required field: {e.args[0]}"
+            )
+
         if not isinstance(static_post_vars, dict):
-            raise ValueError("Invalid value for 'static_post_vars' in external auth configuration")
-        
+            raise ValueError(
+                "Invalid value for 'static_post_vars' in external auth configuration"
+            )
+
         if not isinstance(secret_post_vars, list):
-            raise ValueError("Invalid value for 'secret_post_vars' in external auth configuration")
+            raise ValueError(
+                "Invalid value for 'secret_post_vars' in external auth configuration"
+            )
 
         return cls(auth_url, static_post_vars, secret_post_vars)
+
+    def to_dict(self) -> Dict:
+        return {
+            "auth_url": self.auth_url,
+            "static_post_vars": self.static_post_vars,
+            "secret_post_vars": self.secret_post_vars,
+        }
 
 
 @define
@@ -346,6 +360,6 @@ class AerieHostConfiguration:
             retval["username"] = self.username
 
         if self.external_auth is not None:
-            retval["external_auth"] = self.external_auth
+            retval["external_auth"] = self.external_auth.to_dict()
 
         return retval
