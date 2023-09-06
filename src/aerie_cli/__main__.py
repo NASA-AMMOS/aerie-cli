@@ -14,7 +14,7 @@ def main():
         app()
     except NoActiveSessionError:
         Console().print(
-            "There is no active session. Please start a session with aerie-cli configurations activate"
+            "There is no active session. Please start a session with aerie-cli activate"
         )
         sys.exit(-1)
     except Exception:
