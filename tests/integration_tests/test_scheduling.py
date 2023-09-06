@@ -20,7 +20,7 @@ DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.6.2.jar")
+MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
 model_id = 0
@@ -74,7 +74,7 @@ def cli_schedule_upload():
         fid.write(GOAL_PATH)
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "upload"],
+        ["scheduling", "upload"],
         input=str(model_id) + "\n" + str(plan_id) + "\n" + schedule_file_path + "\n",
         catch_exceptions=False,
         )
@@ -101,7 +101,7 @@ def test_schedule_delete():
 
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete"],
+        ["scheduling", "delete"],
         input=str(goal_id) + "\n",
         catch_exceptions=False,
         )
@@ -117,7 +117,7 @@ def test_schedule_delete_all():
     # Delete all goals
     result = runner.invoke(
         app,
-        ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "scheduling", "delete-all-goals-for-plan"],
+        ["scheduling", "delete-all-goals-for-plan"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,
         )

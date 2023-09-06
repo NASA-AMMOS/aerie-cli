@@ -5,8 +5,12 @@ import os
 import sys
 
 from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHostSession, AuthMethod
-from aerie_cli.commands.configurations import delete_all_persistent_files, upload_configurations, deactivate_session, activate_session
+from aerie_cli.aerie_host import AerieHost
+from aerie_cli.commands.configurations import (
+    delete_all_persistent_files,
+    upload_configurations,
+)
+from aerie_cli.app import deactivate_session, activate_session
 from aerie_cli.utils.sessions import get_active_session_client
 
 # in case src_path is not from aeri-cli src and from site-packages
@@ -15,23 +19,15 @@ sys.path.insert(0, src_path)
 
 GRAPHQL_URL = "http://localhost:8080/v1/graphql"
 GATEWAY_URL = "http://localhost:9000"
-AUTH_URL = "http://localhost:9000/auth/login"
-AUTH_METHOD = AuthMethod.AERIE_NATIVE
 USERNAME = "a"
 PASSWORD = "a"
 # This should only ever be set to the admin secret for a local instance of aerie
 HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 
-session = AerieHostSession.session_helper(
-    AUTH_METHOD,
-    GRAPHQL_URL,
-    GATEWAY_URL,
-    AUTH_URL,
-    USERNAME,
-    PASSWORD
-)
-session.session.headers["x-hasura-admin-secret"] = HASURA_ADMIN_SECRET
-client = AerieClient(session)
+aerie_host = AerieHost(GRAPHQL_URL, GATEWAY_URL)
+aerie_host.authenticate(USERNAME, PASSWORD)
+aerie_host.change_role("aerie_admin")
+client = AerieClient(aerie_host)
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
@@ -53,5 +49,6 @@ try:
     persisent_client = get_active_session_client()
 except:
     raise RuntimeError("Configuration is not active!")
-assert persisent_client.host_session.gateway_url == GATEWAY_URL,\
-    "Aerie instances are mismatched. Ensure test URLs are the same."
+assert (
+    persisent_client.aerie_host.gateway_url == GATEWAY_URL
+), "Aerie instances are mismatched. Ensure test URLs are the same."

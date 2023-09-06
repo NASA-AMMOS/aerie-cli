@@ -31,6 +31,10 @@ class CommandContext:
             client = get_active_session_client()
 
         if cls.hasura_admin_secret:
-            client.host_session.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
+            if client.aerie_host.aerie_jwt is None:
+                raise RuntimeError(f"Unauthenticated Aerie session")
+            client.aerie_host.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
+            client.aerie_host.session.headers["x-hasura-role"] = "aerie_admin"
+            client.aerie_host.session.headers["x-hasura-user-id"] = client.aerie_host.aerie_jwt.username
 
         return client

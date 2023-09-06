@@ -5,6 +5,16 @@ These tests will delete and modify data permanently. Expect the localhost instan
 
 See: [localhost configuration](files/configuration/localhost_config.json)
 
+## Running locally
+
+To set up a local test environment, use the test environment and docker-compose files in the root of the repo:
+
+```
+docker compose --env-file test.env -f docker-compose-test.yml up
+```
+
+Invoke the tests using `pytest` from the `tests/integration_tests` directory.
+
 ## Tests
 
 ### [Configurations test](test_configurations.py)
