@@ -33,5 +33,6 @@ class CommandContext:
         if cls.hasura_admin_secret:
             client.aerie_host.session.headers["x-hasura-admin-secret"] = cls.hasura_admin_secret
             client.aerie_host.session.headers["x-hasura-role"] = "aerie_admin"
+            client.aerie_host.session.headers["x-hasura-user-id"] = client.aerie_host.aerie_jwt.username if client.aerie_host.aerie_jwt else "hasura_admin"
 
         return client

@@ -44,6 +44,7 @@ class AerieJWT:
             self.allowed_roles = payload["https://hasura.io/jwt/claims"][
                 "x-hasura-allowed-roles"
             ]
+            self.username = payload["username"]
 
         except KeyError:
             raise ValueError(f"Missing fields in JWT: {encoded_jwt}")

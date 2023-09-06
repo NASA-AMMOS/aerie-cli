@@ -27,7 +27,6 @@ HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 aerie_host = AerieHost(GRAPHQL_URL, GATEWAY_URL)
 aerie_host.authenticate(USERNAME, PASSWORD)
 aerie_host.change_role("aerie_admin")
-# session.session.headers["x-hasura-admin-secret"] = HASURA_ADMIN_SECRET
 client = AerieClient(aerie_host)
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"

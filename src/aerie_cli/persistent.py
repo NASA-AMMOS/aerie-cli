@@ -122,41 +122,41 @@ class PersistentSessionManager:
             return
 
         # Get any/all open sessions. List in chronological order, newest first
-        fs: List[Path] = [
+        session_files: List[Path] = [
             f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
-        fs.sort(reverse=True)
+        session_files.sort(reverse=True)
 
-        if not len(fs):
+        if not len(session_files):
             raise NoActiveSessionError
 
         # Delete any sessions older than the newest
-        for fn in fs[1:]:
-            fn.unlink()
+        for session_file in session_files[1:]:
+            session_file.unlink()
 
         # Get timestamp of newest session
-        fn = fs[0]
+        session_file = session_files[0]
         try:
             t = datetime.strptime(
-                fn.name[:-(len('.aerie_cli.session'))], SESSION_TIMESTAMP_FSTRING)
+                session_file.name[:-(len('.aerie_cli.session'))], SESSION_TIMESTAMP_FSTRING)
         except Exception:
-            raise RuntimeError(f"Cannot parse session timestamp: {fn.name}. Try deactivating your session.")
+            raise RuntimeError(f"Cannot parse session timestamp: {session_file.name}. Try deactivating your session.")
 
         # If session hasn't been used since timeout, mark as inactive
         if (datetime.utcnow() - t) > SESSION_TIMEOUT:
-            fn.unlink()
+            session_file.unlink()
             raise NoActiveSessionError
 
         # Un-pickle the session
         try:
-            with open(fn, 'rb') as fid:
+            with open(session_file, 'rb') as fid:
                 session: AerieHost = pickle.load(fid)
         except Exception:
-            fn.unlink()
+            session_file.unlink()
             raise NoActiveSessionError
 
         # If gateway ping fails, mark session as inactive
         if not cls.set_active_session(session):
-            fn.unlink()
+            session_file.unlink()
             raise NoActiveSessionError
 
     @classmethod
@@ -170,17 +170,17 @@ class PersistentSessionManager:
         if not session.check_auth():
             return False
 
-        fs: List[Path] = [
+        session_files: List[Path] = [
             f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
-        for fn in fs:
-            fn.unlink()
+        for session_file in session_files:
+            session_file.unlink()
 
         cls._active_session = session
 
-        fn = datetime.utcnow().strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
-        fn = SESSION_FILE_DIRECTORY.joinpath(fn)
+        session_file = datetime.utcnow().strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        session_file = SESSION_FILE_DIRECTORY.joinpath(session_file)
 
-        with open(fn, 'wb') as fid:
+        with open(session_file, 'wb') as fid:
             pickle.dump(session, fid)
 
         return True

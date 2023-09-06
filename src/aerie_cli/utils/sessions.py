@@ -21,17 +21,17 @@ def get_active_session_client():
 
 
 def get_localhost_client() -> AerieClient:
-    aerie_session = AerieHost("http://localhost:8080/v1/graphql", "http://localhost:9000")
-    if not aerie_session.ping_gateway():
+    aerie_host = AerieHost("http://localhost:8080/v1/graphql", "http://localhost:9000")
+    if not aerie_host.check_auth():
         raise RuntimeError(f"Failed to connect to host")
-    return AerieClient(aerie_session)
+    return AerieClient(aerie_host)
 
 
 def get_preauthenticated_client_native(encoded_jwt: str, graphql_url: str, gateway_url: str) -> AerieClient:
     """Get AerieClient instance preauthenticated with native Aerie JWT auth
 
     Args:
-        encoded_jwt (str): base64-encoded JWT
+        encoded_jwt (str): base64-encoded Aerie JWT
         graphql_url (str) 
         gateway_url (str)
 
@@ -41,20 +41,19 @@ def get_preauthenticated_client_native(encoded_jwt: str, graphql_url: str, gatew
     Returns:
         AerieClient
     """
-    aerie_session = AerieHost(graphql_url, gateway_url)
-    aerie_session.aerie_jwt = AerieJWT(encoded_jwt)
-    if not aerie_session.check_auth():
+    aerie_host = AerieHost(graphql_url, gateway_url)
+    aerie_host.aerie_jwt = AerieJWT(encoded_jwt)
+    if not aerie_host.check_auth():
         raise RuntimeError(f"Failed to connect to host")
-    return AerieClient(aerie_session)
+    return AerieClient(aerie_host)
 
 
-def get_preauthenticated_client_cookie(cookie_name: str, cookie_value: str, encoded_jwt: str, graphql_url: str, gateway_url: str) -> AerieClient:
-    """Get AerieClient instance preauthenticated with an external cookie and JWT
+def get_preauthenticated_client_cookie(cookies: dict, encoded_jwt: str, graphql_url: str, gateway_url: str) -> AerieClient:
+    """Get AerieClient instance preauthenticated with an external cookie(s) and JWT
 
     Args:
-        cookie_name (str): Name of cookie
-        cookie_value (str): Value of cookie
-        encoded_jwt (str): base64-encoded JWT
+        cookies (dict): Browser-style cookies for external authentication
+        encoded_jwt (str): base64-encoded Aerie JWT
         graphql_url (str)
         gateway_url (str)
 
@@ -65,13 +64,12 @@ def get_preauthenticated_client_cookie(cookie_name: str, cookie_value: str, enco
         AerieClient
     """
     session = requests.Session()
-    session.cookies = requests.cookies.cookiejar_from_dict(
-        {cookie_name: cookie_value})
-    aerie_session = AerieHost(graphql_url, gateway_url, session=session)
-    aerie_session.aerie_jwt = AerieJWT(encoded_jwt)
-    if not aerie_session.check_auth():
+    session.cookies = requests.cookies.cookiejar_from_dict(cookies)
+    aerie_host = AerieHost(graphql_url, gateway_url, session=session)
+    aerie_host.aerie_jwt = AerieJWT(encoded_jwt)
+    if not aerie_host.check_auth():
         raise RuntimeError(f"Failed to connect to host")
-    return AerieClient(aerie_session)
+    return AerieClient(aerie_host)
 
 
 def authenticate_with_external(
