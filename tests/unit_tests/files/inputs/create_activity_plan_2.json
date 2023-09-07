@@ -10,10 +10,6 @@
         "type": "ACT_One",
         "arguments": {},
         "name": "Anchored_1",
-        "tags": [
-          "first_tag",
-          "second_tag"
-        ],
         "metadata": {},
         "anchor_id": 2,
         "anchored_to_start": true,
@@ -24,7 +20,6 @@
         "type": "ACT_Two",
         "arguments": {},
         "name": "Anchor",
-        "tags": [],
         "metadata": {},
         "anchor_id": null,
         "anchored_to_start": true,
@@ -37,7 +32,6 @@
           "test": "test"
         },
         "name": "Anchored_2",
-        "tags": [],
         "metadata": {},
         "anchor_id": 1,
         "anchored_to_start": false,

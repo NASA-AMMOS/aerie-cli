@@ -16,6 +16,8 @@ env:
   HASURA_GRAPHQL_JWT_SECRET: "${{secrets.HASURA_GRAPHQL_JWT_SECRET}}"
   POSTGRES_USER: "${{secrets.POSTGRES_USER}}"
   POSTGRES_PASSWORD: "${{secrets.POSTGRES_PASSWORD}}"
+  DOCKER_TAG: "v1.12.0"
+  REPOSITORY_DOCKER_URL: "ghcr.io/nasa-ammos"
 
 jobs:
   unit-test:
@@ -45,7 +47,7 @@ jobs:
     environment: integration-test-workflow
     strategy:
       matrix:
-        python-version: [ "3.6.15", "3.7", "3.8", "3.9", "3.10", "3.11" ]
+        python-version: [ "3.6.15", "3.11" ]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}

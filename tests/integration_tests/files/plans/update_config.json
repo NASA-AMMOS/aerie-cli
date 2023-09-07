@@ -1,4 +1,10 @@
 {
-    "foo": "arg2",
-    "num": 5
+    "initialPlantCount": 3,
+    "initialProducer": "somebody",
+    "initialDataPath": "/etc/os-release",
+    "initialConditions": {
+            "flag": "B",
+            "fruit": 2,
+            "peel": 2
+        }
 }

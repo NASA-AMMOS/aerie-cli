@@ -1,30 +1,63 @@
 import json
+import requests
 from copy import deepcopy
-from enum import Enum
 from typing import Dict
 from typing import Optional
+from base64 import b64decode
 
 from attrs import define, field
 
-import requests
 
+def process_gateway_response(resp: requests.Response) -> dict:
+    """Throw a RuntimeError if the Gateway response is malformed or contains errors
 
-class AuthMethod(Enum):
-    NONE = "None"
-    AERIE_NATIVE = "Native"
-    COOKIE = "Cookie"
+    Args:
+        resp (requests.Response): from a request to the gateway
 
-    @classmethod
-    def from_string(cls, string_name: str) -> "AuthMethod":
-        try:
-            return next(filter(lambda x: x.value == string_name, cls))
-        except StopIteration:
-            raise ValueError(f"Unknown auth method: {string_name}")
-
-
-class AerieHostSession:
+    Returns:
+        dict: Contents of response JSON
     """
-    Encapsulate an authenticated session with an Aerie host.
+    if not resp.ok:
+        raise RuntimeError(f"Bad response from Aerie Gateway.")
+
+    try:
+        resp_json = resp.json()
+    except requests.exceptions.JSONDecodeError:
+        raise RuntimeError(f"Failed to get response JSON")
+
+    if "success" in resp_json.keys() and not resp_json["success"]:
+        raise RuntimeError(f"Aerie Gateway request was not successful")
+
+    return resp_json
+
+
+class AerieJWT:
+    def __init__(self, encoded_jwt: str) -> None:
+        jwt_components = encoded_jwt.split(".")
+        if not len(jwt_components) == 3:
+            raise ValueError(f"Invalid JWT: {encoded_jwt}")
+
+        encoded_jwt_payload = b64decode(jwt_components[1] + "==", validate=False)
+        try:
+            payload = json.loads(encoded_jwt_payload)
+            self.active_role = payload["activeRole"]
+            self.allowed_roles = payload["https://hasura.io/jwt/claims"][
+                "x-hasura-allowed-roles"
+            ]
+            self.username = payload["username"]
+
+        except KeyError:
+            raise ValueError(f"Missing fields in JWT: {encoded_jwt}")
+
+        except json.decoder.JSONDecodeError:
+            raise ValueError(f"Cannot decode JWT: {encoded_jwt}")
+
+        self.encoded_jwt = encoded_jwt
+
+
+class AerieHost:
+    """
+    Abstracted interface for the Hasura and Aerie Gateway APIs of an Aerie instance.
 
     An instance stores the necessary URLs and authenticates using header or
     cookie information stored in the `requests.Session` object, if necessary.
@@ -32,23 +65,24 @@ class AerieHostSession:
 
     def __init__(
         self,
-        session: requests.Session,
         graphql_url: str,
         gateway_url: str,
+        session: requests.Session = None,
         configuration_name: str = None,
     ) -> None:
         """
 
         Args:
-            session (requests.Session): HTTP session, with auth headers/cookies if necessary
             graphql_url (str): Route to Aerie host's GraphQL API
             gateway_url (str): Route to Aerie Gateway
+            session (requests.Session, optional): Session with headers/cookies for external authentication
             configuration_name (str, optional): Name of configuration for this session
         """
-        self.session = session
+        self.session = session if session else requests.Session()
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
+        self.aerie_jwt = None
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -69,31 +103,30 @@ class AerieHostSession:
             resp = self.session.post(
                 self.graphql_url,
                 json={"query": query, "variables": kwargs},
+                headers=self.get_auth_headers(),
             )
 
             if resp.ok:
-                if "errors" in resp.json().keys():
-                    err = resp.json()["errors"]
-                    for error in err:
-                        print(error["message"])
+                try:
+                    resp_json = resp.json()
+                except json.decoder.JSONDecodeError:
+                    raise RuntimeError(f"Failed to process response")
+
+                if "success" in resp_json.keys() and not resp_json["success"]:
+                    raise RuntimeError("GraphQL request was not successful")
+                elif "errors" in resp_json.keys():
+                    raise RuntimeError(
+                        f"GraphQL Error: {json.dumps(resp_json['errors'])}"
+                    )
                 else:
-                    resp_json = resp.json()["data"]
-                    data = next(iter(resp_json.values()))
+                    data = next(iter(resp.json()["data"].values()))
 
             if data is None:
-                raise RuntimeError
-
-            if not resp.ok or (
-                resp.ok
-                and isinstance(data, dict)
-                and "success" in data
-                and not data["success"]
-            ):
-                raise RuntimeError
+                raise RuntimeError(f"Failed to process response: {resp}")
 
             return data
 
-        except Exception as e:
+        except RuntimeError as e:
             # Re-raise with additional information
             e = str(e)
 
@@ -146,7 +179,9 @@ class AerieHostSession:
         """
 
         resp = self.session.post(
-            self.gateway_url + "/file", files={"file": (file_name, file_contents)}
+            self.gateway_url + "/file",
+            files={"file": (file_name, file_contents)},
+            headers=self.get_auth_headers(),
         )
 
         if resp.ok:
@@ -154,81 +189,142 @@ class AerieHostSession:
         else:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
-    def ping_gateway(self) -> bool:
+    def change_role(self, new_role: str) -> None:
+        """Change role for Aerie interaction
+
+        Args:
+            new_role (str): String name of new role.
+        """
+
+        if new_role not in self.aerie_jwt.allowed_roles:
+            raise ValueError(
+                f"Cannot set role {new_role}. Must be one of: {', '.join(self.aerie_jwt.allowed_roles)}"
+            )
+
+        resp = self.session.post(
+            self.gateway_url + "/auth/changeRole",
+            json={"role": new_role},
+            headers=self.get_auth_headers(),
+        )
 
         try:
-            resp = self.session.get(self.gateway_url + "/health")
+            resp_json = process_gateway_response(resp)
+            self.aerie_jwt = AerieJWT(resp_json["token"])
+        except (RuntimeError, KeyError):
+            raise RuntimeError(f"Failed to select new role")
+
+    def check_auth(self) -> bool:
+        """Checks if session is correctly authenticated with Aerie host
+        
+        Looks for errors received after pinging GATEWAY_URL/auth/session.
+        Also returns False if the session has not yet been authenticated (no JWT).
+
+        Returns:
+            bool: True if there were no errors in a ping against GATEWAY_URL/auth/session, False otherwise
+        """
+        if self.aerie_jwt is None:
+            return False
+
+        try:
+            resp = self.session.get(
+                self.gateway_url + "/auth/session", headers=self.get_auth_headers()
+            )
         except requests.exceptions.ConnectionError:
             return False
         try:
-            if "uptimeMinutes" in resp.json().keys():
-                return True
+            return resp.json()["success"]
         except Exception:
             return False
 
-    @classmethod
-    def session_helper(
-        cls,
-        auth_method: AuthMethod,
-        graphql_url: str,
-        gateway_url: str,
-        auth_url: str = None,
-        username: str = None,
-        password: str = None,
-        configuration_name: str = None,
-    ) -> "AerieHostSession":
-        """Helper function to create a session with an Aerie host
+    def get_auth_headers(self):
+        return {
+            "Authorization": f"Bearer {self.aerie_jwt.encoded_jwt}",
+            "x-hasura-role": self.aerie_jwt.active_role,
+        }
 
-        Args:
-            auth_method (AuthMethod): Authentication method to use
-            graphql_url (str): Route to Graphql API
-            gateway_url (str): Route to Aerie Gateway
-            auth_url (str, optional): Route to Authentication endpoint. Ignore if no auth.
-            username (str, optional): Username for Authentication. Ignore if no auth.
-            password (str, optional): Password for Authentication. Ignore if no auth.
-            configuration_name (str, optional): Name of source configuration. Ignore if not instantiating from a config.
+    def is_auth_enabled(self) -> bool:
+        """Check if authentication is enabled on an Aerie host
 
         Returns:
-            AerieHostSession: HTTP session, with auth headers/cookies if necessary
+            bool: False if authentication is disabled, otherwise True
         """
+        resp = self.session.get(self.gateway_url + "/auth/user")
+        if resp.ok:
+            try:
+                resp_json = resp.json()
+                if (
+                    "message" in resp_json.keys()
+                    and resp_json["message"] == "Authentication is disabled"
+                ):
+                    return False
+            except requests.exceptions.JSONDecodeError:
+                pass
 
-        session = requests.Session()
+        return True
 
-        if auth_method is AuthMethod.NONE:
-            # If no auth is required, leave the session as-is
-            pass
+    def authenticate(self, username: str, password: str = None):
 
-        elif auth_method is AuthMethod.AERIE_NATIVE:
-            # For aerie native auth, pass the SSO token in query headers
-            resp = session.post(
-                auth_url, json={"username": username, "password": password}
-            )
-            if resp.json()["success"]:
-                if "token" in resp.json().keys():
-                    token = resp.json().get("token")
-                    if token is not None:  # a string token should include prefix
-                        token = "Bearer " + token
-                    session.headers["x-auth-sso-token"] = token
-                else:
-                    session.headers["x-auth-sso-token"] = resp.json()["ssoToken"]
-            else:
-                raise RuntimeError(f"Failed to authenticate at route: {auth_url}")
+        resp = self.session.post(
+            self.gateway_url + "/auth/login",
+            json={"username": username, "password": password},
+        )
 
-        elif auth_method is AuthMethod.COOKIE:
-            # For cookie auth, simply query the login endpoint w/ credentials which will return the cookie to be stored in the session
-            session.post(auth_url, json={"username": username, "password": password})
+        try:
+            resp_json = process_gateway_response(resp)
+        except RuntimeError:
+            raise RuntimeError("Failed to authenticate")
 
-        else:
-            raise RuntimeError(
-                f"No logic to generate an Aerie host session for auth method: {auth_method}"
-            )
+        self.aerie_jwt = AerieJWT(resp_json["token"])
 
-        aerie_session = cls(session, graphql_url, gateway_url, configuration_name)
-
-        if not aerie_session.ping_gateway():
+        if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
 
-        return aerie_session
+
+@define
+class ExternalAuthConfiguration:
+    """Configure additional external authentication necessary for connecting to an Aerie host.
+
+    Define configuration for a server which can provide additional authentication via cookies.
+
+    auth_url (str): URL to send request for authentication
+    static_post_vars (dict[str, str]): key-value constants to include in the post request variables
+    secret_post_vars (list[str]): keys for secret values to include in the post request variables
+    """
+
+    auth_url: str
+    static_post_vars: dict
+    secret_post_vars: list
+
+    @classmethod
+    def from_dict(cls, config: Dict) -> "ExternalAuthConfiguration":
+        try:
+            auth_url = config["auth_url"]
+            static_post_vars = config["static_post_vars"]
+            secret_post_vars = config["secret_post_vars"]
+
+        except KeyError as e:
+            raise ValueError(
+                f"External auth configuration missing required field: {e.args[0]}"
+            )
+
+        if not isinstance(static_post_vars, dict):
+            raise ValueError(
+                "Invalid value for 'static_post_vars' in external auth configuration"
+            )
+
+        if not isinstance(secret_post_vars, list):
+            raise ValueError(
+                "Invalid value for 'secret_post_vars' in external auth configuration"
+            )
+
+        return cls(auth_url, static_post_vars, secret_post_vars)
+
+    def to_dict(self) -> Dict:
+        return {
+            "auth_url": self.auth_url,
+            "static_post_vars": self.static_post_vars,
+            "secret_post_vars": self.secret_post_vars,
+        }
 
 
 @define
@@ -236,11 +332,8 @@ class AerieHostConfiguration:
     name: str
     graphql_url: str
     gateway_url: str
-    auth_method: AuthMethod
-    auth_url: str = None
-    username: Optional[str] = field(
-        default=None
-    )
+    username: Optional[str] = field(default=None)
+    external_auth: Optional[ExternalAuthConfiguration] = field(default=None)
 
     @classmethod
     def from_dict(cls, config: Dict) -> "AerieHostConfiguration":
@@ -248,53 +341,25 @@ class AerieHostConfiguration:
             name = config["name"]
             graphql_url = config["graphql_url"]
             gateway_url = config["gateway_url"]
-            auth_method = AuthMethod.from_string(config["auth_method"])
-
-            if auth_method == AuthMethod.NONE:
-                auth_url = None
-                username = None
-            else:
-                auth_url = config["auth_url"]
-                if "username" in config.keys():
-                    username = config["username"]
-                else:
-                    username = None
+            username = config["username"] if "username" in config.keys() else None
+            external_auth = ExternalAuthConfiguration.from_dict(config["external_auth"]) if "external_auth" in config.keys() else None
 
         except KeyError as e:
             raise ValueError(f"Configuration missing required field: {e.args[0]}")
 
-        return cls(name, graphql_url, gateway_url, auth_method, auth_url, username)
+        return cls(name, graphql_url, gateway_url, username, external_auth)
 
     def to_dict(self) -> Dict:
         retval = {
             "name": self.name,
             "graphql_url": self.graphql_url,
-            "gateway_url": self.gateway_url,
-            "auth_method": self.auth_method.value,
+            "gateway_url": self.gateway_url
         }
 
-        if self.auth_method != AuthMethod.NONE:
-            retval["auth_url"] = self.auth_url
+        if self.username is not None:
             retval["username"] = self.username
 
+        if self.external_auth is not None:
+            retval["external_auth"] = self.external_auth.to_dict()
+
         return retval
-
-    def start_session(self, username=None, password: str = None) -> AerieHostSession:
-        """Start an Aerie host session from this configuration
-
-        Args:
-            username (str, optional): Override stored username. Defaults to None.
-            password (str, optional): Provide a password, if necessary. Defaults to None.
-
-        Returns:
-            AerieHostSession
-        """
-        return AerieHostSession.session_helper(
-            self.auth_method,
-            self.graphql_url,
-            self.gateway_url,
-            self.auth_url,
-            username if username else self.username,
-            password,
-            self.name,
-        )

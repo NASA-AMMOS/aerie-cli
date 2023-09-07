@@ -9,10 +9,6 @@
     {
       "type": "ACT_One",
       "start_offset": "0:00:00",
-      "tags": [
-        "first_tag",
-        "second_tag"
-      ],
       "metadata": {},
       "name": "Anchor",
       "arguments": {},
@@ -23,7 +19,6 @@
     {
       "type": "ACT_Two",
       "start_offset": "2:00:00",
-      "tags": [],
       "metadata": {},
       "name": "Anchored_to_start",
       "arguments": {},
@@ -34,7 +29,6 @@
     {
       "type": "ACT_Three",
       "start_offset": "4:00:00",
-      "tags": [],
       "metadata": {},
       "name": "Anchored_to_end",
       "arguments": {

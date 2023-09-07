@@ -38,8 +38,6 @@ def serialize_api(inst: type, field: Attribute, value: Any):
         return timedelta_to_postgres_interval(value)
     if isinstance(value, Arrow):
         return str(value)
-    if isinstance(value, List) and field.name == "tags":
-        return "{" + ",".join(value) + "}"
     return value
 
 class ApiSerialize:
@@ -67,7 +65,6 @@ class ActivityBase(ApiSerialize):
     start_offset: timedelta = field(
         converter = convert_to_time_delta
     )
-    tags: Optional[List[str]] = field(factory=lambda: [], kw_only=True)
     metadata: Optional[Dict[str, str]] = field(factory=lambda: {}, kw_only=True)
     name: Optional[str] = field(factory=lambda: "", kw_only=True)
     arguments: Optional[Dict[str, Any]] = field(
@@ -90,11 +87,9 @@ class ApiActivityCreate(ActivityBase):
     """Format for uploading activity directives
 
     Plan ID is added because it's required to be included as part of the activity object.
-    Tags are encoded to the `text[]` format for GraphQL/Postgres.
     """
 
     plan_id: int
-    tags: List[str]
 
 
 @define
