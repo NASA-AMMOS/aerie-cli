@@ -6,7 +6,7 @@ Aerie-CLI provides a command-line interface and user-extendable Python API for i
 
 ## Getting Started
 
-This short procedure will get you up and running with the basics of the CLI. Read the following sections for more information.
+This short procedure will get you up and running with the basics of the CLI.
 
 1. Install/update to Python >= 3.6
 
@@ -73,7 +73,7 @@ Aerie-CLI uses configurations to define different Aerie hosts. Define configurat
 
 #### Defining Hosts with a Configuration File
 
-If you have a file of configurations to load, you can simply use the `configurations load` command:
+If you have a file of configurations to load, you can use the `configurations load` command:
 
 ```sh
 ➜  aerie-cli configurations load -i PATH_TO_JSON
