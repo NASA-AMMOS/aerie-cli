@@ -13,7 +13,7 @@ This short procedure will get you up and running with the basics of the CLI.
 2. Install Aerie-CLI from Github:
 
    ```sh
-   ➜  python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@main
+   python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@main
    ```
 
 3. Configure access to an Aerie host
@@ -36,31 +36,31 @@ This short procedure will get you up and running with the basics of the CLI.
    3. Load either your given configuration(s) or the configuration above into Aerie-CLI:
 
       ```sh
-      ➜  aerie-cli configurations load -i JSON_FILE
+      aerie-cli configurations load -i JSON_FILE
       ```
 
 4. Activate a configuration to start a session with an Aerie host:
 
    ```sh
    ➜  aerie-cli activate
-   1) localhost
-   Select an option: 1
+      1) localhost
+      Select an option: 1
    ```
 
 5. Try out a command to list the plans in Aerie:
 
    ```sh
-   ➜  aerie-cli plans list
+   aerie-cli plans list
    ```
 
 6. Use the `--help` flag on any command to see available subcommands and parameters. For example:
 
    ```sh
-   ➜  aerie-cli --help
+   aerie-cli --help
    ...
-   ➜  aerie-cli plans --help
+   aerie-cli plans --help
    ...
-   ➜  aerie-cli plans download --help
+   aerie-cli plans download --help
    ```
 
 ---
@@ -76,7 +76,7 @@ Aerie-CLI uses configurations to define different Aerie hosts. Define configurat
 If you have a file of configurations to load, you can use the `configurations load` command:
 
 ```sh
-➜  aerie-cli configurations load -i PATH_TO_JSON
+aerie-cli configurations load -i JSON_FILE
 ```
 
 You can view the configurations you've loaded with the `configurations list` command:
@@ -137,19 +137,19 @@ Commands are the main functions available via the CLI and are broken down into s
 Help at script level:
 
 ```sh
-➜  aerie-cli --help
+aerie-cli --help
 ```
 
 Help at command level:
 
 ```sh
-➜  aerie-cli plans --help
+aerie-cli plans --help
 ```
 
 Help at sub-command level:
 
 ```sh
-➜  aerie-cli plans download --help
+aerie-cli plans download --help
 ```
 
 #### Interactive vs. Non-Interactive
@@ -157,15 +157,15 @@ Help at sub-command level:
 If a command is invoked without the necessary arugments, interactive prompts are provided:
 
 ```sh
->>> aerie-cli plans download
-> Id: 42
-> Output: sample-output.json
+➜  aerie-cli plans download
+    Id: 42
+    Output: sample-output.json
 ```
 
 Alternatively, arguments can be provided using flags:
 
 ```sh
->>> aerie-cli plans download --id 42 --output sample-output.json
+➜  aerie-cli plans download --id 42 --output sample-output.json
 ```
 
 ### Advanced Topics
@@ -333,44 +333,17 @@ client = AerieClient(aerie_host)
 
 If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
 
-Then, you will need to run the following commands:
+From the root of the repo, use `poetry` to install Aerie-CLI and its dependencies:
 
-1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
-2. ~`poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.~
+```sh
+poetry install
+```
 
 To run commands from source as you edit, use the `poetry run` command. For example:
 
 ```
 poetry run aerie-cli plans simulate --id 42
 ```
-
-<!-- ### Deployment
-
-To deploy a new version of aerie-cli:
-
-- Verify the version number in `pyproject.toml` is incremented from the current version in PyPI
-- Clear out any previous build artifacts, if present, from the root of the repository:
-  ```sh
-  rm -rf dist/
-  ```
-- Build the project using Poetry:
-  ```sh
-  poetry build
-  ```
-
-To upload to PyPI, use twine:
-
-```sh
-python3 -m twine upload dist/*
-```
-
-Details can be found in the [twine documentation](https://twine.readthedocs.io/en/stable/index.html). -->
-
-### Pre-Commit Hook
-
-Whenever you try to commit your changes (`git commit -m "my commit message"`), you may experience errors if your current shell doesn't have access to the dependencies required for the pre-commit hook. To remedy this, simply prefix your `git` command with `poetry run`. E.g.: `poetry run git commit -m "my commit message"`.
-
-If your code does not conform to formatting or style conventions, your commit will fail, and you will have to revise your code before committing it. Note, however, that our auto-formatter `black` does modify your files in-place when you run the pre-commit hook; you'll simply have to `git add` the changed files to stage the formatting changes, and you can attempt to commit again.
 
 ### Dependency Management
 
