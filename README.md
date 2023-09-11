@@ -97,6 +97,18 @@ Configuration file location: /Users/<username>/Library/Application Support/aerie
 
 If you haven't been provided a JSON configuration for a host, you can create a configuration by running `aerie-cli configurations create` and follow the prompts. 
 
+#### Full Specification
+
+Each configuration is stored as JSON object list entry in the configuration file provided with the `configurations list` command. The full contents of a host configuration are:
+
+| Field           | Description                                                                                                                                                                        | Required |
+| :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `name`          | User-facing name of the host                                                                                                                                                       | Yes      |
+| `graphql_url`   | URL of the Aerie instance's Hasura GraphQL API                                                                                                                                     | Yes      |
+| `gateway_url`   | URL of the Aerie instance's Gateway                                                                                                                                                | Yes      |
+| `username`      | Username for authentication with Aerie                                                                                                                                             | No       |
+| `external_auth` | Specification for external authentication required to reach an Aerie instance. See [Configuring for External Authentication](#configuring-for-external-authentication) for details | No       |
+
 ### Sessions and Roles
 
 Aerie-CLI maintains a persistent "session" with an Aerie instance so multiple commands can run without needing to re-authenticate. To start a session, use the `activate` command:
