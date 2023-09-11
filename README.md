@@ -1,64 +1,16 @@
-# Aerie CLI
+# Aerie-CLI
 
-Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie team.
+Aerie-CLI provides a command-line interface and user-extendable Python API for interacting with an instance of Aerie.
 
-##### Table of Contents
-
-- [Aerie CLI](#aerie-cli) - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Getting Started](#getting-started)
-  - [Installation](#installation)
-    - [Installation with `pip`](#installation-with-pip)
-    - [Updating with `pip`](#updating-with-pip)
-    - [Installation with `poetry`](#installation-with-poetry)
-  - [Usage](#usage)
-    - [Setup](#setup)
-      - [With a Configuration File](#with-a-configuration-file)
-      - [Via the CLI](#via-the-cli)
-      - [Handling Authentication](#handling-authentication)
-    - [Commands](#commands)
-      - [Interactive](#interactive)
-      - [Non-Interactive](#non-interactive)
-      - [Help](#help)
-      - [Specific Sub-Commands: Plans](#specific-sub-commands-plans)
-        - [Download](#download)
-        - [Upload](#upload)
-        - [Duplication](#duplication)
-        - [Simulation](#simulation)
-      - [Specific Sub-Commands: Models](#specific-sub-commands-models)
-        - [Upload](#upload-1)
-        - [List](#list)
-        - [Delete](#delete)
-        - [Clean](#clean)
-    - [Python API](#python-api)
-      - [Basic Usage](#basic-usage)
-      - [Adding Methods](#adding-methods)
-      - [Advanced Authentication](#advanced-authentication)
-  - [Contributing](#contributing)
-    - [Contributor Installation](#contributor-installation)
-    - [Deployment](#deployment)
-    - [Dependency Management](#dependency-management)
-    - [Testing](#testing)
-      - [Unit Tests](#unit-tests)
-    - [Pre-Commit Hook](#pre-commit-hook)
-    - [IDE Settings](#ide-settings)
-      - [VS Code](#vs-code)
-
----
-
-## Overview
-
-Aerie CLI provides a command-line interface and user-extendable Python backend for interacting with an instance of Aerie.
-
----
+> Note: this project is an informal CLI and is _not_ maintained by the MPSA Aerie team.
 
 ## Getting Started
 
-This short procedure will get you up and running with the basics of Aerie CLI. Read the following sections for more information.
+This short procedure will get you up and running with the basics of the CLI.
 
-1. Install/update to Python >=3.9
+1. Install/update to Python >= 3.6
 
-2. Install Aerie CLI from Github:
+2. Install Aerie-CLI from Github:
 
    ```sh
    python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@main
@@ -68,29 +20,31 @@ This short procedure will get you up and running with the basics of Aerie CLI. R
 
    1. If you've been provided a Configuration JSON, reference that file
 
-   2. If you don't have already have a Configuration JSON, copy the following to a JSON file for a local Aerie deployment:
+   2. If you don't have already have a Configuration JSON, copy the following to a JSON file for a local Aerie deployment (replacing the username with your own):
 
       ```json
-      {
-        "name": "localhost",
-        "graphql_url": "http://localhost:8080/v1/graphql",
-        "gateway_url": "http://localhost:9000",
-        "auth_method": "None"
-      }
+      [
+        {
+          "name": "localhost",
+          "graphql_url": "http://localhost:8080/v1/graphql",
+          "gateway_url": "http://localhost:9000",
+          "username": "my_username"
+        }
+      ]
       ```
 
-   3. Load either your given configuration(s) or the configuration above into Aerie CLI:
+   3. Load either your given configuration(s) or the configuration above into Aerie-CLI:
 
       ```sh
       aerie-cli configurations load -i JSON_FILE
       ```
 
-4. Activate a configuration to start communicating with an Aerie host:
+4. Activate a configuration to start a session with an Aerie host:
 
    ```sh
-   ➜  tools aerie-cli configurations activate
-   1) localhost
-   Select an option: 1
+   ➜  aerie-cli activate
+      1) localhost
+      Select an option: 1
    ```
 
 5. Try out a command to list the plans in Aerie:
@@ -111,62 +65,18 @@ This short procedure will get you up and running with the basics of Aerie CLI. R
 
 ---
 
-## Installation
-
-### Installation with `pip`
-
-First, ensure that **`Python 3.9`** is installed on your local machine as the CLI will is not compatible with older versions. Once `Python 3.9` has been installed, you can install `aerie-cli` with the following command:
-
-```sh
-python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git#main
-```
-
-If you want to install from a specific branch of `aerie-cli` replace `#main` in the GitHub url with `@branchname` as following:
-
-```sh
-$ python3 -m pip install git+https://github.com/NASA-AMMOS/aerie-cli.git@branchname
-```
-
-You can confirm that `aerie-cli` has been installed on your system:
-
-```sh
->>> which aerie-cli
-> path/to/aerie-cli
-```
-
-### Updating with `pip`
-
-In order to update your currently installed version of `aerie-cli`, first uninstall your local package and then reinstall from GitHub.
-
-```sh
-$ python3 -m pip uninstall aerie_cli
-> Successfully uninstalled aerie-cli-<version>
-```
-
-### Installation with `poetry`
-
-If you use `poetry` for your dependency management and intend to use this package in another Python project, you can install this package to an existing `poetry` project with:
-
-```sh
-poetry add git+https://github.com/NASA-AMMOS/aerie-cli.git#main
-```
-
-For more info on `poetry`, see the [Contributing](#contributing) section below.
-
----
-
-## Usage
+## CLI Usage
 
 ### Setup
 
-Aerie CLI uses configurations to define different Aerie hosts. Define configurations by either loading JSON configurations or manually via the CLI.
+Aerie-CLI uses configurations to define different Aerie hosts. Define configurations by either loading JSON configurations or manually via the CLI. Configurations persist on a per-user basis and may be shared between installations.
 
-#### With a Configuration File
+#### Defining Hosts with a Configuration File
 
-If you have a file of configurations to load, you can simply use the `configurations load` command:
+If you have a file of configurations to load, you can use the `configurations load` command:
 
 ```sh
-➜  aerie-cli configurations load -i PATH_TO_JSON
+aerie-cli configurations load -i JSON_FILE
 ```
 
 You can view the configurations you've loaded with the `configurations list` command:
@@ -176,273 +86,188 @@ You can view the configurations you've loaded with the `configurations list` com
 Configuration file location: /Users/<username>/Library/Application Support/aerie_cli/config.json
 
                                          Aerie Host Configurations
-┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
-┃ Host Name ┃ GraphQL API URL                  ┃ Aerie Gateway URL     ┃ Authentication Method ┃ Username ┃
-┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
-│ localhost │ http://localhost:8080/v1/graphql │ http://localhost:9000 │ None                  │          │
-└───────────┴──────────────────────────────────┴───────────────────────┴───────────────────────┴──────────┘
+┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Host Name ┃ GraphQL API URL                  ┃ Aerie Gateway URL     ┃ Username ┃
+┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ localhost │ http://localhost:8080/v1/graphql │ http://localhost:9000 │          │
+└───────────┴──────────────────────────────────┴───────────────────────┴──────────┘
 ```
 
-#### Via the CLI
+#### Defining hosts via the CLI
 
-If you haven't been provided a JSON configuration for a host, you can create a configuration by running `aerie-cli configurations create` and follow the prompts. For example, to configure localhost:
+If you haven't been provided a JSON configuration for a host, you can create a configuration by running `aerie-cli configurations create` and follow the prompts. 
+
+#### Full Specification
+
+Each configuration is stored as JSON object list entry in the configuration file provided with the `configurations list` command. The full contents of a host configuration are:
+
+| Field           | Description                                                                                                                                                                        | Required |
+| :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `name`          | User-facing name of the host                                                                                                                                                       | Yes      |
+| `graphql_url`   | URL of the Aerie instance's Hasura GraphQL API                                                                                                                                     | Yes      |
+| `gateway_url`   | URL of the Aerie instance's Gateway                                                                                                                                                | Yes      |
+| `username`      | Username for authentication with Aerie                                                                                                                                             | No       |
+| `external_auth` | Specification for external authentication required to reach an Aerie instance. See [Configuring for External Authentication](#configuring-for-external-authentication) for details | No       |
+
+### Sessions and Roles
+
+Aerie-CLI maintains a persistent "session" with an Aerie instance so multiple commands can run without needing to re-authenticate. To start a session, use the `activate` command:
 
 ```sh
-➜  aerie-cli configurations create
-   Name: localhost
-   GraphQL URL: http://localhost:8080/v1/graphql
-   Gateway URL: http://localhost:9000
-   Authentication method (None, Native, Cookie) [None]: None
-```
-
-To view available configurations, use `aerie-cli configurations list`:
-
-```sh
-➜  aerie-cli configurations list
-Configuration file location: /Users/<username>/Library/Application Support/aerie_cli/config.json
-
-                                         Aerie Host Configurations
-┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
-┃ Host Name ┃ GraphQL API URL                  ┃ Aerie Gateway URL     ┃ Authentication Method ┃ Username ┃
-┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━┩
-│ localhost │ http://localhost:8080/v1/graphql │ http://localhost:9000 │ None                  │          │
-└───────────┴──────────────────────────────────┴───────────────────────┴───────────────────────┴──────────┘
-```
-
-#### Handling Authentication
-
-Each configuration must specify an authentication method, which depends on how the Aerie instance is deployed. Aerie CLI provides three ways to authenticate with an Aerie host:
-
-| Method   | Description                                                     |
-| :------- | :-------------------------------------------------------------- |
-| `None`   | No authentication (e.g., for a local deployment)                |
-| `Native` | Default Aerie authentication scheme (Token-based)               |
-| `Cookie` | Cookie-based authentication (used on some advanced deployments) |
-
-A Hasura Admin Secret may be required for certain operations.
-
-The `--hasura-admin-secret` CLI option is used to set this secret. Provide this option after ```aerie-cli```, but before any commands. For example:
-```
-aerie-cli --hasura-admin-secret SECRET plans list
-```
-*The hasura admin secret is not stored persistently. The secret is only used for the current command.*
-### Commands
-
-Begin by activating a configuration. This will store a persistent session with an Aerie host that will be used for all CLI commands.
-
-```sh
-aerie-cli configurations activate
+➜  aerie-cli activate
     1) localhost
     ...
     Select an option: 1
 ```
 
-We're using the [`typer`](https://typer.tiangolo.com) library for command-line input. This allows us to run any of these commands interactively (with user prompts for each un-provided argument) OR non-interactively (where all are provided).
-
-Currently, Aerie-CLI supports `plans`, `models`, and `expansion` command trees.
-
-**Note**: during the early stages of development, the examples in this README may not be perfectly in sync with updates to the commands and sub-commands supported by the CLI. If there is any discrepancy, you're encouraged to use the `--help` option (see [Help](#help) section) for information on commands and sub-commands in your specific CLI version.
-
-#### Interactive
-
-For example, we can run a script without any CLI args/options, and we'll be prompted for the necessary information:
+Aerie uses "roles" to adjust what a client is permitted to do. To view the active configuration name and current role, use the `status` command:
 
 ```sh
->>> aerie-cli plans download
-> Id: 42
-> Output: sample-output.json
+➜  aerie-cli status
+Active configuration: localhost
+Active role: viewer
 ```
 
-#### Non-Interactive
-
-Alternatively, if we get tired of repeatedly providing the same inputs (or want to build automation on top of our CLI), we can provide the arguments directly as we invoke the CLI:
+The default role is configured by Aerie. To change the selected role for the active Aerie-CLI session, use the `role` command:
 
 ```sh
->>> aerie-cli plans download --id 42 --output sample-output.json
+➜  aerie-cli role
+Active Role: viewer
+	1) aerie_admin
+	2) user
+	3) viewer
+Select an option: 1
+Changed role to: aerie_admin
 ```
 
-NOTE: you are **not** encouraged to provide your password in plaintext as an input to the script upon invocation; it will prompt you for it in your shell and hide your input. It may be provided at the command-line, however, if you're using an automation tool like Jenkins which is capable of auto-credential-hiding in logs.
+At any time, the active session can be closed with the `deactivate` command.
 
-#### Help
+### Commands
 
-You can also use `--help` liberally to get more info at various stages in the process:
-
-E.g.:
+Commands are the main functions available via the CLI and are broken down into several levels. For example, the top-level `plans` command has sub-commands for `list`, `upload`, `simulate`, and more. From any command or sub-command, use the `--help` flag to learn about what commands are available or what arguments are required.
 
 Help at script level:
 
 ```sh
->>> aerie-cli --help
-Usage: aerie-cli [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --hasura-admin-secret TEXT      [env var: HASURA_GRAPHQL_ADMIN_SECRET]
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-  --help                          Show this message and exit.
-
-Commands:
-  configurations
-  constraints
-  expansion
-  models
-  plans
-  scheduling
+aerie-cli --help
 ```
 
 Help at command level:
 
 ```sh
->>> aerie-cli plans --help
-Usage: aerie-cli plans [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  download   Download a plan and save it locally as a JSON file.
-  duplicate  Duplicate an existing plan.
-  simulate   Download a plan and save it locally as a JSON file.
-  upload     Create a plan from an input JSON file.
+aerie-cli plans --help
 ```
 
 Help at sub-command level:
 
 ```sh
->>> aerie-cli plans download --help
-Usage: aerie-cli plans download [OPTIONS]
-
-  Download a plan and save it locally as a JSON file
-
-Options:
-  --id INTEGER       Plan ID  [required]
-  --output TEXT      The output file destination  [required]
-  --help             Show this message and exit.
+aerie-cli plans download --help
 ```
 
-#### Specific Sub-Commands: Plans
+#### Interactive vs. Non-Interactive
 
-##### Download
-
-You can download an Aerie plan simply as such:
+If a command is invoked without the necessary arugments, interactive prompts are provided:
 
 ```sh
-aerie-cli plans download
+➜  aerie-cli plans download
+    Id: 42
+    Output: sample-output.json
 ```
 
-The output JSON file resembles the plan as hosted on the Aerie deployment.
-
-##### Upload
-
-You can upload an Aerie plan simply with:
+Alternatively, arguments can be provided using flags:
 
 ```sh
-aerie-cli plans upload
+➜  aerie-cli plans download --id 42 --output sample-output.json
 ```
 
-NOTE: a downloaded JSON plan includes arguments for `id` (plan ID), `model_id` (mission model / adaptation ID), and an `id` for each activity instance. These are included for the convenience of the user, but if the same downloaded plan is used for upload, these fields are ignored (since new activity instances and a new plan container are created for an upload). You may feel free to delete these fields from persisted plans if you'd like.
+### Advanced Topics
 
-##### Duplication
+#### Configuring for External Authentication
 
-You can duplicate an Aerie plan (create a copy against the same mission model) with:
+Aerie-CLI configurations include a mechanism to authenticate against an external authentication service which may require additional credentials as cookies for accessing Aerie. Aerie-CLI will issue a post request with given JSON data to a provided authentication endpoint and persist any returned cookies in a browser-like manner for the remainder of the Aerie-CLI session.
 
-```sh
-aerie-cli plans duplicate
+An external authentication service is configured using the key `external_auth` in the JSON configuration file as follows:
+
+```json
+
+  {
+    "name": "my_host",
+    "graphql_url": "https://hostname/v1/graphql",
+    "gateway_url": "https://hostname/gateway",
+    "username": "my_username",
+    "external_auth": {
+      "auth_url": "https://auth_service/route",
+      "static_post_vars": {
+        "username": "my_username"
+      },
+      "secret_post_vars": [
+        "password"
+      ]
+    }
+  }
 ```
 
-##### Simulation
+Here, `static_post_vars` is an object containing fixed values to include in the post request payload such as usernames and other persistent, non-sensitive fields. `secret_post_vars` is a list of keys for credentials which may be sensitive or time-varying. The user will be prompted to provide the "secret" values using hidden entry in the terminal when activating a session with external authentication.
 
-You can simulate an Aerie plan with:
+In this example, the user would be prompted to enter a value for "password" and, assuming they enter "my_password", the post request JSON would include the following:
 
-```sh
-aerie-cli plans simulate
+```json
+{
+  "username": "my_username",
+  "password": "my_password"
+}
 ```
 
-If an `--output` argument isn't provided, this will simply run a simulation so that the results are cached on the server and are quickly visible in the UI. However, if you want to persist the results in JSON form, you should provide an `--output` path to a local file.
+#### Using a Hasura Admin Secret
 
-#### Specific Sub-Commands: Models
+In some cases, an admin secret may be used to permit otherwise prohibited requests through Hasura (the software behind the Aerie API). When running a command, the user may add the `--hasura-admin-secret` flag after the `aerie-cli` command to use these elevated privileges for the following command. 
 
-##### Upload
+---
 
-You can upload an Aerie mission model simply as such:
+## Python API
 
-```sh
-aerie-cli models upload
-```
+### Quickstart Guide
 
-NOTE: Required fields include `mission-model-path`, `model-name`, and `mission-name`. The model version defaults to an empty string that can be overwritten by the user input. Alternatively, use the `--time-tag-version` flag to set the model version with the current timestamp.
+Instead of using the CLI for interactive use cases, the underlying classes and methods behind Aerie-CLI can be invoked directly in Python scripts.
 
-##### List
+The key constructs are:
 
-You can list out all current Aerie mission models like so:
+- `aerie_cli.aerie_host.AerieHost`: An abstraction for an Aerie Host, including methods for authentication and issuing requests to the Aerie API.
+- `aerie_cli.aerie_client.AerieClient`: A class containing common requests and reusable logic to interact with data in Aerie. 
 
-```sh
-aerie-cli models list
-```
-
-##### Delete
-
-You can delete an Aerie model simply with:
-
-```sh
-aerie-cli models delete
-```
-
-NOTE: Required fields include `model-id`.
-
-##### Clean
-
-You can delete all Aerie mission models with:
-
-```sh
-aerie-cli models clean
-```
-
-### Python API
-
-#### Basic Usage
-
-Instead of using the CLI for interactive use cases, you may use this package's classes to interact with Aerie as a client in your own Python scripts.
-
-To begin, instantiate an `AerieHostSession` to connect to an Aerie host. Create an `AerieClient` instance with this session and use the methods on this class to access Aerie.
+The following example defines an `AerieHost` using the necessary URLs, authenticates with a command-line prompt for the user's password, and issues a simple request using one of the built-in requests.
 
 ```py
 from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHostSession, AuthMethod
+from aerie_cli.aerie_host import AerieHost
 
 from getpass import getpass
 
+# These URLs define the Aerie host
 GRAPHQL_URL = "http://myhostname:8080/v1/graphql"
 GATEWAY_URL = "http://myhostname:9000"
-AUTH_METHOD = AuthMethod.AERIE_NATIVE # Edit as appropriate
 
-# Only include the following if using auth
-AUTH_URL = "http://myhostname:9000/auth/login"
+# User credentials. The password may be omitted on Aerie instances with authentication disabled
 USERNAME = "myusername"
 PASSWORD = getpass(prompt='Password: ')
 
-session = AerieHostSession.session_helper(
-    AUTH_METHOD,
-    GRAPHQL_URL,
-    GATEWAY_URL,
-    AUTH_URL,
-    USERNAME,
-    PASSWORD
-)
+# Define the Aerie host and provide user credentials
+aerie_host = AerieHost(GRAPHQL_URL, GATEWAY_URL)
+aerie_host.authenticate(USERNAME, PASSWORD)
 
-client = AerieClient(session)
-plan = client.get_activity_plan_by_id(42) # Pass in ID of plan in Aerie
+# AerieClient takes in a host and returns an object to issue requests to that host
+client = AerieClient(aerie_host)
+
+# Simple example of a request to get an activity plan using the plan ID
+plan = client.get_activity_plan_by_id(42)
 print(plan.name)
 ```
 
 Look through the available methods in the provided `AerieClient` class to find ones that suit your needs.
 
-#### Adding Methods
+### Adding Methods
 
-If you need to write a custom query, you can extend the `AerieClient` class and add your own method:
+If you need to write a custom query, you can extend the `AerieClient` class and add your own method. Access the Aerie host using the `aerie_host` property. For example:
 
 ```py
 
@@ -459,7 +284,7 @@ class MyCustomAerieClient(AerieClient):
         """
 
         # Pass variables for the query as keyword arguments
-        resp = self.host_session.post_to_graphql(
+        resp = self.aerie_host.post_to_graphql(
             my_query,
             plan_name=plan_name
         )
@@ -470,14 +295,28 @@ Now, you can use your custom method like any other:
 
 ```py
 # ...
-client = MyCustomAerieClient(session)
+client = MyCustomAerieClient(aerie_host)
 plan_id = client.get_plan_id_by_name("my-plan-name")
 print(plan_id)
 ```
 
-#### Advanced Authentication
+### Using the Active CLI Session
 
-If you have needs for authentication (e.g., a custom token system) that aren't provided by Aerie CLI, you can use any features supported by the [Python `requests`](https://requests.readthedocs.io/en/latest/) module's [`Session` class](https://requests.readthedocs.io/en/latest/api/#request-sessions). Instantiate a session object, manipulate/add headers/cookies/SSL certificates/etc. as necessary, and use to instantiate an `AerieHostSession`:
+If your application will be run by a user who may also be using the CLI, you may reduce the amount of code required to configure an Aerie host and instead just use the active session. Aerie-CLI provides a utility to retrieve an `AerieClient` instance from the active CLI session:
+
+```py
+from aerie_cli.utils.sessions import get_active_session_client
+
+# client is an instance of `AerieClient`
+client = get_active_session_client()
+
+# Issue requests like normal
+plan = client.get_activity_plan_by_id(...)
+```
+
+### Advanced Authentication
+
+If you have needs for authentication (e.g., a custom token system) that aren't provided by Aerie-CLI, you can use any features supported by the [Python `requests`](https://requests.readthedocs.io/en/latest/) module's [`Session` class](https://requests.readthedocs.io/en/latest/api/#request-sessions). Instantiate a session object, manipulate/add headers/cookies/SSL certificates/etc. as necessary, and use to instantiate an `AerieHostSession`:
 
 ```py
 # ...
@@ -487,13 +326,15 @@ my_custom_requests_session = Session()
 # Manipulate as necessary
 # ...
 
-client = AerieClient(AerieHostSession(
-    my_custom_requests_session,
+aerie_host = AerieHost(
     GRAPHQL_URL,
-    GATEWAY_URL
-))
+    GATEWAY_URL,
+    session=my_custom_requests_session
+)
+aerie_host.authenticate(...)
+client = AerieClient(aerie_host)
 
-# Use `AerieClient` instance as normal
+# Use client as normal
 ```
 
 ---
@@ -504,32 +345,17 @@ client = AerieClient(AerieHostSession(
 
 If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
 
-Then, you will need to run the following commands:
-
-1. `poetry install` -- installs the necessary dependencies into a poetry-managed virtual environment.
-2. `poetry run pre-commit install` -- creates a git [pre-commit](https://pre-commit.com) hook which will automatically run formatters, style checks, etc. against your proposed commits.
-
-### Deployment
-
-To deploy a new version of aerie-cli:
-
-- Verify the version number in `pyproject.toml` is incremented from the current version in PyPI
-- Clear out any previous build artifacts, if present, from the root of the repository:
-  ```sh
-  rm -rf dist/
-  ```
-- Build the project using Poetry:
-  ```sh
-  poetry build
-  ```
-
-To upload to PyPI, use twine:
+From the root of the repo, use `poetry` to install Aerie-CLI and its dependencies:
 
 ```sh
-python3 -m twine upload dist/*
+poetry install
 ```
 
-Details can be found in the [twine documentation](https://twine.readthedocs.io/en/stable/index.html).
+To run commands from source as you edit, use the `poetry run` command. For example:
+
+```
+poetry run aerie-cli plans simulate --id 42
+```
 
 ### Dependency Management
 
@@ -539,30 +365,24 @@ For more information on dependency and project management, see the [`poetry` doc
 
 ### Testing
 
-While developing, you'll need to use `poetry` when testing your updates. E.g.:
-
-```
-poetry run aerie-cli plans simulate --output foo.json --id 42
-```
+Aerie-CLI has unit tests and integration tests built with the [pytest](https://docs.pytest.org/) library.
 
 #### Unit Tests
 
-Unit tests for both `plans` and `models` commands are contained within `tests/test_cli.py`. As of `0.11.3.1`, the unit tests are setup assuming that a local deployment of Aerie is running and ready to use. **Note: All current models and plans uploaded to Aerie will be deleted during unit test execution**.
+Unit tests can be run anytime from `tests/unit_tests` and reference local test files. `test_aerie_client.py` is where unit tests are added to exercise particular methods of the `AerieClient` class using mocked Aerie API responses. 
 
-To run unit tests, enter the following commands:
+Run the unit tests using `pytest`:
 
 ```
 cd tests
-poetry run pytest test_cli.py
+poetry run pytest unit_tests
 ```
 
-The tests were developed based on `Typer` testing documentation found [here](https://typer.tiangolo.com/tutorial/testing/).
+#### Integration Tests
 
-### Pre-Commit Hook
+A separate suite of tests is designed to validate CLI functionality against a local instance of Aerie. See the [integration testing documentation](tests/integration_tests/README.md) for details.
 
-Whenever you try to commit your changes (`git commit -m "my commit message"`), you may experience errors if your current shell doesn't have access to the dependencies required for the pre-commit hook. To remedy this, simply prefix your `git` command with `poetry run`. E.g.: `poetry run git commit -m "my commit message"`.
-
-If your code does not conform to formatting or style conventions, your commit will fail, and you will have to revise your code before committing it. Note, however, that our auto-formatter `black` does modify your files in-place when you run the pre-commit hook; you'll simply have to `git add` the changed files to stage the formatting changes, and you can attempt to commit again.
+The integration tests are based on `Typer` testing documentation found [here](https://typer.tiangolo.com/tutorial/testing/).
 
 ### IDE Settings
 
