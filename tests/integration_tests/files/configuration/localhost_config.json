@@ -1,0 +1,6 @@
+{
+  "name": "localhost",
+  "graphql_url": "http://localhost:8080/v1/graphql",
+  "gateway_url": "http://localhost:9000",
+  "username": "integrationtest"
+}

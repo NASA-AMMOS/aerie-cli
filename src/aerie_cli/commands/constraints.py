@@ -14,7 +14,6 @@ def upload(
     model_id: int = typer.Option(None, help="The model id associated with the constraint (do not input plan id)"),
     plan_id: int = typer.Option(None, help="The plan id associated with the constraint (do not input model id)"),
     name: str = typer.Option(..., help="The name of the constraint", prompt=True),
-    summary: str = typer.Option("", help="The summary of the constraint"), # optional
     description: str = typer.Option("", help="The description of the constraint"), # optional
     constraint_file: str = typer.Option(..., help="The file that holds the constraint", prompt=True)
 ):
@@ -31,7 +30,6 @@ def upload(
         "model_id": model_id,
         "plan_id": plan_id, 
         "name": name,
-        "summary": summary,
         "description": description,
         "definition": str_contents
     }
@@ -64,7 +62,6 @@ def update(
         "model_id": constraint["model_id"],
         "plan_id": constraint["plan_id"], 
         "name": constraint["name"],
-        "summary": constraint["summary"],
         "description": constraint["description"],
         "definition": str_contents
     }

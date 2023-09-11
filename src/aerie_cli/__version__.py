@@ -1,7 +1,7 @@
 import sys
 
-if sys.version_info < (3, 10):
-    # compatibility for python <3.10
+if sys.version_info < (3, 8):
+    # compatibility for python <3.8
     import importlib_metadata
 else:
     from importlib import metadata as importlib_metadata
