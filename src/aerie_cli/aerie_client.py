@@ -1569,11 +1569,11 @@ class AerieClient:
                 """
                 resp = self.aerie_host.post_to_graphql(
                     query,
-                    args=activity.parameters,
+                    args=activity.arguments,
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(
+                activity.arguments = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
 
