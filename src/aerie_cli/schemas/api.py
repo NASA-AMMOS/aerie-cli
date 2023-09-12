@@ -53,6 +53,7 @@ class ApiSerialize:
 @define
 class ApiEffectiveActivityArguments(ApiSerialize):
     arguments: Dict[str, Any]
+    success: bool
 
 @define
 class ActivityBase(ApiSerialize):
