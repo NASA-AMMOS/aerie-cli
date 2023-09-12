@@ -265,9 +265,7 @@ class AerieClient:
         activity_to_update: Activity,
         plan_id: int
     ) -> int:
-        activity_dict: Dict = activity_to_update.to_api_create(
-                plan_id
-            ).to_dict()
+        activity_dict: Dict = activity_to_update.to_api_update().to_dict()
         update_activity_mutation = """
         mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
             updateActivity: update_activity_directive_by_pk(

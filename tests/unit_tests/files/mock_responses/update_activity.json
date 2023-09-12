@@ -14,8 +14,7 @@
                         "aParameter": "2030-001T00:00:00Z"
                     },
                     "anchor_id": null,
-                    "anchored_to_start": true,
-                    "plan_id": 1
+                    "anchored_to_start": true
                 }
             }
         },

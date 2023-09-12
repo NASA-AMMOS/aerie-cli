@@ -94,6 +94,16 @@ class ApiActivityCreate(ActivityBase):
 
 
 @define
+class ApiActivityUpdate(ActivityBase):
+    """Format for updating activity directives
+
+    Plan ID is excluded as this column has restricted permissions for update
+    """
+
+    pass
+
+
+@define
 class ApiActivityRead(ActivityBase):
     """Format for downloading activity directives
 
