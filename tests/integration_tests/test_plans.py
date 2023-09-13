@@ -139,6 +139,24 @@ def test_plan_download():
         f"{result.stderr}"
     assert f"Wrote activity plan" in result.stdout
 
+def test_plan_download_expanded_args():
+    """
+    Download a plan, exercising the --full-args option to get effective activity arguments
+    """
+    result = runner.invoke(
+        app,
+        ["plans", "download", "--full-args", "true"],
+        input=str(plan_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
+        catch_exceptions=False,
+    )
+    path_to_plan = Path(DOWNLOADED_FILE_NAME)
+    assert path_to_plan.exists()
+    path_to_plan.unlink()
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert f"Wrote activity plan" in result.stdout
+
 def test_plan_download_resources():
     result = runner.invoke(
         app,

@@ -18,6 +18,7 @@ from attrs import asdict
 
 from aerie_cli.utils.serialization import parse_timedelta_str
 from aerie_cli.schemas.api import ApiActivityCreate
+from aerie_cli.schemas.api import ApiActivityUpdate
 from aerie_cli.schemas.api import ApiActivityPlanCreate
 from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.api import ApiActivityRead
@@ -70,6 +71,17 @@ class Activity(ActivityBase, ClientSerialize):
         return ApiActivityCreate(
             type=self.type,
             plan_id=plan_id,
+            start_offset=self.start_offset,
+            arguments=self.arguments,
+            name=self.name,
+            metadata=self.metadata,
+            anchor_id=self.anchor_id,
+            anchored_to_start=self.anchored_to_start
+        )
+
+    def to_api_update(self):
+        return ApiActivityUpdate(
+            type=self.type,
             start_offset=self.start_offset,
             arguments=self.arguments,
             name=self.name,

@@ -265,9 +265,7 @@ class AerieClient:
         activity_to_update: Activity,
         plan_id: int
     ) -> int:
-        activity_dict: Dict = activity_to_update.to_api_create(
-                plan_id
-            ).to_dict()
+        activity_dict: Dict = activity_to_update.to_api_update().to_dict()
         update_activity_mutation = """
         mutation UpdateActvityDirective($id: Int!, $plan_id: Int!, $activity: activity_directive_set_input!) {
             updateActivity: update_activity_directive_by_pk(
@@ -1562,18 +1560,17 @@ class AerieClient:
                     )
                     {
                         arguments
-                        errors
                         success
                     }
                 }
                 """
                 resp = self.aerie_host.post_to_graphql(
                     query,
-                    args=activity.parameters,
+                    args=activity.arguments,
                     act_type=activity.type,
                     model_id=plan.model_id,
                 )
-                activity.parameters = ApiEffectiveActivityArguments.from_dict(
+                activity.arguments = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
 
