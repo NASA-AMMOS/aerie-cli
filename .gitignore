@@ -12,3 +12,6 @@ __pycache__/
 args.json
 temp.json
 **/*.DS_Store
+api_docs/build/
+api_docs/make.bat
+api_docs/Makefile
