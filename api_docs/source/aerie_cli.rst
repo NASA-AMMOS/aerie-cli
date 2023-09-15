@@ -28,14 +28,6 @@ aerie\_cli.persistent module
    :undoc-members:
    :show-inheritance:
 
-aerie\_cli.app module
-----------------------------
-
-.. automodule:: aerie_cli.app
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
