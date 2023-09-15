@@ -9,6 +9,7 @@ import typer
 
 path_to_commands = "../src/aerie_cli/commands"
 
+#app commands from /commands directory
 for filename in os.listdir(path_to_commands):
     total_filepath = os.path.join(path_to_commands, filename)
     if os.path.isfile(total_filepath):
@@ -23,3 +24,14 @@ for filename in os.listdir(path_to_commands):
                                 "--output", input_name + '.md'])
             except subprocess.CalledProcessError as e: 
                 print(f"Subprocess failed for {filename}: {e}")
+
+#generate docs for app.py
+path_to_app = "../src/aerie_cli/app.py"
+
+try:
+    #run typer for all files that uses typer's '@app.command'
+    subprocess.run(['typer', path_to_app, 'utils', 'docs', 
+                    "--name", 'aerie-cli app' ,
+                    "--output", 'app.md'])
+except subprocess.CalledProcessError as e: 
+    print(f"Subprocess failed for {filename}: {e}")

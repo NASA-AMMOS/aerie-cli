@@ -2,6 +2,7 @@
 
 ## **CLI Commands**: 
 <!-- - [`command_context`](command_context.md) -->
+- [`app`](app.md)
 - [`configurations`](configurations.md)
 - [`constraints`](constraints.md)
 - [`expansion`](expansion.md)
