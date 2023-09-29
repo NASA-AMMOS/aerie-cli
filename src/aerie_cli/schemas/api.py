@@ -53,6 +53,7 @@ class ApiSerialize:
 @define
 class ApiEffectiveActivityArguments(ApiSerialize):
     arguments: Dict[str, Any]
+    success: bool
 
 @define
 class ActivityBase(ApiSerialize):
@@ -90,6 +91,16 @@ class ApiActivityCreate(ActivityBase):
     """
 
     plan_id: int
+
+
+@define
+class ApiActivityUpdate(ActivityBase):
+    """Format for updating activity directives
+
+    Plan ID is excluded as this column has restricted permissions for update
+    """
+
+    pass
 
 
 @define
