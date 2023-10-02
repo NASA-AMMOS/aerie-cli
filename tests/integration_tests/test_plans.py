@@ -7,7 +7,7 @@ from pathlib import Path
 from aerie_cli.__main__ import app
 from aerie_cli.commands import plans
 
-from .conftest import client, HASURA_ADMIN_SECRET, DOWNLOADED_FILE_NAME
+from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS
 
 runner = CliRunner(mix_stderr = False)
 
@@ -107,6 +107,80 @@ def test_plan_list():
         f"{result.stdout}"\
         f"{result.stderr}"
     assert "Current Activity Plans" in result.stdout
+
+
+#######################
+# ADD/LIST/DELETE COLLABORATORS
+# Uses plan
+#######################
+
+
+def test_list_empty_plan_collaborators():
+    """
+    Should be no plan collaborators to start
+    """
+    result = runner.invoke(
+        app,
+        ["plans", "collaborators", "list"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, f"{result.stdout}" f"{result.stderr}"
+
+    assert "No collaborators" in result.stdout
+
+
+def test_add_collaborators():
+    """
+    Add all users as collaborators and check the final list
+    """
+
+    # Add all additional users as collaborators
+    for username in ADDITIONAL_USERS:
+        result = runner.invoke(
+            app,
+            ["plans", "collaborators", "add"],
+            input=str(plan_id) + "\n" + username + "\n",
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+
+        assert "Success" in result.stdout
+
+    # Check full list of collaborators
+    assert ADDITIONAL_USERS == client.list_plan_collaborators(plan_id)
+
+
+def test_list_plan_collaborators():
+    """
+    Check that the `plans collaborators list` command lists all collaborators
+    """
+    result = runner.invoke(
+        app,
+        ["plans", "collaborators", "list"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+
+    for username in ADDITIONAL_USERS:
+        assert username in result.stdout
+
+
+def test_delete_collaborators():
+    """
+    Delete a collaborator and verify the result
+    """
+    user_to_delete = ADDITIONAL_USERS[0]
+    result = runner.invoke(
+        app,
+        ["plans", "collaborators", "delete"],
+        input=str(plan_id) + "\n" + "1" + "\n",
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+
+    assert "Success" in result.stdout
 
 
 #######################
