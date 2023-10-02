@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from .conftest import client, HASURA_ADMIN_SECRET
+from .conftest import client
 from aerie_cli.__main__ import app
 
 from aerie_cli.schemas.client import ActivityPlanCreate
