@@ -7,7 +7,7 @@ from pathlib import Path
 from aerie_cli.__main__ import app
 from aerie_cli.commands import plans
 
-from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS
+from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION
 
 runner = CliRunner(mix_stderr = False)
 
@@ -18,10 +18,6 @@ FILES_PATH = os.path.join(TEST_DIR, "files")
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
-MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
-MODEL_NAME = "banananation"
-MODEL_VERSION = "0.0.1"
 model_id = -1
 
 # Plan Variables

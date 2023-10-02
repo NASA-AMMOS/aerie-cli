@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from .conftest import client
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
 from aerie_cli.__main__ import app
 
 from aerie_cli.schemas.client import ActivityPlanCreate
@@ -16,10 +16,6 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Model Variables
-MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
-MODEL_NAME = "banananation"
-MODEL_VERSION = "0.0.1"
 model_id = -1
 
 # Plan Variables
