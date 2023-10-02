@@ -85,6 +85,9 @@ def activate_session(
     name: str = typer.Option(
         None, "--name", "-n", help="Name for this configuration", metavar="NAME"
     ),
+    username: str = typer.Option(
+        None, "--username", "-u", help="Specify/override configured Aerie username", metavar="USERNAME"
+    ),
     role: str = typer.Option(
         None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
     )
@@ -99,7 +102,7 @@ def activate_session(
 
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
-    session = start_session_from_configuration(conf)
+    session = start_session_from_configuration(conf, username)
 
     if role is not None:
         if role in session.aerie_jwt.allowed_roles:
