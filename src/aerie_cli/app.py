@@ -27,7 +27,7 @@ from aerie_cli.utils.sessions import (
 from aerie_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
-app.add_typer(plans.app, name="plans")
+app.add_typer(plans.plans_app, name="plans")
 app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
 app.add_typer(expansion.app, name="expansion")
