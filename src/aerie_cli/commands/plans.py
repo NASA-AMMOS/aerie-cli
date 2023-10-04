@@ -314,4 +314,3 @@ def clean():
         client.delete_plan(activity_plan.id)
 
     typer.echo(f"All activity plans have been deleted")
-
