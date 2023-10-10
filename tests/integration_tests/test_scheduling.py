@@ -8,7 +8,7 @@ from pathlib import Path
 from aerie_cli.__main__ import app
 from aerie_cli.schemas.client import ActivityPlanCreate
 
-from .conftest import client, HASURA_ADMIN_SECRET
+from .conftest import client
 
 runner = CliRunner(mix_stderr = False)
 

@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 
 from aerie_cli.__main__ import app
 
-from .conftest import client, HASURA_ADMIN_SECRET
+from .conftest import client
 
 runner = CliRunner(mix_stderr = False)
 

@@ -153,10 +153,11 @@ def start_session_from_configuration(
         configuration.name,
     )
 
-    if configuration.username is None:
-        username = typer.prompt("Aerie Username")
-    else:
-        username = configuration.username
+    if username is None:
+        if configuration.username is None:
+            username = typer.prompt("Aerie Username")
+        else:
+            username = configuration.username
 
     if password is None and hs.is_auth_enabled():
         password = typer.prompt("Aerie Password", hide_input=True)

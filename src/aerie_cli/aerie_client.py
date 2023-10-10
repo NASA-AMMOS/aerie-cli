@@ -1761,3 +1761,75 @@ class AerieClient:
             key=key
         )
         return resp["key"]
+
+    def list_plan_collaborators(self, plan_id: int) -> list:
+        """List plan collaborators
+
+        Args:
+            plan_id (int): ID of Plan to list collaborators of
+
+        Returns:
+            list[str]: List of collaborator usernames
+        """
+        query = """
+        query GetPlanCollaborators($plan_id: Int!) {
+            plan_by_pk(id: $plan_id) {
+                collaborators {
+                    collaborator
+                }
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            plan_id=plan_id
+        )
+        return [c["collaborator"] for c in resp["collaborators"]]
+
+    def add_plan_collaborator(self, plan_id: int, user: str):
+        """Add a plan collaborator
+
+        Args:
+            plan_id (int): ID of plan to add collaborator to
+            user (str): Username of collaborator
+        """
+        query = """
+        mutation addPlanCollaborator($plan_id: Int!, $collaborator: String!) {
+            insert_plan_collaborators_one(object: {plan_id: $plan_id, collaborator: $collaborator}) {
+                collaborator
+            }
+        }
+        """
+
+        self.aerie_host.post_to_graphql(
+            query,
+            plan_id=plan_id,
+            collaborator=user
+        )
+
+    def delete_plan_collaborator(self, plan_id: int, user: str):
+        """Delete a plan collaborator
+
+        Args:
+            plan_id (int): ID of the plan to delete a collaborator from
+            user (str): Username of the collaborator
+        """
+
+        query = """
+        mutation DeletePlanCollaborator($plan_id: Int!, $collaborator: String!) {
+            delete_plan_collaborators_by_pk(collaborator: $collaborator, plan_id: $plan_id) {
+                collaborator
+                plan_id
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            plan_id=plan_id,
+            collaborator=user
+        )
+
+        if resp is None:
+            raise RuntimeError(f"Failed to delete plan collaborator")
