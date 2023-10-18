@@ -3,6 +3,7 @@
 `app` is the CLI application with which all commands, subcommands, and callbacks are registered.
 """
 import typer
+import logging
 from typing import Optional
 
 from aerie_cli.commands import models
@@ -38,7 +39,7 @@ app.add_typer(metadata.app, name="metadata")
 
 def print_version(print_version: bool):
     if print_version:
-        typer.echo(__version__)
+        logging.info(__version__)
         raise typer.Exit()
 
 
@@ -108,7 +109,7 @@ def activate_session(
         if role in session.aerie_jwt.allowed_roles:
             session.change_role(role)
         else:
-            typer.echo(f"Role {role} not in allowed roles")
+            logging.info(f"Role {role} not in allowed roles")
 
     PersistentSessionManager.set_active_session(session)
 
@@ -120,9 +121,9 @@ def deactivate_session():
     """
     name = PersistentSessionManager.unset_active_session()
     if name is None:
-        typer.echo("No active session")
+        logging.info("No active session")
     else:
-        typer.echo(f"Deactivated session: {name}")
+        logging.info(f"Deactivated session: {name}")
 
 
 @app.command("role")
@@ -156,6 +157,6 @@ def print_status():
     client = CommandContext.get_client()
 
     if client.aerie_host.configuration_name:
-        typer.echo(f"Active configuration: {client.aerie_host.configuration_name}")
+        logging.info(f"Active configuration: {client.aerie_host.configuration_name}")
 
     typer.echo(f"Active role: {client.aerie_host.active_role}")
