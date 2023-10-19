@@ -1630,15 +1630,29 @@ class AerieClient:
     
     def get_constraint_violations(self, plan_id):
         get_violations_query = """
-        query ($plan_id: Int!){
-            constraintViolations(planId: $plan_id) {
-                violations
+        query ($plan_id: Int!) {
+            constraintResults: constraintViolations(planId: $plan_id) {
+                constraintId
+                constraintName
+                type
+                resourceIds
+                violations {
+                    activityInstanceIds
+                    windows {
+                        start
+                        end
+                    }
+                }
+                gaps {
+                    start
+                    end
+                }
             }
         }
         """
 
         resp = self.aerie_host.post_to_graphql(get_violations_query, plan_id=plan_id)
-        return resp["violations"]
+        return resp
 
     def get_resource_types(self, model_id: int) -> List[ResourceType]:
         """Get resource types (value schema)

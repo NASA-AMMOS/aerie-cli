@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from .conftest import client
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
 from aerie_cli.__main__ import app
 
 from aerie_cli.schemas.client import ActivityPlanCreate
@@ -16,10 +16,6 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Model Variables
-MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
-MODEL_NAME = "banananation"
-MODEL_VERSION = "0.0.1"
 model_id = -1
 
 # Plan Variables
@@ -52,6 +48,7 @@ def set_up_environment(request):
     plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     global plan_id
     plan_id = client.create_activity_plan(model_id, plan_to_create)
+    client.simulate_plan(plan_id)
 
 def test_constraint_upload():
     result = runner.invoke(app, ["constraints", "upload"],
@@ -80,6 +77,18 @@ def test_constraint_update():
         f"{result.stderr}"
     assert "Updated constraint" in result.stdout
 
+def test_constraint_violations():
+    result = runner.invoke(app, ["constraints", "violations"],
+                           input=str(plan_id) + "\n",
+                                   catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+
+    # Check that a constraint violation is returned with the open bracket and curly brace
+    # (The integration test constraint should report a violation)
+    assert "Constraint violations: [{" in result.stdout
+
 def test_constraint_delete():
     result = runner.invoke(app, ["constraints", "delete"],
                            input=str(constraint_id) + "\n",
@@ -88,12 +97,3 @@ def test_constraint_delete():
         f"{result.stdout}"\
         f"{result.stderr}"
     assert f"Successfully deleted constraint {str(constraint_id)}" in result.stdout
-
-def test_constraint_violations():
-    result = runner.invoke(app, ["constraints", "violations"],
-                           input=str(plan_id) + "\n",
-                                   catch_exceptions=False,)
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
-    assert "Constraint violations: " in result.stdout

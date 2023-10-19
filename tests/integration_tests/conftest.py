@@ -40,6 +40,11 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
+MODELS_PATH = os.path.join(FILES_PATH, "models")
+MODEL_VERSION = os.environ.get("AERIE_VERSION", "1.13.0")
+MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
+MODEL_NAME = "banananation"
+MODEL_VERSION = "0.0.1"
 
 # Login to add additional users to the `users` table
 for username in ADDITIONAL_USERS:
