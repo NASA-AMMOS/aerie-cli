@@ -16,7 +16,6 @@ env:
   HASURA_GRAPHQL_JWT_SECRET: "${{secrets.HASURA_GRAPHQL_JWT_SECRET}}"
   POSTGRES_USER: "${{secrets.POSTGRES_USER}}"
   POSTGRES_PASSWORD: "${{secrets.POSTGRES_PASSWORD}}"
-  DOCKER_TAG: "v1.12.0"
   REPOSITORY_DOCKER_URL: "ghcr.io/nasa-ammos"
 
 jobs:
@@ -48,6 +47,7 @@ jobs:
     strategy:
       matrix:
         python-version: [ "3.6.15", "3.11" ]
+        aerie-version: ["1.13.0", "1.14.0"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -59,7 +59,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install .
-      - name: Set up aerie instance
+      - name: Set up instance of Aerie ${{ matrix.aerie-version }}
+        env:
+          DOCKER_TAG: v${{ matrix.aerie-version }} # Prefix 'v' used in Aerie Docker image tags
         run: |
           docker compose -f docker-compose-test.yml up -d
           docker images
@@ -68,6 +70,8 @@ jobs:
         run: sleep 60s
         shell: bash
       - name: Run integration tests
+        env:
+          AERIE_VERSION: ${{ matrix.aerie-version }}
         run: |
           cd tests
           pytest integration_tests

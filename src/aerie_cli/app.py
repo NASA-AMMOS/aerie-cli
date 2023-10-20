@@ -27,7 +27,7 @@ from aerie_cli.utils.sessions import (
 from aerie_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
-app.add_typer(plans.app, name="plans")
+app.add_typer(plans.plans_app, name="plans")
 app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
 app.add_typer(expansion.app, name="expansion")
@@ -85,6 +85,9 @@ def activate_session(
     name: str = typer.Option(
         None, "--name", "-n", help="Name for this configuration", metavar="NAME"
     ),
+    username: str = typer.Option(
+        None, "--username", "-u", help="Specify/override configured Aerie username", metavar="USERNAME"
+    ),
     role: str = typer.Option(
         None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
     )
@@ -99,7 +102,7 @@ def activate_session(
 
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
-    session = start_session_from_configuration(conf)
+    session = start_session_from_configuration(conf, username)
 
     if role is not None:
         if role in session.aerie_jwt.allowed_roles:
@@ -134,14 +137,14 @@ def change_role(
     client = get_active_session_client()
 
     if role is None:
-        typer.echo(f"Active Role: {client.aerie_host.aerie_jwt.active_role}")
+        typer.echo(f"Active Role: {client.aerie_host.active_role}")
         role = select_from_list(client.aerie_host.aerie_jwt.allowed_roles)
 
     client.aerie_host.change_role(role)
 
     PersistentSessionManager.set_active_session(client.aerie_host)
 
-    typer.echo(f"Changed role to: {client.aerie_host.aerie_jwt.active_role}")
+    typer.echo(f"Changed role to: {client.aerie_host.active_role}")
 
 
 @app.command("status")
@@ -155,4 +158,4 @@ def print_status():
     if client.aerie_host.configuration_name:
         typer.echo(f"Active configuration: {client.aerie_host.configuration_name}")
 
-    typer.echo(f"Active role: {client.aerie_host.aerie_jwt.active_role}")
+    typer.echo(f"Active role: {client.aerie_host.active_role}")

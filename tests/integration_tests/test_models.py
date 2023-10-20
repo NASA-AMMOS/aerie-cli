@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 
 from aerie_cli.__main__ import app
 
-from .conftest import client, HASURA_ADMIN_SECRET
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
 
 runner = CliRunner(mix_stderr = False)
 
@@ -13,10 +13,6 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
 
 # Model Variables
-MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_JAR = os.path.join(MODELS_PATH, "banananation-1.12.0.jar")
-MODEL_NAME = "banananation"
-MODEL_VERSION = "0.0.1"
 model_id = -1
 
 def test_model_clean():

@@ -1,6 +1,5 @@
 from typer.testing import CliRunner
 
-from .conftest import client, HASURA_ADMIN_SECRET
 from aerie_cli.__main__ import app
 
 import os
