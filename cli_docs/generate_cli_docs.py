@@ -31,7 +31,7 @@ path_to_app = "../src/aerie_cli/app.py"
 try:
     #run typer for all files that uses typer's '@app.command'
     subprocess.run(['typer', path_to_app, 'utils', 'docs', 
-                    "--name", 'aerie-cli app' ,
+                    "--name", 'aerie-cli' ,
                     "--output", 'app.md'])
 except subprocess.CalledProcessError as e: 
     print(f"Subprocess failed for {filename}: {e}")
