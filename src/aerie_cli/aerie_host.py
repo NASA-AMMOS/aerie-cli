@@ -40,10 +40,10 @@ class AerieJWT:
         encoded_jwt_payload = b64decode(jwt_components[1] + "==", validate=False)
         try:
             payload = json.loads(encoded_jwt_payload)
-            self.active_role = payload["activeRole"]
             self.allowed_roles = payload["https://hasura.io/jwt/claims"][
                 "x-hasura-allowed-roles"
             ]
+            self.default_role = payload["https://hasura.io/jwt/claims"]["x-hasura-default-role"]
             self.username = payload["username"]
 
         except KeyError:
@@ -83,6 +83,7 @@ class AerieHost:
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
         self.aerie_jwt = None
+        self.active_role = None
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
         """Issue a post request to the Aerie instance GraphQL API
@@ -201,17 +202,7 @@ class AerieHost:
                 f"Cannot set role {new_role}. Must be one of: {', '.join(self.aerie_jwt.allowed_roles)}"
             )
 
-        resp = self.session.post(
-            self.gateway_url + "/auth/changeRole",
-            json={"role": new_role},
-            headers=self.get_auth_headers(),
-        )
-
-        try:
-            resp_json = process_gateway_response(resp)
-            self.aerie_jwt = AerieJWT(resp_json["token"])
-        except (RuntimeError, KeyError):
-            raise RuntimeError(f"Failed to select new role")
+        self.active_role = new_role
 
     def check_auth(self) -> bool:
         """Checks if session is correctly authenticated with Aerie host
@@ -237,9 +228,12 @@ class AerieHost:
             return False
 
     def get_auth_headers(self):
+        if self.aerie_jwt is None:
+            return {}
+
         return {
             "Authorization": f"Bearer {self.aerie_jwt.encoded_jwt}",
-            "x-hasura-role": self.aerie_jwt.active_role,
+            "x-hasura-role": self.active_role,
         }
 
     def is_auth_enabled(self) -> bool:
@@ -248,7 +242,7 @@ class AerieHost:
         Returns:
             bool: False if authentication is disabled, otherwise True
         """
-        resp = self.session.get(self.gateway_url + "/auth/user")
+        resp = self.session.get(self.gateway_url + "/auth/session")
         if resp.ok:
             try:
                 resp_json = resp.json()
@@ -275,6 +269,7 @@ class AerieHost:
             raise RuntimeError("Failed to authenticate")
 
         self.aerie_jwt = AerieJWT(resp_json["token"])
+        self.active_role = self.aerie_jwt.default_role
 
         if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
