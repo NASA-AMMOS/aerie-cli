@@ -15,3 +15,6 @@ temp.json
 api_docs/build/
 api_docs/make.bat
 api_docs/Makefile
+cli_docs/*
+!cli_docs/generate_cli_docs.py
+!cli_docs/README.MD
