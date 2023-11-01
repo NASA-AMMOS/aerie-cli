@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict
 from typing import List
 from copy import deepcopy
+from warnings import warn
 
 import arrow
 
@@ -12,6 +13,7 @@ from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
+from .schemas.api import ApiSimulationDatasetRead
 from .schemas.client import Activity
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
@@ -19,6 +21,7 @@ from .schemas.client import CommandDictionaryInfo
 from .schemas.client import ExpansionRun
 from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
+from .schemas.client import SimulationDataset
 from .schemas.client import ResourceType
 from .utils.serialization import postgres_interval_to_microseconds
 from .aerie_host import AerieHost
@@ -355,7 +358,7 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
+        samples = self.get_resource_samples(self.list_simulation_datasets_by_plan_id(plan_id)[0].id)
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
@@ -973,27 +976,58 @@ class AerieClient:
         return rules_by_type
 
     def get_simulation_dataset_ids_by_plan_id(self, plan_id: int) -> List[int]:
-        """Get the IDs of the simulation datasets generated from a given plan
+        warn("get_simulation_dataset_ids_by_plan_id is deprecated. "
+             "Use list_simulation_datasets_by_plan_id instead",
+             DeprecationWarning,
+             stacklevel=2)
+        return [s.id for s in self.list_simulation_datasets_by_plan_id(plan_id)]
+
+    # TODO: Change output type to sim dataset
+    def list_simulation_datasets_by_plan_id(self, plan_id: int) -> List[SimulationDataset]:
+        """Get metadata for the simulation datasets generated from a given plan
 
         Args:
             plan_id (int): ID of parent plan
 
         Returns:
-            List[int]: IDs of simulation datasets in descending order
+            List[SimulationDataset]: Simulation datasets in descending order by ID
         """
 
+        # Since GQL will group results by simulation, we have to sort client-side
         get_simulation_dataset_query = """
         query GetSimulationDatasetId($plan_id: Int!) {
-          simulation(where: {plan_id: {_eq: $plan_id}}, order_by: { id: desc }, limit: 1) {
-            simulation_datasets(order_by: { id: desc }) {
-              id
+          plan_by_pk(id: $plan_id) {
+            simulations {
+              simulation_datasets {
+                id
+                simulation_id
+                dataset_id
+                offset_from_plan_start
+                plan_revision
+                model_revision
+                simulation_template_revision
+                simulation_revision
+                dataset_revision
+                arguments
+                simulation_start_time
+                simulation_end_time
+                status
+                reason
+                canceled
+                requested_by
+                requested_at
+              }
             }
           }
         }
         """
         data = self.aerie_host.post_to_graphql(
             get_simulation_dataset_query, plan_id=plan_id)
-        return [d["id"] for d in data[0]["simulation_datasets"]]
+        result = [SimulationDataset(**d)
+                  for sim in data["simulations"]
+                  for d in sim["simulation_datasets"]]
+        result.sort(key=lambda s: s.id, reverse=True)
+        return result
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
