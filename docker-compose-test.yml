@@ -8,8 +8,7 @@ services:
       GQL_API_URL: http://localhost:8080/v1/graphql
       HASURA_GRAPHQL_JWT_SECRET: "${HASURA_GRAPHQL_JWT_SECRET}"
       LOG_FILE: console
-      LOG_LEVEL: debug
-      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      LOG_LEVEL: warn
       PORT: 9000
       POSTGRES_AERIE_MERLIN_DB: aerie_merlin
       POSTGRES_HOST: postgres
@@ -21,6 +20,8 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/app/files
+    networks:
+      - aerie_net
   aerie_merlin:
     container_name: aerie_merlin
     depends_on: ["postgres"]
@@ -43,8 +44,10 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/usr/src/app/merlin_file_store
+    networks:
+      - aerie_net
   aerie_merlin_worker_1:
-    container_name: aerie_merlin_worker_1
+    container_name: aerie_merlin_worker
     depends_on: ["postgres"]
     environment:
       MERLIN_WORKER_DB: "aerie_merlin"
@@ -64,27 +67,8 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/usr/src/app/merlin_file_store:ro
-  aerie_merlin_worker_2:
-    container_name: aerie_merlin_worker_2
-    depends_on: ["postgres"]
-    environment:
-      MERLIN_WORKER_DB: "aerie_merlin"
-      MERLIN_WORKER_DB_PASSWORD: "${AERIE_PASSWORD}"
-      MERLIN_WORKER_DB_PORT: 5432
-      MERLIN_WORKER_DB_SERVER: postgres
-      MERLIN_WORKER_DB_USER: "${AERIE_USERNAME}"
-      MERLIN_WORKER_LOCAL_STORE: /usr/src/app/merlin_file_store
-      SIMULATION_PROGRESS_POLL_PERIOD_MILLIS: 2000
-      JAVA_OPTS: >
-        -Dorg.slf4j.simpleLogger.defaultLogLevel=INFO
-        -Dorg.slf4j.simpleLogger.log.com.zaxxer.hikari=WARN
-        -Dorg.slf4j.simpleLogger.logFile=System.err
-      UNTRUE_PLAN_START: "2000-01-01T11:58:55.816Z"
-    image: "${REPOSITORY_DOCKER_URL}/aerie-merlin-worker:${DOCKER_TAG}"
-    ports: ["27188:8080"]
-    restart: always
-    volumes:
-      - aerie_file_store:/usr/src/app/merlin_file_store:ro
+    networks:
+      - aerie_net
   aerie_scheduler:
     container_name: aerie_scheduler
     depends_on: ["aerie_merlin", "postgres"]
@@ -105,6 +89,8 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/usr/src/app/merlin_file_store
+    networks:
+      - aerie_net
   aerie_scheduler_worker_1:
     container_name: aerie_scheduler_worker_1
     depends_on: ["postgres"]
@@ -127,27 +113,8 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/usr/src/app/merlin_file_store:ro
-  aerie_scheduler_worker_2:
-    depends_on: ["postgres"]
-    environment:
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
-      MERLIN_GRAPHQL_URL: http://hasura:8080/v1/graphql
-      SCHEDULER_WORKER_DB: "aerie_scheduler"
-      SCHEDULER_WORKER_DB_PASSWORD: "${AERIE_PASSWORD}"
-      SCHEDULER_WORKER_DB_PORT: 5432
-      SCHEDULER_WORKER_DB_SERVER: postgres
-      SCHEDULER_WORKER_DB_USER: "${AERIE_USERNAME}"
-      SCHEDULER_OUTPUT_MODE: UpdateInputPlanWithNewActivities
-      MERLIN_LOCAL_STORE: /usr/src/app/merlin_file_store
-      SCHEDULER_RULES_JAR: /usr/src/app/merlin_file_store/scheduler_rules.jar
-      JAVA_OPTS: >
-        -Dorg.slf4j.simpleLogger.log.com.zaxxer.hikari=INFO
-        -Dorg.slf4j.simpleLogger.logFile=System.err
-    image: "${REPOSITORY_DOCKER_URL}/aerie-scheduler-worker:${DOCKER_TAG}"
-    ports: ["27190:8080"]
-    restart: always
-    volumes:
-      - aerie_file_store:/usr/src/app/merlin_file_store:ro
+    networks:
+      - aerie_net
   aerie_sequencing:
     container_name: aerie_sequencing
     depends_on: ["postgres"]
@@ -168,12 +135,13 @@ services:
     restart: always
     volumes:
       - aerie_file_store:/usr/src/app/sequencing_file_store
+    networks:
+      - aerie_net
   aerie_ui:
     container_name: aerie_ui
     depends_on: ["postgres"]
     environment:
       ORIGIN: http://localhost
-      NODE_TLS_REJECT_UNAUTHORIZED: "0"
       PUBLIC_LOGIN_PAGE: "enabled"
       PUBLIC_GATEWAY_CLIENT_URL: http://localhost:9000
       PUBLIC_GATEWAY_SERVER_URL: http://aerie_gateway:9000
@@ -183,6 +151,8 @@ services:
     image: "${REPOSITORY_DOCKER_URL}/aerie-ui:${DOCKER_TAG}"
     ports: ["80:80"]
     restart: always
+    networks:
+      - aerie_net
   hasura:
     container_name: aerie_hasura
     depends_on: ["postgres"]
@@ -205,9 +175,12 @@ services:
     image: "${REPOSITORY_DOCKER_URL}/aerie-hasura:${DOCKER_TAG}"
     ports: ["8080:8080"]
     restart: always
+    networks:
+      - aerie_net
   postgres:
     container_name: aerie_postgres
     environment:
+      POSTGRES_DB: postgres
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_USER: "${POSTGRES_USER}"
       AERIE_USERNAME: "${AERIE_USERNAME}"
@@ -217,8 +190,13 @@ services:
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aerie_net
 
 volumes:
   aerie_file_store:
   mission_file_store:
   postgres_data:
+
+networks:
+  aerie_net:
