@@ -243,7 +243,7 @@ def test_last_activate():
 
     result = runner.invoke(
         app,
-        ["activate"],
+        ["activate", "-r", "aerie_admin"],
         input=str(configuration_id) + "\n",
         catch_exceptions=False,
     )

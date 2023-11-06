@@ -66,7 +66,7 @@ def set_up_environment(request):
 
 def cli_schedule_upload():
     schedule_file_path = os.path.join(GOALS_PATH, "schedule1.txt")
-    with open(schedule_file_path, "x") as fid:
+    with open(schedule_file_path, "w") as fid:
         fid.write(GOAL_PATH)
     result = runner.invoke(
         app,
