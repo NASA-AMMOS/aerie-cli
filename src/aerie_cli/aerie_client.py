@@ -1023,7 +1023,7 @@ class AerieClient:
         """
         data = self.aerie_host.post_to_graphql(
             get_simulation_dataset_query, plan_id=plan_id)
-        result = [SimulationDataset(**d)
+        result = [SimulationDataset.from_api_read(ApiSimulationDatasetRead.from_dict(d))
                   for sim in data["simulations"]
                   for d in sim["simulation_datasets"]]
         result.sort(key=lambda s: s.id, reverse=True)
