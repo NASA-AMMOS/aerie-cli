@@ -66,7 +66,7 @@ def download_resources(
         False, "--absolute-time", help="Change relative timestamps to absolute"
     ),
     specific_states: str = typer.Option(
-        None, help="The file with the specific states [defaults to all]"
+        None, help="The file with the specific states, one state per line [defaults to all]"
     )
 ):
     """
