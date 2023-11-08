@@ -4,6 +4,7 @@ Commands related to persistent storage of Aerie host configurations.
 """
 
 import typer
+import logging
 import json
 from pathlib import Path
 from rich.console import Console
@@ -98,8 +99,7 @@ def list_configurations():
     except NoActiveSessionError:
         active_config = None
 
-    typer.echo(f"Configuration file location: {CONFIGURATION_FILE_PATH}")
-    typer.echo()
+    logging.info(f"Configuration file location: {CONFIGURATION_FILE_PATH}")
 
     table = Table(title='Aerie Host Configurations',
                   caption='Active configuration in red')

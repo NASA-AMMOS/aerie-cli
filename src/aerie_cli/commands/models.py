@@ -1,6 +1,7 @@
 import json
 
 import arrow
+import logging
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -63,9 +64,9 @@ def upload(
 
         # Attach sim template to model
         client.upload_sim_template(model_id=model_id, args=json_obj, name=name)
-        typer.echo(f"Attached simulation template to model {model_id}.")
+        logging.info(f"Attached simulation template to model {model_id}.")
 
-    typer.echo(f"Created new mission model: {model_name} with Model ID: {model_id}")
+    logging.info(f"Created new mission model: {model_name} with Model ID: {model_id}")
 
 
 @app.command()
@@ -77,7 +78,7 @@ def delete(
     """Delete a mission model by its model id."""
 
     model_name = CommandContext.get_client().delete_mission_model(model_id)
-    typer.echo(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
+    logging.info(f"Mission Model `{model_name}` with ID: {model_id} has been removed.")
 
 
 @app.command()
@@ -89,7 +90,7 @@ def clean():
     for api_mission_model in resp:
         client.delete_mission_model(api_mission_model.id)
 
-    typer.echo(f"All mission models have been deleted")
+    logging.info(f"All mission models have been deleted")
 
 
 @app.command()

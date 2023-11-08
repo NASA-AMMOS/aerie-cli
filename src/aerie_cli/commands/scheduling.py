@@ -1,4 +1,5 @@
 import typer
+import logging
 
 from aerie_cli.commands.command_context import CommandContext
 
@@ -31,7 +32,7 @@ def upload(
     
     resp = client.upload_scheduling_goals(upload_obj)
             
-    typer.echo(f"Uploaded scheduling goals to venue.")
+    logging.info(f"Uploaded scheduling goals to venue.")
 
     uploaded_ids = [kv["id"] for kv in resp]
 
@@ -43,7 +44,7 @@ def upload(
 
     client.add_goals_to_specifications(upload_to_spec)
 
-    typer.echo(f"Assigned goals in priority order to plan ID {plan_id}.")
+    logging.info(f"Assigned goals in priority order to plan ID {plan_id}.")
 
 
 @app.command()
@@ -56,7 +57,7 @@ def delete(
     client = CommandContext.get_client()
 
     resp = client.delete_scheduling_goal(goal_id)
-    typer.echo("Successfully deleted Goal ID: " + str(resp))
+    logging.info("Successfully deleted Goal ID: " + str(resp))
 
 @app.command()
 def delete_all_goals_for_plan(
@@ -71,14 +72,13 @@ def delete_all_goals_for_plan(
     clear_goals = client.get_scheduling_goals_by_specification(specification) #response is in asc order
 
     if len(clear_goals) == 0: #no goals to clear
-        typer.echo("No goals to delete.")
+        logging.info("No goals to delete.")
         return
     
-    typer.echo("Deleting goals for Plan ID {plan}: ".format(plan=plan_id), nl=False)
+    logging.info("Deleting goals for Plan ID {plan}: ".format(plan=plan_id), nl=False)
     goal_ids = []
     for goal in clear_goals:
         goal_ids.append(goal["goal"]["id"])
-        typer.echo(str(goal["goal"]["id"]) + " ", nl=False)
-    typer.echo()
+        logging.info(str(goal["goal"]["id"]) + " ", nl=False)
         
     client.delete_scheduling_goals(goal_ids)

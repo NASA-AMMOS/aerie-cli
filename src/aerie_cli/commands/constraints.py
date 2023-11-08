@@ -1,6 +1,7 @@
 import json
 
 import arrow
+import logging
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -34,7 +35,7 @@ def upload(
         "definition": str_contents
     }
     constraint_id = client.upload_constraint(constraint)
-    typer.echo(f"Created constraint: {constraint_id}")
+    logging.info(f"Created constraint: {constraint_id}")
 
 @app.command()
 def delete(
@@ -44,7 +45,7 @@ def delete(
 
     client = CommandContext.get_client()
     client.delete_constraint(id)
-    typer.echo(f"Successfully deleted constraint {id}")
+    logging.info(f"Successfully deleted constraint {id}")
 
 @app.command()
 def update(
@@ -66,7 +67,7 @@ def update(
         "definition": str_contents
     }
     constraint_id = client.update_constraint(id, constraint)
-    typer.echo(f"Updated constraint: {constraint_id}")
+    logging.info(f"Updated constraint: {constraint_id}")
     
 @app.command()
 def violations(
@@ -75,7 +76,7 @@ def violations(
 
     client = CommandContext.get_client()
     constraint_violations = client.get_constraint_violations(plan_id)
-    typer.echo(f"Constraint violations: {constraint_violations}")
+    logging.info(f"Constraint violations: {constraint_violations}")
     
 
 
