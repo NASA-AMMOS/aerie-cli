@@ -4,6 +4,7 @@
 """
 import typer
 import logging
+import sys
 from typing import Optional
 
 from aerie_cli.commands import models
@@ -19,6 +20,8 @@ from aerie_cli.__version__ import __version__
 from aerie_cli.persistent import (
     PersistentConfigurationManager,
     PersistentSessionManager,
+    clear_old_log_files,
+    CURRENT_LOG_PATH
 )
 from aerie_cli.utils.prompts import select_from_list
 from aerie_cli.utils.sessions import (
@@ -54,9 +57,40 @@ def set_alternate_configuration(configuration_identifier: str):
 def setup_global_command_context(hasura_admin_secret: str):
     CommandContext.hasura_admin_secret = hasura_admin_secret
 
+def setup_logging(debug: bool):
+    clear_old_log_files()
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    )
+    file_handler = logging.FileHandler(filename=str(CURRENT_LOG_PATH),
+                                        mode='w',
+                                        encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_formatter)
+
+    console_formatter = logging.Formatter(
+        '%(message)s'
+    )
+    console_handler = logging.StreamHandler(sys.stdout)
+    level = logging.DEBUG if debug else logging.INFO
+    console_handler.setLevel(level) # Set the level of the stream and file handlers to different ones
+                                    # Debug should be in file, others should go into stdout
+                                    # unless verbose/debug option is selected
+    console_handler.setFormatter(console_formatter)
+    logging.basicConfig(level=logging.DEBUG,
+                        handlers=[file_handler,
+                                  console_handler])
+
 
 @app.callback()
 def app_callback(
+    debug: Optional[bool]=typer.Option(
+        False,
+        "--debug",
+        "-d",
+        callback=setup_logging,
+        help="View the debug output",
+    ),
     version: Optional[bool] = typer.Option(
         None,
         "--version",
