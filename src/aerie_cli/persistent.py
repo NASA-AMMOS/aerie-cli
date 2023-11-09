@@ -32,7 +32,11 @@ TIME_FORMAT = '%Y-%m-%d_%H:%M:%S'
 START_TIME = datetime.now().strftime(TIME_FORMAT)
 LOGS_PATH = Path(APP_DIRS.user_config_dir).resolve().absolute() / "logs"
 LOGS_PATH.mkdir(parents=True, exist_ok=True)
-CURRENT_LOG_PATH = LOGS_PATH / f"aerie_cli_{START_TIME}.log"
+CURRENT_LOG_FILE_NAME = f"aerie_cli_{START_TIME}"
+CURRENT_LOG_PATH = LOGS_PATH / (f"{CURRENT_LOG_FILE_NAME}.log")
+number_appended_to_log = 1
+while CURRENT_LOG_PATH.exists():
+    CURRENT_LOG_PATH = LOGS_PATH / (f"{CURRENT_LOG_FILE_NAME}_{number_appended_to_log}.log")
 
 def delete_all_persistent_files():
     shutil.rmtree(CONFIGURATION_FILE_DIRECTORY, ignore_errors=True)
@@ -52,7 +56,9 @@ def clear_old_log_files():
         if not log_file.is_file() or not log_file.suffix == ".log" \
             or not log_file.name.startswith("aerie_cli"):
             continue
-        time_part = log_file.name.replace("aerie_cli_", "").replace(".log", "")
+        time_part = log_file.name.replace("aerie_cli_", "")\
+            .replace(f"_{number_appended_to_log}.log", "")\
+            .replace(".log", "")
         time = datetime.strptime(time_part, TIME_FORMAT)
         log_files[time] = log_file
         times.append(time)
