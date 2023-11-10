@@ -29,6 +29,7 @@ from aerie_cli.utils.sessions import (
     get_active_session_client,
 )
 from aerie_cli.utils.configurations import find_configuration
+from aerie_cli.utils.logger import TyperLoggingHandler
 
 app = typer.Typer()
 app.add_typer(plans.plans_app, name="plans")
@@ -71,7 +72,7 @@ def setup_logging(debug: bool):
     console_formatter = logging.Formatter(
         '%(message)s'
     )
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = TyperLoggingHandler()
     level = logging.DEBUG if debug else logging.INFO
     console_handler.setLevel(level) # Set the level of the stream and file handlers to different ones
                                     # Debug should be in file, others should go into stdout

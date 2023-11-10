@@ -80,10 +80,10 @@ def upload_configurations(
                 raise e
 
     if len(new_confs):
-        Console().print(f"Added configurations: {', '.join(new_confs)}")
+        logging.info(f"Added configurations: {', '.join(new_confs)}")
 
     if len(updated_confs):
-        Console().print(f"Updated configurations: {', '.join(updated_confs)}")
+        logging.info(f"Updated configurations: {', '.join(updated_confs)}")
 
 
 @app.command('list')
