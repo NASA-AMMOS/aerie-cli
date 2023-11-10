@@ -75,10 +75,11 @@ def delete_all_goals_for_plan(
         logging.info("No goals to delete.")
         return
     
-    logging.info("Deleting goals for Plan ID {plan}: ".format(plan=plan_id), nl=False)
+    to_print = "Deleting goals for Plan ID {plan}: ".format(plan=plan_id)
     goal_ids = []
     for goal in clear_goals:
         goal_ids.append(goal["goal"]["id"])
-        logging.info(str(goal["goal"]["id"]) + " ", nl=False)
-        
+        to_print += str(goal["goal"]["id"]) + " "
+    logging.info(to_print)
+
     client.delete_scheduling_goals(goal_ids)

@@ -1,6 +1,7 @@
 import os
 import pytest
 import arrow
+import logging
 
 from typer.testing import CliRunner
 from pathlib import Path
@@ -77,22 +78,24 @@ def cli_schedule_upload():
     os.remove(schedule_file_path)
     return result
 
-def test_schedule_upload():
+def test_schedule_upload(caplog):
+    caplog.set_level(logging.INFO)
     result = cli_schedule_upload()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert "Assigned goals in priority order" in result.stdout
+    assert "Assigned goals in priority order" in caplog.text
     global goal_id
-    for line in result.stdout.splitlines():
+    for line in caplog.text.splitlines():
         if not "Assigned goals in priority order" in line:
             continue
         # get expansion id from the end of the line
         goal_id = int(line.split("ID ")[1][:-1])
     assert goal_id != -1, "Could not find goal ID, goal upload may have failed"\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-def test_schedule_delete():
+def test_schedule_delete(caplog):
+    caplog.set_level(logging.INFO)
     assert goal_id != -1, "Goal id was not set"
 
     result = runner.invoke(
@@ -102,11 +105,12 @@ def test_schedule_delete():
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Successfully deleted Goal" in result.stdout
+    assert f"Successfully deleted Goal" in caplog.text
 
-def test_schedule_delete_all():
+def test_schedule_delete_all(caplog):
+    caplog.set_level(logging.INFO)
     # Upload a goal to delete
     cli_schedule_upload()
     
@@ -118,6 +122,6 @@ def test_schedule_delete_all():
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Deleting goals for Plan ID {plan_id}" in result.stdout
+    assert f"Deleting goals for Plan ID {plan_id}" in caplog.text

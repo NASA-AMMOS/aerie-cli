@@ -1,4 +1,5 @@
 import os
+import logging
 
 from typer.testing import CliRunner
 
@@ -15,21 +16,23 @@ FILES_PATH = os.path.join(TEST_DIR, "files")
 # Model Variables
 model_id = -1
 
-def test_model_clean():
+def test_model_clean(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "clean"],
         catch_exceptions=False,
         )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         f"All mission models have been deleted"
-        in result.stdout
+        in caplog.text
     )
 
-def test_model_upload():
+def test_model_upload(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "upload", "--time-tag-version"],
@@ -49,30 +52,32 @@ def test_model_upload():
     model_id = latest_model.id
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         f"Created new mission model: {MODEL_NAME} with Model ID: {model_id}"
-        in result.stdout
+        in caplog.text
     )
 
-def test_model_list():
+def test_model_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "list"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Current Mission Models" in result.stdout
 
-def test_model_delete():
+def test_model_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"ID: {model_id} has been removed" in result.stdout
+    assert f"ID: {model_id} has been removed" in caplog.text

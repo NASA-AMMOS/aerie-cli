@@ -1,6 +1,7 @@
 import os
 import pytest
 import arrow
+import logging
 
 from typer.testing import CliRunner
 from pathlib import Path
@@ -76,49 +77,53 @@ def set_up_environment(request):
 # Uses plan and simulation dataset
 #######################
 
-def test_expansion_sequence_create():
+def test_expansion_sequence_create(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sequences", "create"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + str(2) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Successfully created sequence" in result.stdout
 
-def test_expansion_sequence_list():
+def test_expansion_sequence_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sequences", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "All sequences for Simulation Dataset" in result.stdout
 
-def test_expansion_sequence_download():
+def test_expansion_sequence_download(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sequences", "download"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     path_to_sequence = Path(DOWNLOADED_FILE_NAME)
     assert path_to_sequence.exists()
     path_to_sequence.unlink()
 
-def test_expansion_sequence_delete():
+def test_expansion_sequence_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sequences", "delete"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Successfully deleted sequence" in result.stdout
 
@@ -127,7 +132,8 @@ def test_expansion_sequence_delete():
 # Uses model, command dictionary, and activity types
 #######################
 
-def test_expansion_set_create():
+def test_expansion_set_create(caplog):
+    caplog.set_level(logging.INFO)
     client.create_expansion_rule(
         expansion_logic="""
             export default function MyExpansion(props: {
@@ -158,7 +164,7 @@ def test_expansion_set_create():
         ],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     global expansion_set_id
     for line in result.stdout.splitlines():
@@ -167,27 +173,29 @@ def test_expansion_set_create():
         # get expansion id from the end of the line
         expansion_set_id = int(line.split(": ")[1])
     assert expansion_set_id != -1, "Could not find expansion run ID, expansion create may have failed"\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
-def test_expansion_set_get():
+def test_expansion_set_get(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sets", "get"],
         input=str(expansion_set_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Expansion Set" in result.stdout and "Contents" in result.stdout
 
-def test_expansion_set_list():
+def test_expansion_set_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "sets", "list"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Expansion Sets" in result.stdout
     assert "integration_test" in result.stdout
@@ -196,25 +204,27 @@ def test_expansion_set_list():
 # TEST EXPANSION RUNS
 # Uses plan and simulation dataset
 #######################
-def test_expansion_run_create():
+def test_expansion_run_create(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "runs", "create"],
         input=str(sim_id) + "\n" + str(expansion_set_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Expansion Run ID: " in result.stdout
 
-def test_expansion_runs_list():
+def test_expansion_runs_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["expansion", "runs", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Expansion Runs" in result.stdout
 
@@ -222,13 +232,14 @@ def test_expansion_runs_list():
 # DELETE MODELS
 #######################
 
-def test_model_delete():
+def test_model_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"ID: {model_id} has been removed" in result.stdout
+    assert f"ID: {model_id} has been removed" in caplog.text

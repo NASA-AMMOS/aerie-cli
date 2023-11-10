@@ -1,5 +1,6 @@
 import os
 import pytest
+import logging
 
 from typer.testing import CliRunner
 from pathlib import Path
@@ -54,7 +55,8 @@ def cli_plan_simulate():
 # Uses model
 #######################
 
-def test_plan_upload():
+def test_plan_upload(caplog):
+    caplog.set_level(logging.INFO)
     # Clean out plans first
     plans.clean()
 
@@ -66,7 +68,7 @@ def test_plan_upload():
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     
     # Get uploaded plan id
@@ -75,9 +77,10 @@ def test_plan_upload():
     global plan_id
     plan_id = latest_plan.id
 
-    assert f"Created plan ID: {plan_id}" in result.stdout
+    assert f"Created plan ID: {plan_id}" in caplog.text
 
-def test_plan_duplicate():
+def test_plan_duplicate(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "duplicate"],
@@ -85,7 +88,7 @@ def test_plan_duplicate():
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
     # Get duplicated plan id
@@ -93,14 +96,15 @@ def test_plan_duplicate():
     latest_plan = resp[-1]
     duplicated_plan_id = latest_plan.id
 
-    assert f"Duplicate activity plan created with ID: {duplicated_plan_id}" in result.stdout
+    assert f"Duplicate activity plan created with ID: {duplicated_plan_id}" in caplog.text
 
 
-def test_plan_list():
+def test_plan_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(app, ["plans", "list"],
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert "Current Activity Plans" in result.stdout
 
@@ -111,7 +115,8 @@ def test_plan_list():
 #######################
 
 
-def test_list_empty_plan_collaborators():
+def test_list_empty_plan_collaborators(caplog):
+    caplog.set_level(logging.INFO)
     """
     Should be no plan collaborators to start
     """
@@ -121,12 +126,13 @@ def test_list_empty_plan_collaborators():
         input=str(plan_id) + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0, f"{result.stdout}" f"{result.stderr}"
+    assert result.exit_code == 0, f"{caplog.text}" f"{result.stderr}"
 
-    assert "No collaborators" in result.stdout
+    assert "No collaborators" in caplog.text
 
 
-def test_add_collaborators():
+def test_add_collaborators(caplog):
+    caplog.set_level(logging.INFO)
     """
     Add all users as collaborators and check the final list
     """
@@ -139,15 +145,16 @@ def test_add_collaborators():
             input=str(plan_id) + "\n" + username + "\n",
             catch_exceptions=False,
         )
-        assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+        assert result.exit_code == 0, f"{caplog.text} {result.stderr}"
 
-        assert "Success" in result.stdout
+        assert "Success" in caplog.text
 
     # Check full list of collaborators
     assert ADDITIONAL_USERS == client.list_plan_collaborators(plan_id)
 
 
-def test_list_plan_collaborators():
+def test_list_plan_collaborators(caplog):
+    caplog.set_level(logging.INFO)
     """
     Check that the `plans collaborators list` command lists all collaborators
     """
@@ -157,13 +164,14 @@ def test_list_plan_collaborators():
         input=str(plan_id) + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+    assert result.exit_code == 0, f"{caplog.text} {result.stderr}"
 
     for username in ADDITIONAL_USERS:
-        assert username in result.stdout
+        assert username in caplog.text
 
 
-def test_delete_collaborators():
+def test_delete_collaborators(caplog):
+    caplog.set_level(logging.INFO)
     """
     Delete a collaborator and verify the result
     """
@@ -174,9 +182,9 @@ def test_delete_collaborators():
         input=str(plan_id) + "\n" + "1" + "\n",
         catch_exceptions=False,
     )
-    assert result.exit_code == 0, f"{result.stdout} {result.stderr}"
+    assert result.exit_code == 0, f"{caplog.text} {result.stderr}"
 
-    assert "Success" in result.stdout
+    assert "Success" in caplog.text
 
 
 #######################
@@ -184,17 +192,19 @@ def test_delete_collaborators():
 # Uses plan
 #######################
 
-def test_plan_simulate():
+def test_plan_simulate(caplog):
+    caplog.set_level(logging.INFO)
     result = cli_plan_simulate()
     sim_ids = client.get_simulation_dataset_ids_by_plan_id(plan_id)
     global sim_id
     sim_id = sim_ids[-1]
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Simulation completed" in result.stdout
+    assert f"Simulation completed" in caplog.text
 
-def test_plan_download():
+def test_plan_download(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "download"],
@@ -205,11 +215,12 @@ def test_plan_download():
     assert path_to_plan.exists()
     path_to_plan.unlink()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Wrote activity plan" in result.stdout
+    assert f"Wrote activity plan" in caplog.text
 
-def test_plan_download_expanded_args():
+def test_plan_download_expanded_args(caplog):
+    caplog.set_level(logging.INFO)
     """
     Download a plan, exercising the --full-args option to get effective activity arguments
     """
@@ -223,11 +234,12 @@ def test_plan_download_expanded_args():
     assert path_to_plan.exists()
     path_to_plan.unlink()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Wrote activity plan" in result.stdout
+    assert f"Wrote activity plan" in caplog.text
 
-def test_plan_download_resources():
+def test_plan_download_resources(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "download-resources"],
@@ -238,11 +250,12 @@ def test_plan_download_resources():
     assert path_to_resources.exists()
     path_to_resources.unlink()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Wrote resource timelines" in result.stdout
+    assert f"Wrote resource timelines" in caplog.text
 
-def test_plan_download_simulation():
+def test_plan_download_simulation(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "download-simulation"],
@@ -253,11 +266,12 @@ def test_plan_download_simulation():
     assert path_to_resources.exists()
     path_to_resources.unlink()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Wrote activity plan" in result.stdout
+    assert f"Wrote activity plan" in caplog.text
 
-def test_plan_create_config():
+def test_plan_create_config(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "create-config"],
@@ -265,20 +279,22 @@ def test_plan_create_config():
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
-    assert "initialPlantCount: 2" in result.stdout
-    assert "initialProducer: nobody" in result.stdout
+    assert f"Configuration Arguments for Plan ID: {plan_id}" in caplog.text
+    assert "initialPlantCount: 2" in caplog.text
+    assert "initialProducer: nobody" in caplog.text
 
-def test_simulate_after_create_config():
+def test_simulate_after_create_config(caplog):
+    caplog.set_level(logging.INFO)
     result = cli_plan_simulate()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Simulation completed" in result.stdout
+    assert f"Simulation completed" in caplog.text
 
-def test_plan_update_config():
+def test_plan_update_config(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "update-config"],
@@ -286,59 +302,63 @@ def test_plan_update_config():
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Configuration Arguments for Plan ID: {plan_id}" in result.stdout
-    assert "initialPlantCount: 3" in result.stdout
-    assert "initialProducer: somebody" in result.stdout
+    assert f"Configuration Arguments for Plan ID: {plan_id}" in caplog.text
+    assert "initialPlantCount: 3" in caplog.text
+    assert "initialProducer: somebody" in caplog.text
 
-def test_simulate_after_update_config():
+def test_simulate_after_update_config(caplog):
+    caplog.set_level(logging.INFO)
     result = cli_plan_simulate()
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Simulation completed" in result.stdout
+    assert f"Simulation completed" in caplog.text
 
 #######################
 # DELETE PLANS
 #######################
 
-def test_plan_delete():
+def test_plan_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "delete"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"ID: {plan_id} has been removed." in result.stdout
+    assert f"ID: {plan_id} has been removed." in caplog.text
 
 
-def test_plan_clean():
+def test_plan_clean(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["plans", "clean"],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         f"All activity plans have been deleted"
-        in result.stdout
+        in caplog.text
     )
 
 #######################
 # DELETE MODELS
 #######################
 
-def test_model_delete():
+def test_model_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),
         catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"ID: {model_id} has been removed" in result.stdout
+    assert f"ID: {model_id} has been removed" in caplog.text
