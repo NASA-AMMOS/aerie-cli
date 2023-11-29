@@ -1631,21 +1631,32 @@ class AerieClient:
     def get_constraint_violations(self, plan_id):
         get_violations_query = """
         query ($plan_id: Int!) {
-            constraintResults: constraintViolations(planId: $plan_id) {
-                constraintId
-                constraintName
-                type
-                resourceIds
-                violations {
-                    activityInstanceIds
-                    windows {
-                        start
+            constraintResponses: constraintViolations(planId: $plan_id) {
+                success
+                results {
+                    constraintId
+                    constraintName
+                    resourceIds
+                    type
+                    gaps {
                         end
+                        start
+                    }
+                    violations {
+                        activityInstanceIds
+                        windows {
+                            end
+                            start
+                        }
                     }
                 }
-                gaps {
-                    start
-                    end
+                errors {
+                    message
+                    stack
+                    location {
+                        column
+                        line
+                    }
                 }
             }
         }
