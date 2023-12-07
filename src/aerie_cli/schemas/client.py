@@ -76,7 +76,8 @@ class Activity(ActivityBase, ClientSerialize):
             name=self.name,
             metadata=self.metadata,
             anchor_id=self.anchor_id,
-            anchored_to_start=self.anchored_to_start
+            anchored_to_start=self.anchored_to_start, 
+            tags=self.tags
         )
 
     def to_api_update(self):
@@ -87,7 +88,8 @@ class Activity(ActivityBase, ClientSerialize):
             name=self.name,
             metadata=self.metadata,
             anchor_id=self.anchor_id,
-            anchored_to_start=self.anchored_to_start
+            anchored_to_start=self.anchored_to_start,
+            tags=self.tags
         )
 
     @classmethod
@@ -102,7 +104,8 @@ class Activity(ActivityBase, ClientSerialize):
             arguments=api_activity_read.arguments,
             metadata=api_activity_read.metadata,
             anchor_id=api_activity_read.anchor_id,
-            anchored_to_start=api_activity_read.anchored_to_start
+            anchored_to_start=api_activity_read.anchored_to_start, 
+            tags=api_activity_read.tags
         )
 
 @define

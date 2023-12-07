@@ -71,6 +71,11 @@ class AerieClient:
                     metadata
                     anchor_id
                     anchored_to_start
+                    tags {
+                        tag {
+                            name
+                        }
+                    }
                 }
             }
         }
