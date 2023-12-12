@@ -340,11 +340,19 @@ class ExpansionSet(ClientSerialize):
     created_at: Arrow = field(
         converter = arrow.get
     )
+    updated_at: Arrow = field(
+        converter = arrow.get
+    )
+    updated_by: str
     command_dictionary_id: int = field(
         alias="command_dict_id"
     )
     expansion_rules: List[int] = field(
         converter = lambda x: [i['id'] for i in x])
+    description: str
+    name: str
+    mission_model_id: int
+    owner: str
 
 
 @define

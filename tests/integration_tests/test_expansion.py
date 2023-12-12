@@ -143,8 +143,19 @@ def test_expansion_set_create():
     )
     result = runner.invoke(
         app,
-        ["expansion", "sets", "create"],
-        input=str(model_id) + "\n" + str(command_dictionary_id) + "\n" + "BakeBananaBread" + "\n",
+        [
+            "expansion", 
+            "sets", 
+            "create", 
+            "-m", 
+            str(model_id), 
+            "-d", 
+            str(command_dictionary_id), 
+            "-n", 
+            "integration_test-" + arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss"),
+            "-a",
+            "BakeBananaBread"
+        ],
         catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -179,6 +190,7 @@ def test_expansion_set_list():
         f"{result.stdout}"\
         f"{result.stderr}"
     assert "Expansion Sets" in result.stdout
+    assert "integration_test" in result.stdout
 
 #######################
 # TEST EXPANSION RUNS

@@ -281,18 +281,20 @@ def list_expansion_sets():
     table = Table(
         title="Expansion Sets"
     )
-    table.add_column("Set ID", no_wrap=True)
-    table.add_column("Mission", no_wrap=True)
-    table.add_column("CMD Dict. Version", no_wrap=True)
+    table.add_column("ID", no_wrap=True)
+    table.add_column("Name", no_wrap=True)
+    table.add_column("Model ID", no_wrap=True)
     table.add_column("CMD Dict. ID", no_wrap=True)
-    table.add_column("Created At", no_wrap=True)
+    table.add_column("CMD Dict. Version", no_wrap=True)
+    table.add_column("Owner", no_wrap=True)
     for e_set in sets:
         table.add_row(
             str(e_set.id),
-            cmd_dicts[e_set.command_dictionary_id].mission,
-            cmd_dicts[e_set.command_dictionary_id].version,
+            str(e_set.name),
+            str(e_set.mission_model_id),
             str(e_set.command_dictionary_id),
-            e_set.created_at.ctime()
+            cmd_dicts[e_set.command_dictionary_id].version,
+            e_set.owner
         )
 
     Console().print(table)
@@ -341,41 +343,65 @@ def create_expansion_set(
         ..., '--command-dict-id', '-d', prompt='Command Dictionary ID',
         help='Command Dictionary ID'
     ),
+    name: str = typer.Option(
+        ..., "--name", "-n", prompt="Expansion set name",
+        help="Expansion set name"
+    ),
     activity_types: List[str] = typer.Option(
         None, '--activity-types', '-a',
         help='Activity types to be included in the set'
+    ),
+    rule_ids: List[int] = typer.Option(
+        None, '--rule-ids', '-r',
+        help='Expansion rules to be included in the set'
     )
 ):
     """
     Create an expansion set
 
     Uses the newest expansion rules for each given activity type.
-    Filters to only use rules designated for the given mission model and 
-    command dictionary.
+    Specify either a list of activity type names or rule IDs. If activity type 
+    names are given, rules are filtered to only those designated for the given 
+    mission model and command dictionary, then the highest rule ID is used for 
+    each activity type named.
     """
     client = CommandContext.get_client()
     expansion_rules = client.get_rules_by_type()
 
-    if not activity_types:
-        types_str = typer.prompt('Activity Types (separate with spaces)')
-        activity_types = types_str.split(' ')
+    if activity_types and rule_ids:
+        Console().print(
+            "Only specify either activity type name(s) or rule ID(s).", style='red')
+        return
 
-    rule_ids = []
-    for at in activity_types:
+    if not activity_types and not rule_ids:
+        choice = select_from_list(
+            ["By name", "By expansion rule ID"], "Choose how to specify rules")
+        if choice == "By name":
+            types_str = typer.prompt('Activity Types (separate with spaces)')
+            activity_types = types_str.split(' ')
+        else:
+            rule_ids_str = typer.prompt(
+                'Expansion rule IDs (separate with spaces)')
+            rule_ids = [int(r) for r in rule_ids_str.split(' ')]
 
-        try:
-            at_rules = expansion_rules[at]
-            for r in at_rules:
-                if not r.authoring_command_dict_id == command_dictionary_id:
-                    at_rules.remove(r)
-                if not r.authoring_mission_model_id == model_id:
-                    at_rules.remove(r)
-            rule_ids.append(max([r.id for r in at_rules]))
-        except (KeyError, ValueError):
-            Console().print(
-                f"No expansion rules for activity type: {at}", style='red')
-            return
+    if activity_types:
+
+        rule_ids = []
+        for at in activity_types:
+
+            try:
+                at_rules = expansion_rules[at]
+                for r in at_rules:
+                    if not r.authoring_command_dict_id == command_dictionary_id:
+                        at_rules.remove(r)
+                    if not r.authoring_mission_model_id == model_id:
+                        at_rules.remove(r)
+                rule_ids.append(max([r.id for r in at_rules]))
+            except (KeyError, ValueError):
+                Console().print(
+                    f"No expansion rules for activity type: {at}", style='red')
+                return
 
     set_id = client.create_expansion_set(
-        command_dictionary_id, model_id, rule_ids)
+        command_dictionary_id, model_id, rule_ids, name)
     Console().print(f"Created expansion set: {set_id}")
