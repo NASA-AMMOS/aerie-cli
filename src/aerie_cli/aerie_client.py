@@ -823,7 +823,7 @@ class AerieClient:
         return data["id"]
 
     def create_expansion_set(
-        self, command_dictionary_id: int, model_id: int, expansion_ids: List[int]
+        self, command_dictionary_id: int, model_id: int, expansion_ids: List[int], name: str
     ) -> int:
         """Create an Aerie expansion set given a list of activity IDs
 
@@ -831,6 +831,7 @@ class AerieClient:
             command_dictionary_id (int): ID of Aerie command dictionary
             model_id (int): ID of Aerie mission model
             expansion_ids (List[int]): List of expansion IDs to include in the set
+            name (str): Name of the expansion set
 
         Returns:
             int: Expansion set ID
@@ -841,11 +842,13 @@ class AerieClient:
             $command_dictionary_id: Int!
             $mission_model_id: Int!
             $expansion_ids: [Int!]!
+            $name: String!
         ) {
             createExpansionSet(
                 commandDictionaryId: $command_dictionary_id
                 missionModelId: $mission_model_id
                 expansionIds: $expansion_ids
+                name: $name
             ) {
                 id
             }
@@ -856,6 +859,7 @@ class AerieClient:
             command_dictionary_id=command_dictionary_id,
             mission_model_id=model_id,
             expansion_ids=expansion_ids,
+            name=name
         )
         return data["id"]
 
@@ -864,11 +868,17 @@ class AerieClient:
         query ListExpansionSets {
             expansion_set {
                 id
-                command_dict_id
                 created_at
+                updated_at
+                owner
+                updated_by
+                command_dict_id
                 expansion_rules {
                     id
                 }
+                description
+                name
+                mission_model_id
             }
         }
         """
