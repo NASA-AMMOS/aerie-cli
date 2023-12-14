@@ -152,6 +152,40 @@ class AerieClient:
             simulation_dataset_id=simulation_dataset_id
         )
         return resp['simulation']['plan']['id']
+    
+    def get_activity_tag_id_by_name(self, tag_name: str):
+        get_activity_tags_query = """
+        query GetActivityTagsByName($name: String) {
+            tags(where: {name: $name}) {
+                id
+            }
+        }
+        """
+
+        create_activity_tag = """
+            mutation CreateNewTag($name: String) {
+                insert_tags_one(object: {name: $name, color: "#000000"}) {
+                    id
+                }
+            }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            get_activity_tags_query, 
+            name=tag_name
+        )
+
+        if len(resp["data"]["tags"]) != 0:
+            #if tag with specified name, return the id
+            return resp["tags"][0]["id"]
+        else: 
+            #else, create a new tag with the specified name and return the id
+            resp = self.aerie_host.post_to_graphql(
+                create_activity_tag, 
+                name=tag_name
+            )
+
+            return resp["data"]["insert_tags_one"]["id"]
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
@@ -193,6 +227,12 @@ class AerieClient:
                 else:
                     if act.anchor_id:
                         act.anchor_id = directive_id_mapping[act.anchor_id]
+
+                    #if activity has tags, get tag id from name
+                    if act.tags:
+                        for tag in act.tags: 
+                            tag["tag"]["id"] = self.get_activity_tag_id_by_name(tag["tag"]["name"])
+
                     directive_id_mapping[act.id] = self.create_activity(act, plan_id)
                     activities_to_upload.remove(act)
                     running = True

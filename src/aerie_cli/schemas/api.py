@@ -73,7 +73,7 @@ class ActivityBase(ApiSerialize):
     )
     anchor_id: Optional[int] = field(default=None, kw_only=True)
     anchored_to_start: Optional[bool] = field(default=None, kw_only=True)
-    tags: Optional[Dict[str, str]]=field(factory=lambda: {}, kw_only=True)
+    tags: Optional[Dict[str, Any]]=field(factory=lambda: {}, kw_only=True)
 
     def __attrs_post_init__(self):
 
@@ -120,6 +120,7 @@ class ApiActivityPlanBase(ApiSerialize):
     start_time: Arrow = field(
         converter=arrow.get
     )
+    tags: Dict[str, Any]
 
 @define
 class ApiActivityPlanCreate(ApiActivityPlanBase):

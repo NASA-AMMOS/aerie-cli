@@ -165,6 +165,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
             name=self.name,
             start_time=self.start_time,
             duration=self.end_time - self.start_time,
+            tags=self.tags
         )
 
 
