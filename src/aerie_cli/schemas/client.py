@@ -148,6 +148,9 @@ class ActivityPlanCreate(EmptyActivityPlan):
     sim_id: Optional[int] = field(
         default=None
     )
+    tags: Optional[dict] = field(
+        default = None
+    )
 
 
     @classmethod
