@@ -119,6 +119,7 @@ class ApiActivityPlanBase(ApiSerialize):
     start_time: Arrow = field(
         converter=arrow.get
     )
+    tags: List[Dict]
 
 @define
 class ApiActivityPlanCreate(ApiActivityPlanBase):

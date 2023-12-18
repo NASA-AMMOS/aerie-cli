@@ -62,6 +62,12 @@ class AerieClient:
                 simulations{
                     id
                 }
+                tags {
+                    tag {
+                        id
+                        name
+                    }
+                }
                 activity_directives(order_by: { start_offset: asc }) {
                     id
                     name

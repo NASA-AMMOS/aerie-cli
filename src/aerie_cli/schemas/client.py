@@ -113,6 +113,7 @@ class EmptyActivityPlan(ClientSerialize):
     )
     end_time: Arrow = field(
         converter = arrow.get)
+    tags: List[Dict]
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
@@ -145,6 +146,9 @@ class ActivityPlanCreate(EmptyActivityPlan):
     sim_id: Optional[int] = field(
         default=None
     )
+    tags: Optional[List[Dict]] = field(
+        default=None
+    )
 
 
     @classmethod
@@ -154,6 +158,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
             start_time=plan_read.start_time,
             end_time=plan_read.end_time,
             activities=plan_read.activities,
+            tags=plan_read.tags
         )
 
     def to_api_create(self, model_id: int) -> "ApiActivityPlanCreate":
@@ -162,6 +167,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
             name=self.name,
             start_time=self.start_time,
             duration=self.end_time - self.start_time,
+            tags=self.tags
         )
 
 
@@ -170,6 +176,12 @@ class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     sim_id: int
+    tags: Optional[List[Dict]] = field(
+        default = None, 
+        converter=converters.optional(
+            lambda listOfDicts: [d for d in listOfDicts]
+        )
+    )
     activities: Optional[List[Activity]] = field(
         default = None,
         converter=converters.optional(
@@ -220,6 +232,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             sim_id=api_plan_read.simulations[0]["id"],
             start_time=plan_start,
             end_time=plan_start + api_plan_read.duration,
+            tags=api_plan_read.tags,
             activities= None if api_plan_read.activity_directives is None else [
                 Activity.from_api_read(api_activity)
                 for api_activity in api_plan_read.activity_directives
