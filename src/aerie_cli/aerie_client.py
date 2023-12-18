@@ -156,7 +156,7 @@ class AerieClient:
     def get_activity_tag_id_by_name(self, tag_name: str):
         get_activity_tags_query = """
         query GetActivityTagsByName($name: String) {
-            tags(where: {name: $name}) {
+            tags(where: {name: {_eq: $name}}) {
                 id
             }
         }
