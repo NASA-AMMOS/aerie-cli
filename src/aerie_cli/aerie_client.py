@@ -153,6 +153,63 @@ class AerieClient:
             simulation_dataset_id=simulation_dataset_id
         )
         return resp['simulation']['plan']['id']
+    
+    def get_tag_id_by_name(self, tag_name: str):
+        get_tags_by_name_query = """
+        query GetTagByName($name: String) {
+            tags(where: {name: {_eq: $name}}) {
+                id
+            }
+        }
+        """
+
+        #make default color of tag white
+        create_new_tag = """
+        mutation CreateNewTag($name: String, $color: String = "#FFFFFF") {
+            insert_tags_one(object: {name: $name, color: $color}) {
+                id
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            get_tags_by_name_query, 
+            name=tag_name
+        )
+
+        #if a tag with the specified name exists and returns the ID, else creates a new tag with this name
+        if len(resp["tags"]) > 0: 
+            return resp["tags"][0]["id"]
+        else: 
+            new_tag_resp = self.aerie_host.post_to_graphql(
+                create_new_tag, 
+                name=tag_name
+            )
+
+            return new_tag_resp["id"]
+
+    def add_plan_tag(self, plan_id: int, tag_name: str):
+        add_tag_to_plan = """
+        mutation AddTagToPlan($plan_id: Int, $tag_id: Int) {
+            insert_plan_tags(objects: {plan_id: $plan_id, tag_id: $tag_id}) {
+                returning {
+                    tag_id
+                }
+            }
+        }
+        """
+        #add tag to plan
+        tag_to_add = {
+            "plan_id": plan_id, 
+            "tag_id": self.get_tag_id_by_name(tag_name)
+        }
+
+        resp = self.aerie_host.post_to_graphql(
+            add_tag_to_plan, 
+            objects={tag_to_add}
+        )
+
+        return resp[0]
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
@@ -173,6 +230,12 @@ class AerieClient:
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
+
+        #add plan tags if exists 
+        if len(plan_to_create.tags) > 0:
+            for tag in plan_to_create.tags:
+                self.add_plan_tag(plan_id, tag["name"])
+                
         # This loop exists to make sure all anchor IDs are updated as necessary
 
         # Deep copy activities so we can augment and pop from the list

@@ -147,7 +147,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
         default=None
     )
     tags: Optional[List[Dict]] = field(
-        default=None
+        default=[]
     )
 
 
@@ -167,7 +167,6 @@ class ActivityPlanCreate(EmptyActivityPlan):
             name=self.name,
             start_time=self.start_time,
             duration=self.end_time - self.start_time,
-            tags=self.tags
         )
 
 
