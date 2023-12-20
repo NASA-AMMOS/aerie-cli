@@ -147,9 +147,11 @@ class ActivityPlanCreate(EmptyActivityPlan):
         default=None
     )
     tags: Optional[List[Dict]] = field(
-        default=[]
+        default=[], 
+        converter=converters.optional(
+            lambda listOfDicts: [d for d in listOfDicts]
+        )
     )
-
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
@@ -176,7 +178,7 @@ class ActivityPlanRead(EmptyActivityPlan):
     model_id: int
     sim_id: int
     tags: Optional[List[Dict]] = field(
-        default = None, 
+        default = [], 
         converter=converters.optional(
             lambda listOfDicts: [d for d in listOfDicts]
         )

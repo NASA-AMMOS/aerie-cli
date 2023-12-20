@@ -231,10 +231,9 @@ class AerieClient:
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
 
-        #add plan tags if exists 
-        if len(plan_to_create.tags) > 0:
-            for tag in plan_to_create.tags:
-                self.add_plan_tag(plan_id, tag["name"])
+        #add plan tags if exists from plan_to_create
+        for tag in plan_to_create.tags:
+            self.add_plan_tag(plan_id, tag["tag"]["name"])
                 
         # This loop exists to make sure all anchor IDs are updated as necessary
 
