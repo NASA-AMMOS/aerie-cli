@@ -177,9 +177,9 @@ class AerieClient:
             name=tag_name
         )
 
-        #if a tag with the specified name exists and returns the ID, else creates a new tag with this name
-        if len(resp["tags"]) > 0: 
-            return resp["tags"][0]["id"]
+        #if a tag with the specified name exists then returns the ID, else creates a new tag with this name
+        if len(resp) > 0: 
+            return resp[0]["id"]
         else: 
             new_tag_resp = self.aerie_host.post_to_graphql(
                 create_new_tag, 
@@ -198,15 +198,12 @@ class AerieClient:
             }
         }
         """
+        
         #add tag to plan
-        tag_to_add = {
-            "plan_id": plan_id, 
-            "tag_id": self.get_tag_id_by_name(tag_name)
-        }
-
         resp = self.aerie_host.post_to_graphql(
             add_tag_to_plan, 
-            objects={tag_to_add}
+            plan_id=plan_id, 
+            tag_id=self.get_tag_id_by_name(tag_name)
         )
 
         return resp[0]
