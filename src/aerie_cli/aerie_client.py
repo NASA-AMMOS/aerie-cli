@@ -206,7 +206,7 @@ class AerieClient:
             tag_id=self.get_tag_id_by_name(tag_name)
         )
 
-        return resp[0]
+        return resp['returning'][0]
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
