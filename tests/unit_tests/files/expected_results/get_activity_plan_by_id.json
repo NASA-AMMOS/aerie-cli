@@ -5,6 +5,7 @@
   "id": 1,
   "model_id": 1,
   "sim_id": 1,
+  "tags": [],
   "activities": [
     {
       "type": "ACT_One",

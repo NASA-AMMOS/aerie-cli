@@ -88,7 +88,8 @@ def test_list_all_activity_plans():
                 {
                     "id": 1
                 }
-            ]
+            ], 
+            "tags": []
         },
         {
             "id": 2,
@@ -99,6 +100,14 @@ def test_list_all_activity_plans():
             "simulations": [
                 {
                     "id": 2
+                }
+            ],
+            "tags": [
+                {
+                    "tag": {
+                        "id": 1, 
+                        "name": "Test"
+                    }
                 }
             ]
         }
