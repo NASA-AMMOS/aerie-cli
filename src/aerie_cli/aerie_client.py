@@ -98,6 +98,12 @@ class AerieClient:
                 simulations{
                     id
                 }
+                tags {
+                    tag {
+                        id
+                        name
+                    }
+                }
             }
         }
         """
