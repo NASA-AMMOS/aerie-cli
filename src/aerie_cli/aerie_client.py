@@ -1302,7 +1302,7 @@ class AerieClient:
                 """
         resp = self.host_session.post_to_graphql(
                     query,
-                    activity_name=activity_name
+                    activity_name=activity_name,
                     model_id=model_id,
                 )
         return resp
