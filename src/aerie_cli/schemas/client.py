@@ -113,7 +113,7 @@ class EmptyActivityPlan(ClientSerialize):
     )
     end_time: Arrow = field(
         converter = arrow.get)
-    tags: List[Dict]
+    tags: Optional[List[Dict]] 
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
