@@ -9,11 +9,14 @@ from rich.table import Table
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
+from aerie_cli.utils.prompts import select_from_list
 
-app = typer.Typer()
+plans_app = typer.Typer()
+collaborators_app = typer.Typer()
+plans_app.add_typer(collaborators_app, name="collaborators")
 
 
-@app.command()
+@plans_app.command()
 def download(
     id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     full_args: str = typer.Option(
@@ -29,7 +32,7 @@ def download(
     typer.echo(f"Wrote activity plan to {output}")
 
 
-@app.command()
+@plans_app.command()
 def download_simulation(
     sim_id: int = typer.Option(
         ..., '--sim-id', '-s',
@@ -48,7 +51,7 @@ def download_simulation(
         typer.echo(f"Wrote activity plan to {output}")
 
 
-@app.command()
+@plans_app.command()
 def download_resources(
     sim_id: int = typer.Option(
         ..., '--sim-id', '-s',
@@ -63,7 +66,7 @@ def download_resources(
         False, "--absolute-time", help="Change relative timestamps to absolute"
     ),
     specific_states: str = typer.Option(
-        None, help="The file with the specific states [defaults to all]"
+        None, help="The file with the specific states, one state per line [defaults to all]"
     )
 ):
     """
@@ -157,7 +160,7 @@ def download_resources(
             typer.echo(f"Wrote resource timelines to {output}")
 
 
-@app.command()
+@plans_app.command()
 def upload(
     input: str = typer.Option(
         ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
@@ -179,7 +182,7 @@ def upload(
     typer.echo(f"Created plan ID: {plan_id}")
 
 
-@app.command()
+@plans_app.command()
 def duplicate(
     id: int = typer.Option(..., "--plan-id", "--id", "-p", help="Plan ID", prompt=True),
     duplicated_plan_name: str = typer.Option(
@@ -196,7 +199,7 @@ def duplicate(
     typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
 
-@app.command()
+@plans_app.command()
 def simulate(
     id: int = typer.Option(..., help="Plan ID", prompt=True),
     output: Union[str, None] = typer.Option(
@@ -223,7 +226,7 @@ def simulate(
         typer.echo(f"Wrote simulation results to {output}")
 
 
-@app.command()
+@plans_app.command()
 def list():
     """List uploaded plans."""
 
@@ -257,7 +260,7 @@ def list():
     Console().print(table)
 
 
-@app.command()
+@plans_app.command()
 def create_config(
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     arg_file: str = typer.Option(
@@ -275,7 +278,7 @@ def create_config(
         typer.echo(f"(*) {arg}: {resp[arg]}")
 
 
-@app.command()
+@plans_app.command()
 def update_config(
     plan_id: int = typer.Option(..., help="Plan ID", prompt=True),
     arg_file: str = typer.Option(
@@ -294,7 +297,7 @@ def update_config(
         typer.echo(f"(*) {arg}: {resp[arg]}")
 
 
-@app.command()
+@plans_app.command()
 def delete(
     plan_id: int = typer.Option(..., "--plan-id", "-p", help="Plan ID to be deleted", prompt=True),
 ):
@@ -304,7 +307,7 @@ def delete(
     typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
-@app.command()
+@plans_app.command()
 def clean():
     """Delete all activity plans."""
     client = CommandContext.get_client()
@@ -315,3 +318,56 @@ def clean():
 
     typer.echo(f"All activity plans have been deleted")
 
+@collaborators_app.command("list")
+def list_collaborators(
+    plan_id: int = typer.Option(
+        ..., "--plan-id", "-p", help="Plan ID to list collaborators of", prompt="Plan ID"
+    )
+):
+    client = CommandContext.get_client()
+
+    collaborators = client.list_plan_collaborators(plan_id)
+    if len(collaborators):
+        typer.echo("\n".join(collaborators))
+    else:
+        typer.echo("No collaborators")
+
+
+@collaborators_app.command("add")
+def add_collaborator(
+    plan_id: int = typer.Option(
+        ..., "--plan-id", "-p", help="Plan ID to add collaborator", prompt="Plan ID"
+    ),
+    user: str = typer.Option(
+        ..., "--user", "-u", help="Username of collaborator to add", prompt="Collaborator Username"
+    ),
+):
+    client = CommandContext.get_client()
+
+    client.add_plan_collaborator(plan_id, user)
+    if user in client.list_plan_collaborators(plan_id):
+        typer.echo(f"Successfully added collaborator: {user}")
+    else:
+        typer.echo(f"Failed to add collaborator")
+
+
+@collaborators_app.command("delete")
+def delete_collaborator(
+    plan_id: int = typer.Option(
+        ..., "--plan-id", "-p", help="Plan ID to delete collaborator from", prompt="Plan ID"
+    ),
+    user: str = typer.Option(
+        None, "--user", "-u", help="Username of collaborator to delete"
+    ),
+):
+    client = CommandContext.get_client()
+
+    if user is None:
+        collaborators = client.list_plan_collaborators(plan_id)
+        user = select_from_list(collaborators, "Select a collaborator to remove")
+    client.delete_plan_collaborator(plan_id, user)
+
+    if user not in client.list_plan_collaborators(plan_id):
+        typer.echo("Successfully deleted collaborator")
+    else:
+        typer.echo("Failed to delete collaborator")

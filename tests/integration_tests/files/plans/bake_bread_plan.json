@@ -1,0 +1,23 @@
+{
+  "name": "bake_bread_plan",
+  "start_time": "2023-08-03T00:00:00+00:00",
+  "end_time": "2023-08-05T00:00:00+00:00",
+  "id": 55,
+  "model_id": 72,
+  "sim_id": 53,
+  "activities": [
+    {
+      "type": "BakeBananaBread",
+      "start_offset": "8:29:33.796000",
+      "metadata": {},
+      "name": "BakeBananaBread",
+      "arguments": {
+        "tbSugar": 1,
+        "glutenFree": true
+      },
+      "anchor_id": null,
+      "anchored_to_start": true,
+      "id": 84
+    }
+  ]
+}

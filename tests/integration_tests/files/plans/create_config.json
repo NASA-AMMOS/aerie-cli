@@ -1,0 +1,10 @@
+{
+    "initialPlantCount": 2,
+    "initialProducer": "nobody",
+    "initialDataPath": "/etc/os-release",
+    "initialConditions": {
+            "flag": "A",
+            "fruit": 3,
+            "peel": 3
+        }
+}

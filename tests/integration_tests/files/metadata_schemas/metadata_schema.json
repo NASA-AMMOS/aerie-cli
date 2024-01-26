@@ -1,0 +1,6 @@
+{
+    "schemas": [
+      { "key": "STRING_EXAMPLE", "schema": { "type": "string" } },
+      { "key": "LONG_STRING_EXAMPLE", "schema": { "type": "long_string" } }
+    ]
+  }
