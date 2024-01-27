@@ -37,6 +37,8 @@ command_dictionary_id = -1
 # Expansion Variables
 expansion_set_id = -1
 expansion_sequence_id = 1
+EXPANSION_FILES_PATH = os.path.join(FILES_PATH, "expansion")
+EXPANSION_DEPLOY_CONFIG_PATH = os.path.join(EXPANSION_FILES_PATH, "expansion_deploy_config.json")
 
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
@@ -126,6 +128,33 @@ def test_expansion_sequence_delete():
 # TEST EXPANSION SETS
 # Uses model, command dictionary, and activity types
 #######################
+
+
+def test_expansion_deploy():
+    result = runner.invoke(
+        app,
+        [
+            "expansion",
+            "deploy",
+            "-m",
+            str(model_id),
+            "-d",
+            str(command_dictionary_id),
+            "-c",
+            EXPANSION_DEPLOY_CONFIG_PATH,
+            "--rules-path",
+            EXPANSION_FILES_PATH,
+            "--time-tag"
+        ],
+        catch_exceptions=False
+    )
+    assert result.exit_code == 0, \
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Created expansion rule integration_test_BakeBananaBread" in result.stdout
+    assert "Created expansion rule integration_test_BiteBanana" in result.stdout
+    assert "Failed to create expansion rule integration_test_bad" in result.stdout
+    assert "Created expansion set integration_test_set" in result.stdout
 
 def test_expansion_set_create():
     client.create_expansion_rule(
