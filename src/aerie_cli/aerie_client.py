@@ -853,6 +853,8 @@ class AerieClient:
         activity_name: str,
         model_id: str,
         command_dictionary_id: str,
+        name: str = None,
+        description: str = None
     ) -> int:
         """Submit expansion logic to an Aerie instance
 
@@ -861,34 +863,31 @@ class AerieClient:
             activity_name (str): Name of the activity
             model_id (str): Aerie model ID
             command_dictionary_id (str): Aerie command dictionary ID
+            name (str, Optional): Name of the expansion rule
+            description (str, Optional): Description of the expansion rule
 
         Returns:
             int: Expansion Rule ID in Aerie
         """
 
         create_expansion_logic_query = """
-        mutation UploadExpansionLogic(
-            $activity_type_name: String!
-            $expansion_logic: String!
-            $command_dictionary_id: Int!
-            $mission_model_id: Int!
-        ) {
-            addCommandExpansionTypeScript(
-                activityTypeName: $activity_type_name
-                expansionLogic: $expansion_logic
-                authoringCommandDictionaryId: $command_dictionary_id
-                authoringMissionModelId: $mission_model_id
-            ) {
+        mutation CreateExpansionRule($rule: expansion_rule_insert_input!) {
+            createExpansionRule: insert_expansion_rule_one(object: $rule) {
                 id
             }
         }
         """
+        rule = {
+            "activity_type": activity_name,
+            "authoring_command_dict_id": command_dictionary_id,
+            "authoring_mission_model_id": model_id,
+            "expansion_logic": expansion_logic,
+            "name": name if (name is not None) else activity_name + arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss"),
+            "description": description if (description is not None) else ""
+        }
         data = self.aerie_host.post_to_graphql(
             create_expansion_logic_query,
-            activity_type_name=activity_name,
-            expansion_logic=expansion_logic,
-            mission_model_id=model_id,
-            command_dictionary_id=command_dictionary_id,
+            rule=rule
         )
 
         return data["id"]
