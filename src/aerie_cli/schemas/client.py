@@ -392,3 +392,28 @@ class ExpansionRule(ClientSerialize):
 class ResourceType(ClientSerialize):
     name: str
     schema: Dict
+
+
+@define
+class ExpansionDeployRule(ClientSerialize):
+    name: str
+    activity_type: str
+    file_name: str
+
+
+@define
+class ExpansionDeploySet(ClientSerialize):
+    name: str
+    rules: List[str]
+
+
+@define
+class ExpansionDeployConfiguration(ClientSerialize):
+    rules: List[ExpansionDeployRule] = field(
+        converter=converters.optional(
+            lambda x: [ExpansionDeployRule.from_dict(d) if isinstance(d, dict) else d for d in x])
+    )
+    sets: List[ExpansionDeploySet] = field(
+        converter=converters.optional(
+            lambda x: [ExpansionDeploySet.from_dict(d) if isinstance(d, dict) else d for d in x])
+    )
