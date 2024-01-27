@@ -1713,12 +1713,12 @@ class AerieClient:
         get_violations_query = """
         query ($plan_id: Int!) {
             constraintResponses: constraintViolations(planId: $plan_id) {
+                constraintId
+                constraintName
+                type
                 success
                 results {
-                    constraintId
-                    constraintName
                     resourceIds
-                    type
                     gaps {
                         end
                         start
