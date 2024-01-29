@@ -242,9 +242,9 @@ def list():
     table.add_column("Latest Sim. Dataset ID", no_wrap=True)
     table.add_column("Model ID", no_wrap=True)
     for activity_plan in resp:
-        sim_ids = client.get_simulation_dataset_ids_by_plan_id(activity_plan.id)
+        sim_ids = client.list_simulation_datasets_by_plan_id(activity_plan.id)
         if len(sim_ids):
-            simulation_dataset_id = str(max(sim_ids))
+            simulation_dataset_id = str(sim_ids[0].id)
         else:
             simulation_dataset_id = ''
             

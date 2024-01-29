@@ -26,6 +26,7 @@ from aerie_cli.schemas.api import ApiAsSimulatedActivity
 from aerie_cli.schemas.api import ApiResourceSampleResults
 from aerie_cli.schemas.api import ApiSimulatedResourceSample
 from aerie_cli.schemas.api import ApiSimulationResults
+from aerie_cli.schemas.api import ApiSimulationDatasetRead
 from aerie_cli.schemas.api import ActivityBase
 
 def parse_timedelta_str_converter(t) -> timedelta:
@@ -378,3 +379,45 @@ class ExpansionRule(ClientSerialize):
 class ResourceType(ClientSerialize):
     name: str
     schema: Dict
+
+@define
+class SimulationDataset(ClientSerialize):
+    id: int
+    simulation_id: int
+    dataset_id: int
+    offset_from_plan_start: timedelta
+    plan_revision: int
+    model_revision: int
+    simulation_template_revision: int
+    simulation_revision: int
+    dataset_revision: int
+    arguments: Dict[str, Any]
+    simulation_start_time: Arrow
+    simulation_end_time: Arrow
+    status: str
+    reason: str
+    canceled: bool
+    requested_by: str
+    requested_at: Arrow
+
+    @classmethod
+    def from_api_read(cls, api_sim_dataset: ApiSimulationDatasetRead) -> "SimulationDataset":
+        return SimulationDataset(
+            id=api_sim_dataset.id,
+            simulation_id=api_sim_dataset.simulation_id,
+            dataset_id=api_sim_dataset.dataset_id,
+            offset_from_plan_start=api_sim_dataset.offset_from_plan_start,
+            plan_revision=api_sim_dataset.plan_revision,
+            model_revision=api_sim_dataset.model_revision,
+            simulation_template_revision=api_sim_dataset.simulation_template_revision,
+            simulation_revision=api_sim_dataset.simulation_revision,
+            dataset_revision=api_sim_dataset.dataset_revision,
+            arguments=api_sim_dataset.arguments,
+            simulation_start_time=api_sim_dataset.simulation_start_time,
+            simulation_end_time=api_sim_dataset.simulation_end_time,
+            status=api_sim_dataset.status,
+            reason=api_sim_dataset.reason,
+            canceled=api_sim_dataset.canceled,
+            requested_by=api_sim_dataset.requested_by,
+            requested_at=api_sim_dataset.requested_at
+        )

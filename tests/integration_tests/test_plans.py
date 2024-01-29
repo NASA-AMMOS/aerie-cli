@@ -186,9 +186,9 @@ def test_delete_collaborators():
 
 def test_plan_simulate():
     result = cli_plan_simulate()
-    sim_ids = client.get_simulation_dataset_ids_by_plan_id(plan_id)
+    sim_ids = client.list_simulation_datasets_by_plan_id(plan_id)
     global sim_id
-    sim_id = sim_ids[-1]
+    sim_id = sim_ids[0].id
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"

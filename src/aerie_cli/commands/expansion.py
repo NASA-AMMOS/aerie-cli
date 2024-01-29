@@ -72,8 +72,8 @@ def list_expansion_runs(
     client = CommandContext.get_client()
 
     if simulation_dataset_id is None:
-        simulation_datasets = client.get_simulation_dataset_ids_by_plan_id(
-            plan_id)
+        simulation_datasets = [
+            d.id for d in client.list_simulation_datasets_by_plan_id(plan_id)]
         table_caption = f'All runs for Plan ID {plan_id}'
     else:
         simulation_datasets = [simulation_dataset_id]
@@ -132,8 +132,8 @@ def list_sequences(
     client = CommandContext.get_client()
 
     if simulation_dataset_id is None:
-        simulation_datasets = client.get_simulation_dataset_ids_by_plan_id(
-            plan_id)
+        simulation_datasets = [
+            d.id for d in client.list_simulation_datasets_by_plan_id(plan_id)]
         table_caption = f'All sequences for Plan ID {plan_id}'
     else:
         simulation_datasets = [simulation_dataset_id]

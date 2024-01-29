@@ -191,3 +191,32 @@ class ApiMissionModelCreate(ApiSerialize):
 @define
 class ApiMissionModelRead(ApiMissionModelCreate):
     id: int
+
+
+@define
+class ApiSimulationDatasetRead(ApiSerialize):
+    id: int
+    simulation_id: int
+    dataset_id: int
+    offset_from_plan_start: timedelta = field(
+        converter=convert_to_time_delta
+    )
+    plan_revision: int
+    model_revision: int
+    simulation_template_revision: int
+    simulation_revision: int
+    dataset_revision: int
+    arguments: Dict[str, Any]
+    simulation_start_time: Arrow = field(
+        converter=arrow.get
+    )
+    simulation_end_time: Arrow = field(
+        converter=arrow.get
+    )
+    status: str
+    reason: str
+    canceled: bool
+    requested_by: str
+    requested_at: Arrow = field(
+        converter=arrow.get
+    )
