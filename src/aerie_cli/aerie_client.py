@@ -858,7 +858,7 @@ class AerieClient:
         }
         """
         
-        #add tag to scheduling goal
+        #add tag to expansion rule
         resp = self.aerie_host.post_to_graphql(
             add_expansion_rule_tag_query, 
             rule_id=rule_id, 
