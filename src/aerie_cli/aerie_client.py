@@ -1675,7 +1675,7 @@ class AerieClient:
 
         return resp['returning'][0]
 
-    def upload_constraint(self, constraint, tags):
+    def upload_constraint(self, constraint, tags=[]):
         upload_constraint_query = """
         mutation CreateConstraint($constraint: constraint_insert_input!) {
             createConstraint: insert_constraint_one(object: $constraint) {
