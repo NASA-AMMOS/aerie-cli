@@ -1675,7 +1675,7 @@ class AerieClient:
 
         return resp['returning'][0]
 
-    def upload_constraint(self, constraint, tags=[]):
+    def upload_constraint(self, constraint, tags=None):
         upload_constraint_query = """
         mutation CreateConstraint($constraint: constraint_insert_input!) {
             createConstraint: insert_constraint_one(object: $constraint) {
@@ -1687,8 +1687,9 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(upload_constraint_query, constraint=constraint)
 
         #add each tag to constraint
-        for tag in tags:
-            new_tag_id = self.add_constraint_tag(resp["id"], tag)
+        if tags is not None:
+            for tag in tags:
+                new_tag_id = self.add_constraint_tag(resp["id"], tag)
 
         return resp["id"]
     
