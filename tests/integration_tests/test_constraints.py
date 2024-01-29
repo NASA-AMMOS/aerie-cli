@@ -8,6 +8,7 @@ from aerie_cli.schemas.client import ActivityPlanCreate
 import os
 import pytest
 import arrow
+import logging
 
 runner = CliRunner(mix_stderr = False)
 
@@ -50,50 +51,54 @@ def set_up_environment(request):
     plan_id = client.create_activity_plan(model_id, plan_to_create)
     client.simulate_plan(plan_id)
 
-def test_constraint_upload():
+def test_constraint_upload(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(app, ["constraints", "upload"],
                            input="Test" + "\n" + CONSTRAINT_PATH + "\n" + str(model_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert "Created constraint" in result.stdout
+    assert "Created constraint" in caplog.text
     global constraint_id
-    for line in result.stdout.splitlines():
+    for line in caplog.text.splitlines():
         if not "Created constraint: " in line:
             continue
         # get constraint id from the end of the line
         constraint_id = int(line.split(": ")[1])
     assert constraint_id != -1, "Could not find constraint ID, constraint upload may have failed"\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
-def test_constraint_update():
+def test_constraint_update(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(app, ["constraints", "update"],
                            input=str(constraint_id) + "\n" + CONSTRAINT_PATH + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert "Updated constraint" in result.stdout
+    assert "Updated constraint" in caplog.text
 
-def test_constraint_violations():
+def test_constraint_violations(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(app, ["constraints", "violations"],
                            input=str(plan_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
     # Check that a constraint violation is returned with the open bracket and curly brace
     # (The integration test constraint should report a violation)
-    assert "Constraint violations: [{" in result.stdout
+    assert "Constraint violations: [{" in caplog.text
 
-def test_constraint_delete():
+def test_constraint_delete(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(app, ["constraints", "delete"],
                            input=str(constraint_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
-    assert f"Successfully deleted constraint {str(constraint_id)}" in result.stdout
+    assert f"Successfully deleted constraint {str(constraint_id)}" in caplog.text

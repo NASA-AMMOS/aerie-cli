@@ -3,6 +3,8 @@
 `app` is the CLI application with which all commands, subcommands, and callbacks are registered.
 """
 import typer
+import logging
+import sys
 from typing import Optional
 
 from aerie_cli.commands import models
@@ -18,6 +20,8 @@ from aerie_cli.__version__ import __version__
 from aerie_cli.persistent import (
     PersistentConfigurationManager,
     PersistentSessionManager,
+    clear_old_log_files,
+    CURRENT_LOG_PATH
 )
 from aerie_cli.utils.prompts import select_from_list
 from aerie_cli.utils.sessions import (
@@ -25,6 +29,7 @@ from aerie_cli.utils.sessions import (
     get_active_session_client,
 )
 from aerie_cli.utils.configurations import find_configuration
+from aerie_cli.utils.logger import TyperLoggingHandler
 
 app = typer.Typer()
 app.add_typer(plans.plans_app, name="plans")
@@ -38,7 +43,7 @@ app.add_typer(metadata.app, name="metadata")
 
 def print_version(print_version: bool):
     if print_version:
-        typer.echo(__version__)
+        logging.info(__version__)
         raise typer.Exit()
 
 
@@ -53,9 +58,40 @@ def set_alternate_configuration(configuration_identifier: str):
 def setup_global_command_context(hasura_admin_secret: str):
     CommandContext.hasura_admin_secret = hasura_admin_secret
 
+def setup_logging(debug: bool):
+    clear_old_log_files()
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    )
+    file_handler = logging.FileHandler(filename=str(CURRENT_LOG_PATH),
+                                        mode='w',
+                                        encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_formatter)
+
+    console_formatter = logging.Formatter(
+        '%(message)s'
+    )
+    console_handler = TyperLoggingHandler()
+    level = logging.DEBUG if debug else logging.INFO
+    console_handler.setLevel(level) # Set the level of the stream and file handlers to different ones
+                                    # Debug should be in file, others should go into stdout
+                                    # unless verbose/debug option is selected
+    console_handler.setFormatter(console_formatter)
+    logging.basicConfig(level=logging.DEBUG,
+                        handlers=[file_handler,
+                                  console_handler])
+
 
 @app.callback()
 def app_callback(
+    debug: Optional[bool]=typer.Option(
+        False,
+        "--debug",
+        "-d",
+        callback=setup_logging,
+        help="View the debug output",
+    ),
     version: Optional[bool] = typer.Option(
         None,
         "--version",
@@ -108,7 +144,7 @@ def activate_session(
         if role in session.aerie_jwt.allowed_roles:
             session.change_role(role)
         else:
-            typer.echo(f"Role {role} not in allowed roles")
+            logging.info(f"Role {role} not in allowed roles")
 
     PersistentSessionManager.set_active_session(session)
 
@@ -120,9 +156,9 @@ def deactivate_session():
     """
     name = PersistentSessionManager.unset_active_session()
     if name is None:
-        typer.echo("No active session")
+        logging.info("No active session")
     else:
-        typer.echo(f"Deactivated session: {name}")
+        logging.info(f"Deactivated session: {name}")
 
 
 @app.command("role")
@@ -137,14 +173,14 @@ def change_role(
     client = get_active_session_client()
 
     if role is None:
-        typer.echo(f"Active Role: {client.aerie_host.active_role}")
+        logging.info(f"Active Role: {client.aerie_host.active_role}")
         role = select_from_list(client.aerie_host.aerie_jwt.allowed_roles)
 
     client.aerie_host.change_role(role)
 
     PersistentSessionManager.set_active_session(client.aerie_host)
 
-    typer.echo(f"Changed role to: {client.aerie_host.active_role}")
+    logging.info(f"Changed role to: {client.aerie_host.active_role}")
 
 
 @app.command("status")
@@ -156,6 +192,6 @@ def print_status():
     client = CommandContext.get_client()
 
     if client.aerie_host.configuration_name:
-        typer.echo(f"Active configuration: {client.aerie_host.configuration_name}")
+        logging.info(f"Active configuration: {client.aerie_host.configuration_name}")
 
-    typer.echo(f"Active role: {client.aerie_host.active_role}")
+    logging.info(f"Active role: {client.aerie_host.active_role}")

@@ -4,6 +4,7 @@ from typing import Union
 import arrow
 import pandas as pd
 import typer
+import logging
 from rich.console import Console
 from rich.table import Table
 
@@ -29,7 +30,7 @@ def download(
     plan = CommandContext.get_client().get_activity_plan_by_id(id, full_args)
     with open(output, "w") as out_file:
         out_file.write(plan.to_json(indent=2))
-    typer.echo(f"Wrote activity plan to {output}")
+    logging.info(f"Wrote activity plan to {output}")
 
 
 @plans_app.command()
@@ -48,7 +49,7 @@ def download_simulation(
     simulated_activities = client.get_simulation_results(sim_id)
     with open(output, "w") as out_file:
         out_file.write(json.dumps(simulated_activities, indent=2))
-        typer.echo(f"Wrote activity plan to {output}")
+        logging.info(f"Wrote activity plan to {output}")
 
 
 @plans_app.command()
@@ -141,7 +142,7 @@ def download_resources(
         # write to file
         with open(output, "w") as out_file:
             df.to_csv(out_file, index=False, header=field_name)
-            typer.echo(f"Wrote resource timelines to {output}")
+            logging.info(f"Wrote resource timelines to {output}")
 
     else:
         if absolute_time:
@@ -157,7 +158,7 @@ def download_resources(
         # write to file
         with open(output, "w") as out_file:
             out_file.write(json.dumps(resources, indent=2))
-            typer.echo(f"Wrote resource timelines to {output}")
+            logging.info(f"Wrote resource timelines to {output}")
 
 
 @plans_app.command()
@@ -179,7 +180,7 @@ def upload(
     if time_tag:
         plan_to_create.name += arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss")
     plan_id = client.create_activity_plan(model_id, plan_to_create)
-    typer.echo(f"Created plan ID: {plan_id}")
+    logging.info(f"Created plan ID: {plan_id}")
 
 
 @plans_app.command()
@@ -196,7 +197,7 @@ def duplicate(
     plan_to_duplicate = ActivityPlanCreate.from_plan_read(plan)
     plan_to_duplicate.name = duplicated_plan_name
     duplicated_plan_id = client.create_activity_plan(plan.model_id, plan_to_duplicate)
-    typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
+    logging.info(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
 
 @plans_app.command()
@@ -218,12 +219,12 @@ def simulate(
     end_time = arrow.utcnow()
     res = client.get_simulation_results(sim_dataset_id)
     total_sim_time = end_time - start_time
-    typer.echo(f"Simulation completed in " + str(total_sim_time))
+    logging.info(f"Simulation completed in " + str(total_sim_time))
 
     if output:
         with open(output, "w") as out_file:
             out_file.write(json.dumps(res, indent=2))
-        typer.echo(f"Wrote simulation results to {output}")
+        logging.info(f"Wrote simulation results to {output}")
 
 
 @plans_app.command()
@@ -273,9 +274,9 @@ def create_config(
 
     resp = CommandContext.get_client().create_config_args(plan_id=plan_id, args=json_obj)
 
-    typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
+    logging.info(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
-        typer.echo(f"(*) {arg}: {resp[arg]}")
+        logging.info(f"(*) {arg}: {resp[arg]}")
 
 
 @plans_app.command()
@@ -292,9 +293,9 @@ def update_config(
 
     resp = CommandContext.get_client().update_config_args(plan_id=plan_id, args=json_obj)
 
-    typer.echo(f"Configuration Arguments for Plan ID: {plan_id}")
+    logging.info(f"Configuration Arguments for Plan ID: {plan_id}")
     for arg in resp:
-        typer.echo(f"(*) {arg}: {resp[arg]}")
+        logging.info(f"(*) {arg}: {resp[arg]}")
 
 
 @plans_app.command()
@@ -304,7 +305,7 @@ def delete(
     """Delete an activity plan by its id."""
 
     plan_name = CommandContext.get_client().delete_plan(plan_id)
-    typer.echo(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
+    logging.info(f"Plan `{plan_name}` with ID: {plan_id} has been removed.")
 
 
 @plans_app.command()
@@ -316,7 +317,7 @@ def clean():
     for activity_plan in resp:
         client.delete_plan(activity_plan.id)
 
-    typer.echo(f"All activity plans have been deleted")
+    logging.info(f"All activity plans have been deleted")
 
 @collaborators_app.command("list")
 def list_collaborators(
@@ -328,9 +329,9 @@ def list_collaborators(
 
     collaborators = client.list_plan_collaborators(plan_id)
     if len(collaborators):
-        typer.echo("\n".join(collaborators))
+        logging.info("\n".join(collaborators))
     else:
-        typer.echo("No collaborators")
+        logging.info("No collaborators")
 
 
 @collaborators_app.command("add")
@@ -346,9 +347,9 @@ def add_collaborator(
 
     client.add_plan_collaborator(plan_id, user)
     if user in client.list_plan_collaborators(plan_id):
-        typer.echo(f"Successfully added collaborator: {user}")
+        logging.info(f"Successfully added collaborator: {user}")
     else:
-        typer.echo(f"Failed to add collaborator")
+        logging.info(f"Failed to add collaborator")
 
 
 @collaborators_app.command("delete")
@@ -368,6 +369,6 @@ def delete_collaborator(
     client.delete_plan_collaborator(plan_id, user)
 
     if user not in client.list_plan_collaborators(plan_id):
-        typer.echo("Successfully deleted collaborator")
+        logging.info("Successfully deleted collaborator")
     else:
-        typer.echo("Failed to delete collaborator")
+        logging.info("Failed to delete collaborator")

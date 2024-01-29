@@ -2,6 +2,7 @@ import json
 
 import arrow
 import typer
+import logging
 from rich.console import Console
 from rich.table import Table
 
@@ -30,7 +31,7 @@ def upload(
         contents = in_file.read()
     schema_data = json.loads(contents)
     result = client.add_directive_metadata_schemas(schema_data["schemas"])
-    typer.echo(f"{len(schema_data['schemas'])} new schema have been added.")
+    logging.info(f"{len(schema_data['schemas'])} new schema have been added.")
 
 
 @app.command()
@@ -41,7 +42,7 @@ def delete(
 ):
     """Delete a metadata schema by its name."""
     resp = CommandContext.get_client().delete_directive_metadata_schema(schema_name)
-    typer.echo(f"Schema `{resp}` has been removed.")
+    logging.info(f"Schema `{resp}` has been removed.")
 
 
 @app.command()
@@ -72,4 +73,4 @@ def clean():
     for schema in resp:
         client.delete_directive_metadata_schema(schema["key"])
 
-    typer.echo(f"All metadata schemas have been deleted")
+    logging.info(f"All metadata schemas have been deleted")

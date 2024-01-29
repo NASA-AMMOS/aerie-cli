@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 
 from aerie_cli.__main__ import app
 import pytest
+import logging
 
 from .conftest import\
     HASURA_ADMIN_SECRET,\
@@ -26,7 +27,8 @@ CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 CONFIGURATION_NAME = "localhost"
 configuration_id = -1
 
-def test_configurations_clean():
+def test_configurations_clean(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["configurations", "clean"],
@@ -34,12 +36,12 @@ def test_configurations_clean():
         catch_exceptions=False,
     )
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
     assert len(PersistentConfigurationManager.get_configurations()) == 0,\
         f"CONFIGURATIONS NOT CLEARED! CONFIGURATIONS: {PersistentConfigurationManager.get_configurations()}\n"\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
     no_session_error = False
@@ -71,7 +73,8 @@ def test_configurations_clean():
     pytest.exit("CONFIGURATION SHOULD NOT EXIST. Failed when using active configuration\n",
                 returncode=pytest.ExitCode.TESTS_FAILED)
 
-def test_configurations_create():
+def test_configurations_create(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["configurations", "create"],
@@ -84,7 +87,7 @@ def test_configurations_create():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
     global configuration_id
@@ -94,7 +97,8 @@ def test_configurations_create():
         configuration_id = i
     assert configuration_id != -1, "CONFIGURATION NOT LOADED, is it's name localhost?"
 
-def test_activate():
+def test_activate(caplog):
+    caplog.set_level(logging.INFO)
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -108,18 +112,18 @@ def test_activate():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"
 
-def test_deactivate():
+def test_deactivate(caplog):
+    caplog.set_level(logging.INFO)
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
     assert len(PersistentConfigurationManager.get_configurations()) == before_refresh
 
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"
-
     result = runner.invoke(
         app,
         ["deactivate"],
@@ -128,11 +132,11 @@ def test_deactivate():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         f"Deactivated session: {CONFIGURATION_NAME}"
-        in result.stdout
+        in caplog.text
     )
     
     try:
@@ -156,7 +160,8 @@ def test_deactivate():
         f"CONFIGURATION SHOULD NOT BE ACTIVE. Active config: {active_config}",
         returncode=pytest.ExitCode.TESTS_FAILED)
 
-def test_configurations_delete():
+def test_configurations_delete(caplog):
+    caplog.set_level(logging.INFO)
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -177,10 +182,11 @@ def test_configurations_delete():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
 
-def test_configurations_load():
+def test_configurations_load(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["configurations", "load"],
@@ -189,11 +195,11 @@ def test_configurations_load():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         "Added configurations"
-        in result.stdout
+        in caplog.text
     )
 
 # def test_configurations_update():
@@ -214,10 +220,11 @@ def test_configurations_load():
 #     )
 
 #     assert result.exit_code == 0,\
-#         f"{result.stdout}"\
+#         f"{caplog.text}"\
 #         f"{result.stderr}"
 
-def test_configurations_list():
+def test_configurations_list(caplog):
+    caplog.set_level(logging.INFO)
     result = runner.invoke(
         app,
         ["configurations", "list"],
@@ -225,15 +232,16 @@ def test_configurations_list():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert (
         "Aerie Host Configurations"
-        in result.stdout
+        in result.stdout # we use Console.print for this, not log
     )
 # We're activating at the end to ensure that localhost is still active
 # for other integration tests.
-def test_last_activate():
+def test_last_activate(caplog):
+    caplog.set_level(logging.INFO)
     before_refresh = len(PersistentConfigurationManager.get_configurations())
     assert before_refresh > 0
     PersistentConfigurationManager.read_configurations()
@@ -249,6 +257,6 @@ def test_last_activate():
     )
 
     assert result.exit_code == 0,\
-        f"{result.stdout}"\
+        f"{caplog.text}"\
         f"{result.stderr}"
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"

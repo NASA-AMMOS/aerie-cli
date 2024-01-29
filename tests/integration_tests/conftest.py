@@ -3,6 +3,7 @@
 # The scope is global either way, but this allows for easier debugging, type hints, and autofill
 import os
 import sys
+import logging
 
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
@@ -16,6 +17,9 @@ from aerie_cli.utils.sessions import (
     get_active_session_client,
     start_session_from_configuration,
 )
+
+GLOBAL_LOGGER = logging.getLogger(__name__)
+GLOBAL_LOGGER.propagate = True # we must set this to see stdout in caplog
 
 # in case src_path is not from aeri-cli src and from site-packages
 src_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../src")
