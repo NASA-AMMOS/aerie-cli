@@ -847,6 +847,26 @@ class AerieClient:
         )
         return data["typescriptFiles"][0]["content"]
 
+    def add_expansion_rule_tag(self, rule_id: int, tag_name: str):
+        add_expansion_rule_tag_query = """
+        mutation AddTagToExpansionRule($rule_id: Int, $tag_id: Int) {
+            insert_expansion_rule_tags(objects: {rule_id: $rule_id, tag_id: $tag_id}) {
+                returning {
+                    tag_id
+                }
+            }
+        }
+        """
+        
+        #add tag to scheduling goal
+        resp = self.aerie_host.post_to_graphql(
+            add_expansion_rule_tag_query, 
+            rule_id=rule_id, 
+            tag_id=self.get_tag_id_by_name(tag_name)
+        )
+
+        return resp['returning'][0]
+    
     def create_expansion_rule(
         self,
         expansion_logic: str,
@@ -1505,6 +1525,26 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
 
         return resp
+    
+    def add_scheduling_goal_tag(self, goal_id: int, tag_name: str):
+        add_goal_tag_query = """
+        mutation AddTagToSchedulingGoal($goal_id: Int, $tag_id: Int) {
+            insert_scheduling_goal_tags(objects: {goal_id: $goal_id, tag_id: $tag_id}) {
+                returning {
+                    tag_id
+                }
+            }
+        }
+        """
+        
+        #add tag to scheduling goal
+        resp = self.aerie_host.post_to_graphql(
+            add_goal_tag_query, 
+            goal_id=goal_id, 
+            tag_id=self.get_tag_id_by_name(tag_name)
+        )
+
+        return resp['returning'][0]
 
     def upload_scheduling_goal(self, model_id, name, definition):
         obj = dict()
