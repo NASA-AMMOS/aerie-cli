@@ -4,6 +4,7 @@ import arrow
 import typer
 from rich.console import Console
 from rich.table import Table
+from typing import List
 
 from aerie_cli.commands.command_context import CommandContext
 
@@ -15,7 +16,8 @@ def upload(
     plan_id: int = typer.Option(None, help="The plan id associated with the constraint (do not input model id)"),
     name: str = typer.Option(..., help="The name of the constraint", prompt=True),
     description: str = typer.Option("", help="The description of the constraint"), # optional
-    constraint_file: str = typer.Option(..., help="The file that holds the constraint", prompt=True)
+    constraint_file: str = typer.Option(..., help="The file that holds the constraint", prompt=True), 
+    tags: List[str] = typer.Option(None, help="A list of tag names to upload with the constraint (existing or new tags)")
 ):
     """Upload a constraint"""
 
@@ -33,7 +35,7 @@ def upload(
         "description": description,
         "definition": str_contents
     }
-    constraint_id = client.upload_constraint(constraint)
+    constraint_id = client.upload_constraint(constraint, tags)
     typer.echo(f"Created constraint: {constraint_id}")
 
 @app.command()

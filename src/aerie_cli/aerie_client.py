@@ -1653,8 +1653,28 @@ class AerieClient:
                 activity.arguments = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
+    
+    def add_constraint_tag(self, constraint_id: int, tag_name: str):
+        add_constraint_tag_query = """
+        mutation AddTagToConstraint($constraint_id: Int, $tag_id: Int) {
+            insert_constraint_tags(objects: {constraint_id: $constraint_id, tag_id: $tag_id}) {
+                returning {
+                    tag_id
+                }
+            }
+        }
+        """
+        
+        #add tag to constraint
+        resp = self.aerie_host.post_to_graphql(
+            add_constraint_tag_query, 
+            constraint_id=constraint_id, 
+            tag_id=self.get_tag_id_by_name(tag_name)
+        )
 
-    def upload_constraint(self, constraint):
+        return  resp['returning'][0]["tag_id"]
+
+    def upload_constraint(self, constraint, tags=None):
         upload_constraint_query = """
         mutation CreateConstraint($constraint: constraint_insert_input!) {
             createConstraint: insert_constraint_one(object: $constraint) {
@@ -1664,6 +1684,12 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(upload_constraint_query, constraint=constraint)
+
+        #add each tag to constraint
+        if tags is not None:
+            for tag in tags:
+                new_tag_id = self.add_constraint_tag(resp["id"], tag)
+
         return resp["id"]
     
     def delete_constraint(self, id):
