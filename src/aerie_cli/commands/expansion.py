@@ -4,12 +4,14 @@ from typing import List, Dict
 from pathlib import Path
 import fnmatch
 
+import arrow
+
 from rich.console import Console
 from rich.table import Table
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.schemas.client import ExpansionRun
+from aerie_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
 
 app = typer.Typer()
 sequences_app = typer.Typer()
@@ -18,6 +20,108 @@ sets_app = typer.Typer()
 app.add_typer(sequences_app, name='sequences', help='Commands for sequences')
 app.add_typer(runs_app, name='runs', help='Commands for expansion runs')
 app.add_typer(sets_app, name='sets', help='Commands for expansion sets')
+
+# === Bulk Deploy Command ===
+
+@app.command('deploy')
+def bulk_deploy(
+    model_id: int = typer.Option(
+        ..., '--model-id', '-m', prompt='Mission Model ID',
+        help='Mission Model ID'
+    ),
+    command_dictionary_id: int = typer.Option(
+        ..., '--command-dict-id', '-d', prompt='Command Dictionary ID',
+        help='Command Dictionary ID'
+    ),
+    config_file: str = typer.Option(
+        ..., "--config-file", "-c", prompt="Configuration file",
+        help="Deploy configuration JSON file"
+    ),
+    rules_path: Path = typer.Option(
+        Path.cwd(), help="Path to folder containing expansion rule files"
+    ),
+    time_tag: bool = typer.Option(False, help="Append time tags to create unique expansion rule/set names")
+):
+    """
+    Bulk deploy command expansion rules and sets to an Aerie instance according to a JSON configuration file.
+
+    The configuration file contains a list of rules and a list of sets:
+
+    ```
+    {
+        "rules": [...],
+        "sets": [...]
+    }
+    ```
+
+    Each rule must provide a unique rule name, the activity type name, and the name of the file with expansion logic:
+
+    ```
+    {
+        "name": "Expansion Rule Name",
+        "activity_type": "Activity Type Name",
+        "file_name": "my_file.ts"
+    }
+    ```
+
+    Each set must provide a unique set name and a list of rule names to add:
+
+    ```
+    {
+        "name": "Expansion Set Name",
+        "rules": ["Expansion Rule Name", ...]
+    }
+    ```
+    """
+
+    client = CommandContext.get_client()
+
+    with open(Path(config_file), "r") as fid:
+        configuration: ExpansionDeployConfiguration = ExpansionDeployConfiguration.from_dict(json.load(fid))
+
+    name_suffix = arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss") if time_tag else ""
+
+    # Loop and upload all expansion rules
+    uploaded_rules = {}
+    for rule in configuration.rules:
+        try:
+            with open(rules_path.joinpath(rule.file_name), "r") as fid:
+                expansion_logic = fid.read()
+
+            rule_id = client.create_expansion_rule(
+                expansion_logic=expansion_logic,
+                activity_name=rule.activity_type,
+                model_id=model_id,
+                command_dictionary_id=command_dictionary_id,
+                name=rule.name + name_suffix
+            )
+            typer.echo(f"Created expansion rule {rule.name + name_suffix}: {rule_id}")
+            uploaded_rules[rule.name] = rule_id
+        except:
+            typer.echo(f"Failed to create expansion rule {rule.name}")
+
+    for set in configuration.sets:
+        try:
+            rule_ids = []
+            for rule_name in set.rules:
+                if rule_name in uploaded_rules.keys():
+                    rule_ids.append(uploaded_rules[rule_name])
+                else:
+                    typer.echo(f"No uploaded rule {rule_name} for set {set.name}")
+            
+            assert len(rule_ids)
+
+            set_id = client.create_expansion_set(
+                command_dictionary_id=command_dictionary_id,
+                model_id=model_id,
+                expansion_ids=rule_ids,
+                name=set.name + name_suffix
+            )
+
+            typer.echo(f"Created expansion set {set.name + name_suffix}: {set_id}")
+        except:
+            typer.echo(f"Failed to create expansion set {set.name}")
+
 
 # === Commands for expansion runs ===
 

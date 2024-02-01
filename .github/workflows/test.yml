@@ -24,7 +24,7 @@ jobs:
     environment: integration-test-workflow
     strategy:
       matrix:
-        python-version: [ "3.6.15", "3.7", "3.8", "3.9", "3.10", "3.11" ]
+        python-version: ["3.6.15", "3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -46,8 +46,8 @@ jobs:
     environment: integration-test-workflow
     strategy:
       matrix:
-        python-version: [ "3.6.15", "3.11" ]
-        aerie-version: ["2.1.0"]
+        python-version: ["3.6.15", "3.11"]
+        aerie-version: ["2.2.0"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}

@@ -62,6 +62,12 @@ class AerieClient:
                 simulations{
                     id
                 }
+                tags {
+                    tag {
+                        id
+                        name
+                    }
+                }
                 activity_directives(order_by: { start_offset: asc }) {
                     id
                     name
@@ -91,6 +97,12 @@ class AerieClient:
                 duration
                 simulations{
                     id
+                }
+                tags {
+                    tag {
+                        id
+                        name
+                    }
                 }
             }
         }
@@ -147,6 +159,60 @@ class AerieClient:
             simulation_dataset_id=simulation_dataset_id
         )
         return resp['simulation']['plan']['id']
+    
+    def get_tag_id_by_name(self, tag_name: str):
+        get_tags_by_name_query = """
+        query GetTagByName($name: String) {
+            tags(where: {name: {_eq: $name}}) {
+                id
+            }
+        }
+        """
+
+        #make default color of tag white
+        create_new_tag = """
+        mutation CreateNewTag($name: String, $color: String = "#FFFFFF") {
+            insert_tags_one(object: {name: $name, color: $color}) {
+                id
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            get_tags_by_name_query, 
+            name=tag_name
+        )
+
+        #if a tag with the specified name exists then returns the ID, else creates a new tag with this name
+        if len(resp) > 0: 
+            return resp[0]["id"]
+        else: 
+            new_tag_resp = self.aerie_host.post_to_graphql(
+                create_new_tag, 
+                name=tag_name
+            )
+
+            return new_tag_resp["id"]
+
+    def add_plan_tag(self, plan_id: int, tag_name: str):
+        add_tag_to_plan = """
+        mutation AddTagToPlan($plan_id: Int, $tag_id: Int) {
+            insert_plan_tags(objects: {plan_id: $plan_id, tag_id: $tag_id}) {
+                returning {
+                    tag_id
+                }
+            }
+        }
+        """
+        
+        #add tag to plan
+        resp = self.aerie_host.post_to_graphql(
+            add_tag_to_plan, 
+            plan_id=plan_id, 
+            tag_id=self.get_tag_id_by_name(tag_name)
+        )
+
+        return resp['returning'][0]
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
@@ -167,6 +233,11 @@ class AerieClient:
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
+
+        #add plan tags if exists from plan_to_create
+        for tag in plan_to_create.tags:
+            self.add_plan_tag(plan_id, tag["tag"]["name"])
+                
         # This loop exists to make sure all anchor IDs are updated as necessary
 
         # Deep copy activities so we can augment and pop from the list
@@ -782,6 +853,8 @@ class AerieClient:
         activity_name: str,
         model_id: str,
         command_dictionary_id: str,
+        name: str = None,
+        description: str = None
     ) -> int:
         """Submit expansion logic to an Aerie instance
 
@@ -790,34 +863,31 @@ class AerieClient:
             activity_name (str): Name of the activity
             model_id (str): Aerie model ID
             command_dictionary_id (str): Aerie command dictionary ID
+            name (str, Optional): Name of the expansion rule
+            description (str, Optional): Description of the expansion rule
 
         Returns:
             int: Expansion Rule ID in Aerie
         """
 
         create_expansion_logic_query = """
-        mutation UploadExpansionLogic(
-            $activity_type_name: String!
-            $expansion_logic: String!
-            $command_dictionary_id: Int!
-            $mission_model_id: Int!
-        ) {
-            addCommandExpansionTypeScript(
-                activityTypeName: $activity_type_name
-                expansionLogic: $expansion_logic
-                authoringCommandDictionaryId: $command_dictionary_id
-                authoringMissionModelId: $mission_model_id
-            ) {
+        mutation CreateExpansionRule($rule: expansion_rule_insert_input!) {
+            createExpansionRule: insert_expansion_rule_one(object: $rule) {
                 id
             }
         }
         """
+        rule = {
+            "activity_type": activity_name,
+            "authoring_command_dict_id": command_dictionary_id,
+            "authoring_mission_model_id": model_id,
+            "expansion_logic": expansion_logic,
+            "name": name if (name is not None) else activity_name + arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss"),
+            "description": description if (description is not None) else ""
+        }
         data = self.aerie_host.post_to_graphql(
             create_expansion_logic_query,
-            activity_type_name=activity_name,
-            expansion_logic=expansion_logic,
-            mission_model_id=model_id,
-            command_dictionary_id=command_dictionary_id,
+            rule=rule
         )
 
         return data["id"]
@@ -1642,12 +1712,12 @@ class AerieClient:
         get_violations_query = """
         query ($plan_id: Int!) {
             constraintResponses: constraintViolations(planId: $plan_id) {
+                constraintId
+                constraintName
+                type
                 success
                 results {
-                    constraintId
-                    constraintName
                     resourceIds
-                    type
                     gaps {
                         end
                         start

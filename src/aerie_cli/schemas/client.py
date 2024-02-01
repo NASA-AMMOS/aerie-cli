@@ -113,6 +113,7 @@ class EmptyActivityPlan(ClientSerialize):
     )
     end_time: Arrow = field(
         converter = arrow.get)
+    tags: Optional[List[Dict]] 
 
     def duration(self) -> timedelta:
         return self.end_time - self.start_time
@@ -145,7 +146,12 @@ class ActivityPlanCreate(EmptyActivityPlan):
     sim_id: Optional[int] = field(
         default=None
     )
-
+    tags: Optional[List[Dict]] = field(
+        default=[], 
+        converter=converters.optional(
+            lambda listOfDicts: [d for d in listOfDicts]
+        )
+    )
 
     @classmethod
     def from_plan_read(cls, plan_read: "ActivityPlanRead") -> "ActivityPlanCreate":
@@ -154,6 +160,7 @@ class ActivityPlanCreate(EmptyActivityPlan):
             start_time=plan_read.start_time,
             end_time=plan_read.end_time,
             activities=plan_read.activities,
+            tags=plan_read.tags
         )
 
     def to_api_create(self, model_id: int) -> "ApiActivityPlanCreate":
@@ -170,6 +177,12 @@ class ActivityPlanRead(EmptyActivityPlan):
     id: int
     model_id: int
     sim_id: int
+    tags: Optional[List[Dict]] = field(
+        default = [], 
+        converter=converters.optional(
+            lambda listOfDicts: [d for d in listOfDicts]
+        )
+    )
     activities: Optional[List[Activity]] = field(
         default = None,
         converter=converters.optional(
@@ -220,6 +233,7 @@ class ActivityPlanRead(EmptyActivityPlan):
             sim_id=api_plan_read.simulations[0]["id"],
             start_time=plan_start,
             end_time=plan_start + api_plan_read.duration,
+            tags=api_plan_read.tags,
             activities= None if api_plan_read.activity_directives is None else [
                 Activity.from_api_read(api_activity)
                 for api_activity in api_plan_read.activity_directives
@@ -378,3 +392,28 @@ class ExpansionRule(ClientSerialize):
 class ResourceType(ClientSerialize):
     name: str
     schema: Dict
+
+
+@define
+class ExpansionDeployRule(ClientSerialize):
+    name: str
+    activity_type: str
+    file_name: str
+
+
+@define
+class ExpansionDeploySet(ClientSerialize):
+    name: str
+    rules: List[str]
+
+
+@define
+class ExpansionDeployConfiguration(ClientSerialize):
+    rules: List[ExpansionDeployRule] = field(
+        converter=converters.optional(
+            lambda x: [ExpansionDeployRule.from_dict(d) if isinstance(d, dict) else d for d in x])
+    )
+    sets: List[ExpansionDeploySet] = field(
+        converter=converters.optional(
+            lambda x: [ExpansionDeploySet.from_dict(d) if isinstance(d, dict) else d for d in x])
+    )

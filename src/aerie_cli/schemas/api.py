@@ -138,6 +138,12 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
         converter=converters.optional(
             lambda listOfDicts: [ApiActivityRead.from_dict(d) if isinstance(d, dict) else d for d in listOfDicts])
     )
+    tags: Optional[List[Dict]] = field(
+        default = [], 
+        converter=converters.optional(
+            lambda listOfDicts: [d for d in listOfDicts]
+        )
+    )
 
 
 @define

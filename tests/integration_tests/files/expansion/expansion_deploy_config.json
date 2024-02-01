@@ -1,0 +1,28 @@
+{
+    "rules": [
+        {
+            "name": "integration_test_BakeBananaBread",
+            "activity_type": "BakeBananaBread",
+            "file_name": "BakeBananaBread_exp.ts"
+        },
+        {
+            "name": "integration_test_BiteBanana",
+            "activity_type": "BiteBanana",
+            "file_name": "BiteBanana_exp.ts"
+        },
+        {
+            "name": "integration_test_bad",
+            "activity_type": "Fake",
+            "file_name": "this path no exist"
+        }
+    ],
+    "sets": [
+        {
+            "name": "integration_test_set",
+            "rules": [
+                "integration_test_BakeBananaBread",
+                "integration_test_BiteBanana"
+            ]
+        }
+    ]
+}
