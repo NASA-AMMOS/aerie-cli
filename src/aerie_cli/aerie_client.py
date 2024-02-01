@@ -1673,7 +1673,7 @@ class AerieClient:
             tag_id=self.get_tag_id_by_name(tag_name)
         )
 
-        return resp['returning'][0]
+        return  resp['returning'][0]["tag_id"]
 
     def upload_constraint(self, constraint, tags=None):
         upload_constraint_query = """
