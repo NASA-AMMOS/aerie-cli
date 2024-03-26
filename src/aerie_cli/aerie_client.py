@@ -1368,6 +1368,27 @@ class AerieClient:
         activity_types = [o["name"] for o in data]
         return activity_types
 
+    def get_activity_parameters(self, activity_name:str, model_id:int):
+        query = """
+                query GetActivityParameters(
+                    $model_id: Int!
+                    $activity_name: String!
+                ) {
+                    activity_type(where: { model_id: { _eq: $model_id }, 
+                    name : {_eq : $activity_name}}) {
+                      name
+                      model_id
+                      parameters
+                    }
+                }
+                """
+        resp = self.aerie_host.post_to_graphql(
+                    query,
+                    activity_name=activity_name,
+                    model_id=model_id,
+                )
+        return resp
+
     def list_command_dictionaries(self) -> List[CommandDictionaryInfo]:
         """List all command dictionaries on an Aerie host
 
@@ -1653,7 +1674,7 @@ class AerieClient:
                 activity.arguments = ApiEffectiveActivityArguments.from_dict(
                     resp).arguments
         return plan
-
+    
     def upload_constraint(self, constraint):
         upload_constraint_query = """
         mutation CreateConstraint($constraint: constraint_insert_input!) {
