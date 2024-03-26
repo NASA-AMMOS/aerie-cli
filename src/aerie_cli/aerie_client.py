@@ -1488,15 +1488,8 @@ class AerieClient:
             scheduling_specification_goals(where: {
                 specification_id:{_eq:$spec}
             }){
-                goal{
+                goal_metadata {
                     id
-                    model_id
-                    name
-                    description
-                    author
-                    last_modified_by
-                    created_date
-                    modified_date
                 }
             }
         }
@@ -1504,14 +1497,16 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
 
         return resp
-
+    
     def upload_scheduling_goal(self, model_id, name, definition):
         obj = dict()
-        obj["name"] = name
-        obj["model_id"] = model_id
+        #obj["metadata"] = {"data": {"name": name, "models_using": {"data": {"model_id": model_id}}}}
+        #obj["name"] = name
+        #obj["model_id"] = model_id
         obj["definition"] = definition
 
         return self.upload_scheduling_goals([obj])
+    
 
     def upload_scheduling_goals(self, upload_object):
         """
@@ -1527,16 +1522,24 @@ class AerieClient:
         ]
         """
 
+        # Note that as of Aerie v2.3.0, the metadata (incl. model_id and goal name) are stored in a separate table
+        formatted_upload_objects = []
+        for entry in upload_object:
+            new_entry = {}
+            new_entry["definition"] = entry["definition"]
+            new_entry["metadata"] = {"data": {"name": entry["name"], "models_using": {"data": {"model_id": entry["model_id"]}}}}
+            formatted_upload_objects.append(new_entry)
+        
         upload_scheduling_goals_query = """
-        mutation InsertGoals($input:[scheduling_goal_insert_input!]!){
-            insert_scheduling_goal(objects: $input){
-                returning {id}
+        mutation InsertGoal($input:[scheduling_goal_definition_insert_input]!){
+            insert_scheduling_goal_definition(objects: $input){
+                returning {goal_id}
             }
         }"""
         
         resp = self.aerie_host.post_to_graphql(
             upload_scheduling_goals_query,
-            input=upload_object
+            input=formatted_upload_objects
         )
 
         return resp["returning"]
@@ -1593,9 +1596,28 @@ class AerieClient:
         return self.delete_scheduling_goals(list([goal_id]))
 
     def delete_scheduling_goals(self, goal_id_list):
+        # We must remove the goal(s) from any specifications before deleting them
+        delete_scheduling_goals_from_all_specs_query = """
+        mutation DeleteSchedulingGoalsFromAllSpecs($id_list: [Int!]!) {
+            delete_scheduling_model_specification_goals (where: {goal_id: {_in:$id_list}}){
+                returning {goal_id}
+            }
+            delete_scheduling_specification_goals (where: {goal_id: {_in:$id_list}}){
+                returning {goal_id}
+            }
+        }
+        """
+
+        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+            delete_scheduling_goals_from_all_specs_query, 
+            id_list=goal_id_list
+        )
+
+        # Note that deleting the scheduling goal metadata entry will take care of the 
+        # scheduling goal definition entry too
         delete_scheduling_goals_query = """
         mutation DeleteSchedulingGoals($id_list: [Int!]!) {
-            delete_scheduling_goal (where: {id: {_in:$id_list}}){
+            delete_scheduling_goal_metadata (where: {id: {_in:$id_list}}){
                 returning {id}
             }
         }
