@@ -1490,6 +1490,13 @@ class AerieClient:
             }){
                 goal_metadata {
                     id
+                    name
+                    description
+                    public
+                    owner
+                    updated_by
+                    created_at
+                    updated_at
                 }
             }
         }
@@ -1500,11 +1507,7 @@ class AerieClient:
     
     def upload_scheduling_goal(self, model_id, name, definition):
         obj = dict()
-        #obj["metadata"] = {"data": {"name": name, "models_using": {"data": {"model_id": model_id}}}}
-        #obj["name"] = name
-        #obj["model_id"] = model_id
         obj["definition"] = definition
-
         return self.upload_scheduling_goals([obj])
     
 
