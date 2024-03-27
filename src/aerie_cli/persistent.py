@@ -9,7 +9,7 @@ from typing import List
 import json
 import shutil
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from appdirs import AppDirs
 
@@ -142,7 +142,7 @@ class PersistentSessionManager:
             raise RuntimeError(f"Cannot parse session timestamp: {session_file.name}. Try deactivating your session.")
 
         # If session hasn't been used since timeout, mark as inactive
-        if (datetime.utcnow() - t) > SESSION_TIMEOUT:
+        if (datetime.now(timezone.utc).replace(tzinfo=None) - t) > SESSION_TIMEOUT:
             session_file.unlink()
             raise NoActiveSessionError
 
@@ -177,7 +177,7 @@ class PersistentSessionManager:
 
         cls._active_session = session
 
-        session_file = datetime.utcnow().strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        session_file = datetime.now(timezone.utc).strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
         session_file = SESSION_FILE_DIRECTORY.joinpath(session_file)
 
         with open(session_file, 'wb') as fid:

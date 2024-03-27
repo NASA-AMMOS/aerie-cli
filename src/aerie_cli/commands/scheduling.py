@@ -33,7 +33,7 @@ def upload(
             
     typer.echo(f"Uploaded scheduling goals to venue.")
 
-    uploaded_ids = [kv["id"] for kv in resp]
+    uploaded_ids = [kv["goal_id"] for kv in resp]
 
     #priority order is order of filenames in decreasing priority order
     #will append to existing goals in specification priority order
@@ -53,7 +53,7 @@ def delete(
     )
 ):
     """Delete scheduling goal"""
-    client = CommandContext.get_client()
+    client = CommandContext.get_client()    
 
     resp = client.delete_scheduling_goal(goal_id)
     typer.echo("Successfully deleted Goal ID: " + str(resp))
@@ -77,8 +77,8 @@ def delete_all_goals_for_plan(
     typer.echo("Deleting goals for Plan ID {plan}: ".format(plan=plan_id), nl=False)
     goal_ids = []
     for goal in clear_goals:
-        goal_ids.append(goal["goal"]["id"])
-        typer.echo(str(goal["goal"]["id"]) + " ", nl=False)
+        goal_ids.append(goal["goal_metadata"]["id"])
+        typer.echo(str(goal["goal_metadata"]["id"]) + " ", nl=False)
     typer.echo()
-        
+
     client.delete_scheduling_goals(goal_ids)
