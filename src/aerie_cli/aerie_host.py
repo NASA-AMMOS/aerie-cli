@@ -242,15 +242,19 @@ class AerieHost:
         Returns:
             bool: False if authentication is disabled, otherwise True
         """
-        resp = self.session.get(self.gateway_url + "/auth/session")
+        # Try to login using blank credentials. If "Authentication is disabled" is returned, we can safely skip auth
+        resp = self.session.post(self.gateway_url + "/auth/login", json={"username": "", "password": ""},)
+
         if resp.ok:
             try:
-                resp_json = resp.json()
+                resp_json = process_gateway_response(resp)                
                 if (
                     "message" in resp_json.keys()
                     and resp_json["message"] == "Authentication is disabled"
                 ):
                     return False
+            except RuntimeError:
+                pass
             except requests.exceptions.JSONDecodeError:
                 pass
 
