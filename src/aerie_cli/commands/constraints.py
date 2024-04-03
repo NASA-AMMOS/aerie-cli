@@ -10,6 +10,13 @@ from aerie_cli.commands.command_context import CommandContext
 app = typer.Typer()
 
 def construct_constraint_metadata(name, description, model_id, plan_id):
+    """
+    Utility function to create metadata for a given constraint.
+    @param name The constraint name
+    @param description The constraint description
+    @param model_id The model ID that will be using this constraint
+    @param plan_id The plan ID that will be using this constraint
+    """
     metadata = {
         "data": {
             "name": name, 
@@ -69,8 +76,6 @@ def add_to_plan(
     """Associate a constraint with a plan's constraint specification."""
 
     client = CommandContext.get_client()
-    #specification = client.get_constraint_specification_for_plan(plan_id)
-    #upload_to_spec = [{"constraint_id": constraint_id, "specification_id": specification}]
     client.add_constraint_to_plan(constraint_id=constraint_id, plan_id=plan_id)
     typer.echo(f"Added constraint: {constraint_id} to plan: {plan_id} constraint specification")
 
@@ -97,16 +102,9 @@ def update(
     with open(constraint_file) as in_file:
         contents = in_file.readlines()
         str_contents = " ".join(contents)
-    # desc = constraint["metadata"]["description"]
-    # models = constraint["metadata"]["models_using"]
-    # plans = constraint["metadata"]["plans_using"]
-    # constraint_def = {
-    #     "definition": str_contents,
-    #     "metadata": construct_constraint_metadata(constraint["name"], constraint["metadata"]["description"], constraint["metadata"]["models_using"], constraint["metadata"]["plans_using"])
-    # }
     response = client.update_constraint(id, str_contents)
     for r in response:
-        typer.echo(f"Updated constraint: {r["returning"]}")
+        typer.echo(f"Updated constraint: {r['returning']}")
     
 @app.command()
 def violations(
