@@ -20,14 +20,27 @@ def upload(
     client = CommandContext.get_client()
 
     upload_obj = []
-    keys = ["name", "model_id", "definition"]
     with open(schedule, "r") as infile:
         for filepath in infile.readlines():
             filepath = filepath.strip()
             filename = filepath.split("/")[-1]
             with open(filepath, "r") as f:
-                d = dict(zip(keys, [filename, model_id, f.read()]))
-                upload_obj.append(d)
+                # Note that as of Aerie v2.3.0, the metadata (incl. model_id and goal name) are stored in a separate table,
+                # so we need to create a metadata entry along with the definition:
+                goal_obj = {
+                    "definition": f.read(),
+                    "metadata": {
+                        "data": {
+                            "name": filename, 
+                            "models_using": {
+                                "data": {
+                                    "model_id": model_id
+                                }
+                            }
+                        }
+                    }
+                }
+                upload_obj.append(goal_obj)
     
     resp = client.upload_scheduling_goals(upload_obj)
             
@@ -37,7 +50,7 @@ def upload(
 
     #priority order is order of filenames in decreasing priority order
     #will append to existing goals in specification priority order
-    specification = client.get_specification_for_plan(plan_id)
+    specification = client.get_scheduling_specification_for_plan(plan_id)
 
     upload_to_spec = [{"goal_id": goal_id, "specification_id": specification} for goal_id in uploaded_ids]
 
@@ -67,7 +80,7 @@ def delete_all_goals_for_plan(
 
     client = CommandContext.get_client()
 
-    specification = client.get_specification_for_plan(plan_id)
+    specification = client.get_scheduling_specification_for_plan(plan_id)
     clear_goals = client.get_scheduling_goals_by_specification(specification) #response is in asc order
 
     if len(clear_goals) == 0: #no goals to clear

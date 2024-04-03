@@ -9,6 +9,33 @@ from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
+def construct_constraint_metadata(name, description, model_id, plan_id):
+    metadata = {
+        "data": {
+            "name": name, 
+            "description": description
+        }
+    }
+    if model_id != None:
+        if model_id is int:
+            metadata["data"]["models_using"] = {
+                "data": {
+                    "model_id": model_id
+                }
+            }
+        elif model_id is list:
+            metadata["data"]["models_using"] = model_id
+    if plan_id != None:
+        if plan_id is int:
+            metadata["data"]["plans_using"] = {
+                "data": {
+                    "plan_id": plan_id
+                }
+            }
+        elif plan_id is list:
+            metadata["data"]["plans_using"] = plan_id
+    return metadata
+
 @app.command()
 def upload(
     model_id: int = typer.Option(None, help="The model id associated with the constraint (do not input plan id)"),
@@ -25,16 +52,28 @@ def upload(
     client = CommandContext.get_client()
     with open(constraint_file) as in_file:
         contents = in_file.readlines()
-        str_contents = " ".join(contents)
+        str_contents = " ".join(contents) 
     constraint = {
-        "model_id": model_id,
-        "plan_id": plan_id, 
-        "name": name,
-        "description": description,
-        "definition": str_contents
+        "definition": str_contents,
+        "metadata": construct_constraint_metadata(name, description, model_id, plan_id)
     }
     constraint_id = client.upload_constraint(constraint)
     typer.echo(f"Created constraint: {constraint_id}")
+
+
+@app.command()
+def add_to_plan(
+    plan_id: int = typer.Option(None, help="The plan id associated with the constraint (do not input model id)", prompt=True),
+    constraint_id: int = typer.Option(..., help="The id of the constraint", prompt=True)
+):
+    """Associate a constraint with a plan's constraint specification."""
+
+    client = CommandContext.get_client()
+    #specification = client.get_constraint_specification_for_plan(plan_id)
+    #upload_to_spec = [{"constraint_id": constraint_id, "specification_id": specification}]
+    client.add_constraint_to_plan(constraint_id=constraint_id, plan_id=plan_id)
+    typer.echo(f"Added constraint: {constraint_id} to plan: {plan_id} constraint specification")
+
 
 @app.command()
 def delete(
@@ -48,7 +87,7 @@ def delete(
 
 @app.command()
 def update(
-    id: int = typer.Option(..., help="The constraint id to be modifyed", prompt=True),
+    id: int = typer.Option(..., help="The constraint id to be modified", prompt=True),
     constraint_file: str = typer.Option(..., help="The new constraint for the id", prompt=True)
 ):
     """Update a constraint"""
@@ -58,15 +97,16 @@ def update(
     with open(constraint_file) as in_file:
         contents = in_file.readlines()
         str_contents = " ".join(contents)
-    constraint = {
-        "model_id": constraint["model_id"],
-        "plan_id": constraint["plan_id"], 
-        "name": constraint["name"],
-        "description": constraint["description"],
-        "definition": str_contents
-    }
-    constraint_id = client.update_constraint(id, constraint)
-    typer.echo(f"Updated constraint: {constraint_id}")
+    # desc = constraint["metadata"]["description"]
+    # models = constraint["metadata"]["models_using"]
+    # plans = constraint["metadata"]["plans_using"]
+    # constraint_def = {
+    #     "definition": str_contents,
+    #     "metadata": construct_constraint_metadata(constraint["name"], constraint["metadata"]["description"], constraint["metadata"]["models_using"], constraint["metadata"]["plans_using"])
+    # }
+    response = client.update_constraint(id, str_contents)
+    for r in response:
+        typer.echo(f"Updated constraint: {r["returning"]}")
     
 @app.command()
 def violations(

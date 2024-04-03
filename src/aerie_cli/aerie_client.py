@@ -1272,7 +1272,7 @@ class AerieClient:
         """
 
         list_sequences_query = """
-        query MyQuery($simulation_dataset_id: Int!) {
+        query ListSequences($simulation_dataset_id: Int!) {
             sequence(where: { simulation_dataset_id: { _eq: $simulation_dataset_id } }) {
                 seq_id
             }
@@ -1427,7 +1427,7 @@ class AerieClient:
         """
 
         get_command_dictionary_metadata_query = """
-        query MyQuery($command_dictionary_id: Int!) {
+        query GetCommandDictionaryMetadata($command_dictionary_id: Int!) {
         command_dictionary(where: { id: { _eq: $command_dictionary_id } }) {
             mission
             version
@@ -1514,24 +1514,22 @@ class AerieClient:
     def upload_scheduling_goals(self, upload_object):
         """
         Bulk upload operation for uploading scheduling goals.
-        @param upload_object should be JSON-like with keys name, model_id, definition
+        @param upload_object should be JSON-like with a definition key and metadata containing the goal name and model id
         [
             {
-                name: str,
-                model_id: int,
                 definition: str
+                metadata: {
+                    name: str,
+                    models_using: {
+                        data: {
+                            model_id: int
+                        }
+                    }
+                }
             },
             ...
         ]
         """
-
-        # Note that as of Aerie v2.3.0, the metadata (incl. model_id and goal name) are stored in a separate table
-        formatted_upload_objects = []
-        for entry in upload_object:
-            new_entry = {}
-            new_entry["definition"] = entry["definition"]
-            new_entry["metadata"] = {"data": {"name": entry["name"], "models_using": {"data": {"model_id": entry["model_id"]}}}}
-            formatted_upload_objects.append(new_entry)
         
         upload_scheduling_goals_query = """
         mutation InsertGoal($input:[scheduling_goal_definition_insert_input]!){
@@ -1542,13 +1540,13 @@ class AerieClient:
         
         resp = self.aerie_host.post_to_graphql(
             upload_scheduling_goals_query,
-            input=formatted_upload_objects
+            input=upload_object
         )
 
         return resp["returning"]
 
-    def get_specification_for_plan(self, plan_id):
-        get_specification_for_plan_query = """
+    def get_scheduling_specification_for_plan(self, plan_id):
+        get_scheduling_specification_for_plan_query = """
         query GetSpecificationForPlan($plan_id: Int!) {
             scheduling_specification(where: {plan_id: {_eq: $plan_id}}) {
                 id
@@ -1557,7 +1555,7 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            get_specification_for_plan_query, 
+            get_scheduling_specification_for_plan_query, 
             plan_id=plan_id
         )
         return resp[0]["id"]
@@ -1576,7 +1574,7 @@ class AerieClient:
         """
 
         add_goal_to_specification_query = """
-        mutation MyMutation($object: [scheduling_specification_goals_insert_input!]!) {
+        mutation AddGoalToSpec($object: [scheduling_specification_goals_insert_input!]!) {
             insert_scheduling_specification_goals(objects: $object) {
                 returning {
                     enabled
@@ -1681,20 +1679,62 @@ class AerieClient:
 
     def upload_constraint(self, constraint):
         upload_constraint_query = """
-        mutation CreateConstraint($constraint: constraint_insert_input!) {
-            createConstraint: insert_constraint_one(object: $constraint) {
-                id
+        mutation CreateConstraint($constraint: constraint_definition_insert_input!) {
+            createConstraint: insert_constraint_definition_one(object: $constraint) {
+                constraint_id
             }
         }
         """
 
         resp = self.aerie_host.post_to_graphql(upload_constraint_query, constraint=constraint)
-        return resp["id"]
+        return resp["constraint_id"]
     
+
+    def add_constraint_to_plan(self, constraint_id, plan_id):
+        """
+        Add a constraint to a plan's constraint specification.
+        @param constraint_id The constraint ID to add to the given plan
+        @param plan_id The plan ID to add this constraint to
+        """
+
+        add_constraint_to_specification_query = """
+            mutation InsertConstraintSpec($constraint_id: Int!, $plan_id: Int!) {
+                insert_constraint_specification_one(object: {constraint_id: $constraint_id, plan_id: $plan_id}) {
+                    constraint_id
+                }
+            }
+
+        """
+        resp = self.aerie_host.post_to_graphql(
+            add_constraint_to_specification_query, 
+            constraint_id = constraint_id,
+            plan_id = plan_id
+        )
+
+        return resp['constraint_id']
+
     def delete_constraint(self, id):
+
+        # We must remove the constraint from any specifications before deleting it
+        delete_constraint_from_all_specs_query = """
+        mutation DeleteConstraintsFromAllSpecs($id: Int!) {
+            delete_constraint_specification(where: {constraint_id: {_eq: $id}}) {
+                returning {
+                    constraint_id
+                    plan_id
+                }
+            }
+        }
+        """
+
+        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+            delete_constraint_from_all_specs_query, 
+            id=id
+        )
+
         delete_constraint_query = """
         mutation DeleteConstraint($id: Int!) {
-            deleteConstraint: delete_constraint_by_pk(id: $id) {
+            deleteConstraint: delete_constraint_metadata_by_pk(id: $id) {
                 id
             }
         }
@@ -1703,43 +1743,78 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(delete_constraint_query, id=id)
         return resp["id"]
     
-    def update_constraint(self, id, constraint):
-        update_constraint_query = """
-        mutation UpdateConstraint($id: Int!, $constraint: constraint_set_input!) {
-            updateConstraint: update_constraint_by_pk(
-                pk_columns: { id: $id }, _set: $constraint
+    def update_constraint(self, id, definition):
+        old_update_constraint_query = """
+        mutation UpdateConstraint($constarint_id: Int!, $constraint: constraint_definition_set_input!) {
+            update_constraint_definition_by_pk(
+                pk_columns: { constarint_id: $constraint_id }, _set: $constraint
             ) {
-                id
+                constarint_id
+                definition
+                author
+                created_at
             }
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(update_constraint_query, id=id, constraint=constraint)
-        return resp["id"]
+        update_constraint_query = """
+        mutation UpdateConstraint($constarint_id: Int!, $definition: String!) {
+            update_constraint_definition_many(
+                updates: {_set: {definition: $definition}, where: {constraint_id: {_eq: $constarint_id}}}) {
+                returning {
+                    constraint_id
+                }
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(update_constraint_query, constarint_id=id, definition=definition)
+        return resp
     
     def get_constraint_by_id(self, id):
         get_constraint_by_id_query = """
-        query get_constraint($id: Int!) {
-            constraint_by_pk(id: $id) {
-                model_id
-                plan_id
-                name
+        query get_constraint($constraint_id: Int!) {
+            constraint_definition(where: {constraint_id: {_eq: $constraint_id}}) {
+                author
                 definition
-                description
+                metadata {
+                    description
+                    name
+                    plans_using {
+                        plan_id
+                    }
+                    models_using {
+                        model_id
+                    }
+                }
             }
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_constraint_by_id_query, id=id)
+        resp = self.aerie_host.post_to_graphql(get_constraint_by_id_query, constraint_id=id)
         return resp
     
+    def get_constraint_specification_for_plan(self, plan_id):
+        get_constraint_specification_for_plan_query = """
+        query GetConstraintSpecificationForPlan($plan_id: Int!) {
+            constraint_specification(where: {plan_id: {_eq: $plan_id}}) {
+                constraint_id
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            get_constraint_specification_for_plan_query, 
+            plan_id=plan_id
+        )
+        return resp[0]["id"]
+
     def get_constraint_violations(self, plan_id):
         get_violations_query = """
         query ($plan_id: Int!) {
             constraintResponses: constraintViolations(planId: $plan_id) {
                 constraintId
                 constraintName
-                type
                 success
                 results {
                     resourceIds
@@ -1879,7 +1954,7 @@ class AerieClient:
             list: a list of the metadata keys that were deleted
         """
         delete_schema_query = """
-        mutation MyMutation($key: String!) {
+        mutation DeleteDirectiveMetadataSchema($key: String!) {
             delete_activity_directive_metadata_schema_by_pk(key: $key) {
                 key
             }
