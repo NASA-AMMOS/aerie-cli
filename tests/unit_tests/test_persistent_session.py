@@ -51,7 +51,7 @@ def test_get_session_expired(persistent_path: Path):
 
     # Create a mock old session with an "expired" session
     old_session = MockAerieHost()
-    old_time = datetime.datetime.utcnow() - persistent.SESSION_TIMEOUT - \
+    old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - persistent.SESSION_TIMEOUT - \
         datetime.timedelta(seconds=1)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
@@ -70,7 +70,7 @@ def test_get_session_broken(persistent_path: Path):
 
     # Create a mock old session which fails the ping test
     old_session = MockAerieHost(False)
-    old_time = datetime.datetime.utcnow()
+    old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
@@ -89,7 +89,7 @@ def test_get_session(persistent_path: Path):
 
     # Create a mock good session
     old_session = MockAerieHost()
-    old_time = datetime.datetime.utcnow()
+    old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
@@ -109,7 +109,7 @@ def test_get_session_multiple(persistent_path: Path):
     # Create a mock good session
     for i in range(2):
         old_session = MockAerieHost()
-        old_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=i)
+        old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(minutes=i)
         old_fn = old_time.strftime(
             persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
         with open(persistent_path.joinpath(old_fn), 'wb') as fid:
@@ -182,7 +182,7 @@ def test_unset_session_startup_persistent(persistent_path: Path):
 
     # Create a mock good session
     old_session = MockAerieHost(name="Old Session")
-    old_time = datetime.datetime.utcnow()
+    old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
