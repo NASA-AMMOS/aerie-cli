@@ -1505,12 +1505,6 @@ class AerieClient:
 
         return resp
     
-    def upload_scheduling_goal(self, model_id, name, definition):
-        obj = dict()
-        obj["definition"] = definition
-        return self.upload_scheduling_goals([obj])
-    
-
     def upload_scheduling_goals(self, upload_object):
         """
         Bulk upload operation for uploading scheduling goals.
