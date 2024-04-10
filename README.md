@@ -343,25 +343,26 @@ client = AerieClient(aerie_host)
 
 ### Contributor Installation
 
-If you'd like to contribute to this project, you'll first need to clone this repository, and you will have to install [`poetry`](https://python-poetry.org/docs/master/).
+The recommended develper installation method is in a [virutual environment](https://docs.python.org/3/library/venv.html) with an [editatable install via Pip](https://pip.pypa.io/en/latest/topics/local-project-installs/#editable-installs). 
 
-From the root of the repo, use `poetry` to install Aerie-CLI and its dependencies:
+See this [primer](https://realpython.com/python-virtual-environments-a-primer/) or virtual environments to get set up. A quick and easy method is using Python's native `venv` package from the root of the Aerie-CLI repo:
 
 ```sh
-poetry install
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-To run commands from source as you edit, use the `poetry run` command. For example:
+Then, install Aerie-CLI in editable mode via Pip:
 
+```sh
+python3 -m pip install -e .
 ```
-poetry run aerie-cli plans simulate --id 42
-```
+
+Now, your installation of Aerie-CLI will update as you make changes to the source code.
 
 ### Dependency Management
 
-If you'd like to add or remove dependencies, you can use the `poetry add` and `poetry remove` commands, respectively. These will install the dependencies in your `poetry`-managed virtual environment, update your `pyproject.toml` file, and update your `poetry.lock` file. If you update the dependencies, you should stage and commit your changes to these two files so that others will be guaranteed to have the same Python configuration.
-
-For more information on dependency and project management, see the [`poetry` docs](https://python-poetry.org/docs/master/).
+Dependencies are currently managed via Poetry. For more information on dependency and project management, see the [`poetry` docs](https://python-poetry.org/docs/master/).
 
 ### Testing
 
@@ -369,13 +370,13 @@ Aerie-CLI has unit tests and integration tests built with the [pytest](https://d
 
 #### Unit Tests
 
-Unit tests can be run anytime from `tests/unit_tests` and reference local test files. `test_aerie_client.py` is where unit tests are added to exercise particular methods of the `AerieClient` class using mocked Aerie API responses. 
+Unit tests can be run anytime and reference local test files. `test_aerie_client.py` is where unit tests are added to exercise particular methods of the `AerieClient` class using mocked Aerie API responses. 
 
-Run the unit tests using `pytest`:
+Run the unit tests using `pytest` from the `tests/unit_tests` directory:
 
 ```
 cd tests
-poetry run pytest unit_tests
+python3 -m pytest .
 ```
 
 #### Integration Tests
@@ -384,18 +385,24 @@ A separate suite of tests is designed to validate CLI functionality against a lo
 
 The integration tests are based on `Typer` testing documentation found [here](https://typer.tiangolo.com/tutorial/testing/).
 
-### IDE Settings
+### Releases
 
-Since you are using `poetry` for development, your system Python interpreter will likely complain about any dependencies used within this project. To remedy this, you'll need to select the Python interpreter from your `poetry` virtualenv in your IDE. The method for doing so is unfortunately IDE-dependent, however.
+Aerie-CLI generally follows the [gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) workflow model for managing releases:
 
-#### VS Code
+- Features are merged to the `develop` branch.
+- Release branches are made from develop and merge in `main` for testing.
+- Releases are made from the tip of the `main` branch.
+- Hotfix branches can be made from `main` to resolve bugs without needing to incorporate new features.
 
-For Mac users developing in VS Code, you can achieve this by adding the following setting to your `settings.json` file:
+Version numbers are managed using [semantic versioning](https://semver.org) in [`pyproject.toml`](pyproject.toml):
 
-```
-"python.venvPath": "~/Library/Caches/pypoetry/virtualenvs",
-```
+- The version tag on `develop` is fixed at `0.0.0-dev0`
+- Release versions are incremented on release branches before being merged to main.
 
-After doing this, you can select a new Python interpreter by typing `Cmd + Shift + P` and selecting a Python interpreter which corresponds to your `poetry` virtualenv:
+The full workflow for releasing a new version of Aerie-CLI: 
 
-<img width="601" alt="image" src="https://user-images.githubusercontent.com/7908658/201275707-00caca06-5e2b-4258-b5c4-f0548134af2f.png">
+- Make a release branch from `develop`
+- Merge `main` into the release branch
+- Commit a version increment in `pyproject.toml`
+- Open a PR to merge the release branch into `main` and verify CI passes
+- Merge the PR and tag a release on `main`
