@@ -16,7 +16,11 @@ To set up a local test environment, use the test environment and docker-compose 
 docker compose -f docker-compose-test.yml up
 ```
 
-Invoke the tests using `pytest` from the `tests/integration_tests` directory.
+Invoke the tests using `pytest` from the `tests/integration_tests` directory:
+
+```sh
+python3 -m pytest .
+```
 
 ## Updating Tests for New Aerie Versions
 

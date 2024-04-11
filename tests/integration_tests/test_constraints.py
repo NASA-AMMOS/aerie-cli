@@ -53,7 +53,7 @@ def set_up_environment(request):
 def test_constraint_upload():
     result = runner.invoke(app, ["constraints", "upload"],
                            input="Test" + "\n" + CONSTRAINT_PATH + "\n" + str(model_id) + "\n",
-                                   catch_exceptions=False,)
+                                   catch_exceptions=False)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
@@ -67,6 +67,14 @@ def test_constraint_upload():
     assert constraint_id != -1, "Could not find constraint ID, constraint upload may have failed"\
         f"{result.stdout}"\
         f"{result.stderr}"
+
+def test_constraint_add_to_plan():
+    result = runner.invoke(app, ["constraints", "add-to-plan"],
+                           input=str(plan_id) + "\n" + str(constraint_id) + "\n", catch_exceptions=False)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert "Added constraint" in result.stdout
 
 def test_constraint_update():
     result = runner.invoke(app, ["constraints", "update"],
