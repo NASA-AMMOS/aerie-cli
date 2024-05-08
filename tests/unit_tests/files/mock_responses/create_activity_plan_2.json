@@ -90,23 +90,5 @@
         "response": {
             "id": 58
         }
-    },
-    {
-        "request": {
-            "query": "mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) { insert_scheduling_specification_one(object: $spec) { id } }",
-            "variables": {
-                "spec": {
-                    "plan_id": 456,
-                    "analysis_only": false,
-                    "horizon_end": "2030-01-01T12:00:00+00:00",
-                    "horizon_start": "2030-01-01T00:00:00+00:00",
-                    "plan_revision": 0,
-                    "simulation_arguments": {}
-                }
-            }
-        },
-        "response": {
-            "id": 58
-        }
     }
 ]

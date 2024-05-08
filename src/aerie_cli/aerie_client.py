@@ -290,27 +290,6 @@ class AerieClient:
             simulation_end_time=simulation_end_time
         )
 
-        create_scheduling_spec_mutation = """
-        mutation CreateSchedulingSpec($spec: scheduling_specification_insert_input!) {
-            insert_scheduling_specification_one(object: $spec) {
-                id
-            }
-        }
-        """
-
-        spec = {
-            "plan_id": plan_id,
-            "analysis_only": False,
-            "horizon_end": plan_to_create.end_time.isoformat(),
-            "horizon_start": plan_to_create.start_time.isoformat(),
-            "plan_revision": plan_revision,
-            "simulation_arguments": {}
-        }
-
-        self.aerie_host.post_to_graphql(
-            create_scheduling_spec_mutation, spec=spec
-        )
-
         return plan_id
 
     def create_activity(self, activity_to_create: Activity, plan_id: int) -> int:
