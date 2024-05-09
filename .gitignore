@@ -12,3 +12,5 @@ __pycache__/
 args.json
 temp.json
 **/*.DS_Store
+venv/
+.idea/
