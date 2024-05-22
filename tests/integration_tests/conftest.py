@@ -3,6 +3,7 @@
 # The scope is global either way, but this allows for easier debugging, type hints, and autofill
 import os
 import sys
+import shutil
 
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
@@ -38,6 +39,7 @@ HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
+ARTIFACTS_PATH = os.path.join(TEST_DIR, "artifacts")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 MODELS_PATH = os.path.join(FILES_PATH, "models")
@@ -45,6 +47,11 @@ MODEL_VERSION = os.environ.get("AERIE_VERSION", "2.8.0")
 MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
+
+# Clean any old artifacts and create folder
+if os.path.exists(ARTIFACTS_PATH):
+    shutil.rmtree(ARTIFACTS_PATH)
+os.mkdir(ARTIFACTS_PATH)
 
 # Login to add additional users to the `users` table
 for username in ADDITIONAL_USERS:

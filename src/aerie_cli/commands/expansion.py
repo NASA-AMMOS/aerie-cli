@@ -379,7 +379,7 @@ def list_expansion_sets():
     """
     client = CommandContext.get_client()
     sets = client.list_expansion_sets()
-    cmd_dicts = client.list_command_dictionaries()
+    cmd_dicts = client.list_dictionaries()
     cmd_dicts = {c.id: c for c in cmd_dicts}
 
     table = Table(
@@ -496,7 +496,7 @@ def create_expansion_set(
             try:
                 at_rules = expansion_rules[at]
                 for r in at_rules:
-                    if not r.authoring_command_dict_id == command_dictionary_id:
+                    if not r.parcel_id == command_dictionary_id:
                         at_rules.remove(r)
                     if not r.authoring_mission_model_id == model_id:
                         at_rules.remove(r)

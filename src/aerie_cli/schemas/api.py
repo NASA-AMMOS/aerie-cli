@@ -4,12 +4,13 @@ API dataclasses emulate the structure of data for exchange with the Aerie GraphQ
 "create" dataclasses model data for upload and "read" dataclasses model data for download.
 """
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import List
 from typing import Union
+from typing import Literal
 
 from attrs import define, field
 from attrs import converters
@@ -197,3 +198,16 @@ class ApiMissionModelCreate(ApiSerialize):
 @define
 class ApiMissionModelRead(ApiMissionModelCreate):
     id: int
+
+
+@define
+class ApiParcelCreate(ApiSerialize):
+    name: str
+    command_dictionary_id: int
+    channel_dictionary_id: int
+    sequence_adaptation_id: int
+
+@define
+class ApiParcelRead(ApiParcelCreate):
+    id: int
+    parameter_dictionaries: Dict[Literal["parameter_dictionary_id"], int]
