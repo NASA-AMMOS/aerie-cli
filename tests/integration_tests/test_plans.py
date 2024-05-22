@@ -7,13 +7,16 @@ from pathlib import Path
 from aerie_cli.__main__ import app
 from aerie_cli.commands import plans
 
-from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION
+from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH
 
 runner = CliRunner(mix_stderr = False)
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 FILES_PATH = os.path.join(TEST_DIR, "files")
+
+PLAN_ARTIFACTS_PATH = Path(ARTIFACTS_PATH).joinpath("plans")
+PLAN_ARTIFACTS_PATH.mkdir()
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
@@ -44,7 +47,7 @@ def set_up_environment(request):
 def cli_plan_simulate():
     return runner.invoke(
         app,
-        ["plans", "simulate", "--output", "temp.json"],
+        ["plans", "simulate", "--output", PLAN_ARTIFACTS_PATH.joinpath("cli_plan_simulate.json")],
         input=str(plan_id) + "\n",
         catch_exceptions=False
     )

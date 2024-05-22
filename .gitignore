@@ -10,5 +10,5 @@
 __pycache__/
 .vscode/
 args.json
-temp.json
 **/*.DS_Store
+tests/integration_tests/artifacts

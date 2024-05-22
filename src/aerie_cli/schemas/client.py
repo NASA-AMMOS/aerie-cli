@@ -8,6 +8,7 @@ from typing import Dict
 from typing import List
 from typing import Union
 from typing import Optional
+from enum import Enum
 
 from attrs import define, field
 from attrs import converters
@@ -27,6 +28,8 @@ from aerie_cli.schemas.api import ApiResourceSampleResults
 from aerie_cli.schemas.api import ApiSimulatedResourceSample
 from aerie_cli.schemas.api import ApiSimulationResults
 from aerie_cli.schemas.api import ActivityBase
+from aerie_cli.schemas.api import ApiParcelRead
+from aerie_cli.schemas.api import ApiParcelCreate
 
 def parse_timedelta_str_converter(t) -> timedelta:
     if isinstance(t, str):
@@ -370,21 +373,11 @@ class ExpansionSet(ClientSerialize):
 
 
 @define
-class CommandDictionaryInfo(ClientSerialize):
-    id: int
-    mission: str
-    version: str
-    created_at: Arrow = field(
-        converter = arrow.get
-    )
-
-
-@define
 class ExpansionRule(ClientSerialize):
     id: int
     activity_type: str
     authoring_mission_model_id: int
-    authoring_command_dict_id: int
+    parcel_id: int
     expansion_logic: Optional[str] = None
 
 
@@ -416,4 +409,64 @@ class ExpansionDeployConfiguration(ClientSerialize):
     sets: List[ExpansionDeploySet] = field(
         converter=converters.optional(
             lambda x: [ExpansionDeploySet.from_dict(d) if isinstance(d, dict) else d for d in x])
+    )
+
+
+@define
+class Parcel(ClientSerialize):
+    name: str
+    command_dictionary_id: int
+    channel_dictionary_id: int
+    sequence_adaptation_id: int
+    parameter_dictionary_ids: List[int]
+    id: Optional[int] = field(default=None)
+
+    def to_api_create(self) -> ApiParcelCreate:
+        return ApiParcelCreate(
+            name=self.name,
+            command_dictionary_id=self.command_dictionary_id,
+            channel_dictionary_id=self.channel_dictionary_id,
+            sequence_adaptation_id=self.sequence_adaptation_id
+        )
+
+    @classmethod
+    def from_api_read(cls, api_parcel: ApiParcelRead) -> "Parcel":
+        return cls(
+            name=api_parcel.name,
+            command_dictionary_id=api_parcel.command_dictionary_id,
+            channel_dictionary_id=api_parcel.channel_dictionary_id,
+            sequence_adaptation_id=api_parcel.sequence_adaptation_id,
+            parameter_dictionary_ids=[p["parameter_dictionary_id"] for p in api_parcel.parameter_dictionaries],
+            id = api_parcel.id
+        )
+
+class DictionaryType(Enum):
+    COMMAND = 'COMMAND'
+    CHANNEL = 'CHANNEL'
+    PARAMETER = 'PARAMETER'
+
+
+@define
+class DictionaryMetadata(ClientSerialize):
+    id: int
+    mission: str
+    version: str
+    created_at: Arrow = field(
+        converter=arrow.get
+    )
+    updated_at: Arrow = field(
+        converter=arrow.get
+    )
+
+
+@define
+class SequenceAdaptationMetadata(ClientSerialize):
+    id: int
+    owner: str
+    updated_by: str
+    created_at: Arrow = field(
+        converter=arrow.get
+    )
+    updated_at: Arrow = field(
+        converter=arrow.get
     )
