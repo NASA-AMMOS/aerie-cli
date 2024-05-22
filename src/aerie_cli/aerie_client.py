@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import Union
 from copy import deepcopy
 
 import arrow
@@ -12,10 +13,14 @@ from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
+from .schemas.api import ApiParcelRead
 from .schemas.client import Activity
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
-from .schemas.client import CommandDictionaryInfo
+from .schemas.client import DictionaryMetadata
+from .schemas.client import DictionaryType
+from .schemas.client import SequenceAdaptationMetadata
+from .schemas.client import Parcel
 from .schemas.client import ExpansionRun
 from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
@@ -1347,51 +1352,6 @@ class AerieClient:
         activity_types = [o["name"] for o in data]
         return activity_types
 
-    def list_command_dictionaries(self) -> List[CommandDictionaryInfo]:
-        """List all command dictionaries on an Aerie host
-
-        Returns:
-            List[CommandDictionaryInfo]
-        """
-        list_dictionaries_query = """
-        query ListCommandDictionaries {
-            command_dictionary {
-                id
-                mission
-                version
-                created_at
-            }
-        }
-        """
-        resp = self.aerie_host.post_to_graphql(list_dictionaries_query)
-        return [CommandDictionaryInfo.from_dict(i) for i in resp]
-
-    def upload_command_dictionary(self, command_dictionary_string: str) -> int:
-        """Upload an AMPCS command dictionary to an Aerie instance
-
-        Args:
-            command_dictionary_string (str): Contents from XML command dictionary file (newlne-delimited)
-
-        Returns:
-            int: Command Dictionary ID
-        """
-
-        upload_command_dictionary_query = """
-        mutation Upload(
-            $command_dictionary_string: String!
-        ) {
-            uploadDictionary(dictionary: $command_dictionary_string) {
-                id
-            }
-        }
-        """
-        data = self.aerie_host.post_to_graphql(
-            upload_command_dictionary_query,
-            command_dictionary_string=command_dictionary_string,
-        )
-
-        return data["id"]
-
     def get_typescript_dictionary(self, command_dictionary_id: int) -> str:
         """Download Typescript command dictionary for writing EDSL Sequences and Expansion
 
@@ -1483,7 +1443,276 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(list_all_goals_by_spec_query, spec=spec_id)
 
         return resp
-    
+
+    def create_dictionary(self, dictionary: str, dictionary_type: Union[str, DictionaryType]) -> int:
+        """Upload an AMPCS command, channel, or parameter dictionary to an Aerie instance
+
+        Args:
+            dictionary (str): Contents from XML dictionary file (newlne-delimited)
+            type (Union[str, DictionaryType]): Type of dictionary to use
+
+        Returns:
+            int: Dictionary ID
+        """
+
+        if not isinstance(dictionary_type, DictionaryType):
+            dictionary_type = DictionaryType(dictionary_type)
+
+        query = """
+        mutation CreateDictionary($dictionary: String!, $type: String!) {
+            createDictionary: uploadDictionary(dictionary: $dictionary, type: $type) {
+                id
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            dictionary=dictionary,
+            type=dictionary_type.value
+        )
+
+        return resp["id"]
+
+    def list_dictionaries(self) -> Dict[DictionaryType, List[DictionaryMetadata]]:
+        """List all command, parameter, and channel dictionaries
+
+        Returns:
+            List[DictionaryMetadata]
+        """
+
+        command_dictionaries = self.aerie_host.post_to_graphql("""query ListDictionaries {
+            command_dictionary {
+                id
+                version
+                updated_at
+                created_at
+                mission
+            }
+        }
+        """)
+        channel_dictionaries = self.aerie_host.post_to_graphql("""query ListDictionaries {
+            channel_dictionary {
+                id
+                version
+                updated_at
+                created_at
+                mission
+            }
+        }
+        """)
+        parameter_dictionaries = self.aerie_host.post_to_graphql("""query ListDictionaries {
+            parameter_dictionary {
+                id
+                version
+                updated_at
+                created_at
+                mission
+            }
+        }
+        """)
+        return {
+            DictionaryType.COMMAND: [DictionaryMetadata.from_dict(i) for i in command_dictionaries],
+            DictionaryType.CHANNEL: [DictionaryMetadata.from_dict(i) for i in channel_dictionaries],
+            DictionaryType.PARAMETER: [DictionaryMetadata.from_dict(
+                i) for i in parameter_dictionaries]
+        }
+
+    def delete_dictionary(self, id: int, dictionary_type: Union[str, DictionaryType]) -> None:
+        """Delete AMPCS dictionary
+
+        Args:
+            id (int): _description_
+            dictionary_type (Union[str, DictionaryType]): _description_
+        """
+        
+        if not isinstance(dictionary_type, DictionaryType):
+            dictionary_type = DictionaryType(dictionary_type)
+
+        queries = {
+                DictionaryType.COMMAND: """
+            mutation DeleteCommandDictionary($id: Int!) {
+                delete_command_dictionary_by_pk(id: $id) {
+                    id
+                }
+            }
+            """,
+            DictionaryType.CHANNEL: """
+            mutation DeleteChannelDictionary($id: Int!) {
+                delete_channel_dictionary_by_pk(id: $id) {
+                    id
+                }
+            }
+            """,
+                DictionaryType.PARAMETER: """
+            mutation DeleteParameterDictionary($id: Int!) {
+                delete_parameter_dictionary_by_pk(id: $id) {
+                    id
+                }
+            }
+            """
+        }
+        self.aerie_host.post_to_graphql(queries[dictionary_type], id=id)
+
+    def create_sequence_adaptation(self, adaptation: str) -> int:
+        """Upload Phoenix Editor sequence adaptation
+
+        Args:
+            adaptation (str): String contents of adaptation JS file
+
+        Returns:
+            int: ID of sequence adaptation
+        """        
+        
+        query = """
+        mutation CreateSequenceAdaptation($adaptation: sequence_adaptation_insert_input!) {
+            createSequenceAdaptation: insert_sequence_adaptation_one(object: $adaptation) {
+                id
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, adaptation={"adaptation": adaptation})
+
+        return resp["id"]
+
+    def list_sequence_adaptations(self) -> List[SequenceAdaptationMetadata]:
+        """List Phoenix Editor sequence adaptations
+
+        Returns:
+            List[SequenceAdaptationMetadata]: Metadata for all existing sequence adaptations
+        """
+        
+        query = """
+        query ListSequenceAdaptations {
+            sequence_adaptation {
+                id
+                updated_at
+                created_at
+                owner
+                updated_by
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query)
+        return [SequenceAdaptationMetadata.from_dict(i) for i in resp]
+
+    def update_sequence_adaptation(self, adaptation: str, id: int) -> None:
+        """Update Phoenix Editor sequence adaptation
+
+        Args:
+            adaptation (str): String contents of adaptation JS file
+            id (int): ID of sequence adaptation to update
+        """
+        
+        query = """
+        mutation UpdateSequenceAdaptation($adaptation: String!, $id: Int!) {
+            update_sequence_adaptation_by_pk(pk_columns: {id: $id}, _set: {adaptation: $adaptation}) {
+                id
+            }
+        }
+        """
+        self.aerie_host.post_to_graphql(query, adaptation={"adaptation": adaptation}, id=id)
+
+    def delete_sequence_adaptation(self, id: int) -> None:
+        """Delete Phoenix Editor sequence adaptation
+
+        Args:
+            id (int): ID of adaptation to delete
+        """
+
+        query = """
+        mutation DeleteSequenceAdaptation($id: Int!) {
+            delete_sequence_adaptation_by_pk(id: $id) {
+                id
+            }
+        }
+        """
+        self.aerie_host.post_to_graphql(query, id=id)
+
+    def create_parcel(self, parcel: Parcel) -> int:
+        """Create sequencing parcel
+
+        Inserts parcel entry with command dictionary, channel dictionary, and sequencing adaptation IDs.
+        Links parameter dictionaries to that parcel.
+
+        Args:
+            parcel (Parcel): Contents of parcel to create
+
+        Returns:
+            int: ID of created parcel
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            """
+            mutation CreateParcel($parcel: parcel_insert_input!) {
+                createParcel: insert_parcel_one(object: $parcel) {
+                    id
+                }
+            }
+            """, parcel=parcel.to_api_create().to_dict()
+        )
+        parcel_id = resp["id"]
+
+        parameter_dictionaries = [
+            {
+                "parameter_dictionary_id": p,
+                "parcel_id": parcel_id
+            } for p in parcel.parameter_dictionary_ids
+        ]
+        self.aerie_host.post_to_graphql(
+            """
+            mutation LinkParameterDictionariesToParcel($parameter_dictionaries: [parcel_to_parameter_dictionary_insert_input!]!) {
+                insert_parcel_to_parameter_dictionary(objects: $parameter_dictionaries) {
+                    affected_rows
+                }
+            }
+            """,
+            parameter_dictionaries=parameter_dictionaries
+        )
+        return parcel_id
+
+    def list_parcels(self) -> List[Parcel]:
+        """List sequencing parcels
+
+        Returns:
+            List[Parcel]: 
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            """
+            query GetParcels {
+                parcel {
+                    channel_dictionary_id
+                    command_dictionary_id
+                    id
+                    name
+                    sequence_adaptation_id
+                    parameter_dictionaries {
+                        parameter_dictionary_id
+                    }
+                }
+            }
+            """
+        )
+        return [Parcel.from_api_read(ApiParcelRead.from_dict(p)) for p in resp]
+
+    def delete_parcel(self, id: int) -> None:
+        """Delete sequencing parcel
+
+        Args:
+            id (int): ID of parcel to delete
+        """        
+
+        self.aerie_host.post_to_graphql(
+            """
+            mutation DeleteParcel($id: Int!) {
+                delete_parcel_by_pk(id: $id) {
+                    id
+                }
+            }
+            """,
+            id=id
+        )
+
     def upload_scheduling_goals(self, upload_object):
         """
         Bulk upload operation for uploading scheduling goals.

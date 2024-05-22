@@ -30,7 +30,7 @@ plan_id = -1
 sim_id = -1
 
 # Command Dictionary Variables
-COMMAND_DICTIONARIES_PATH = os.path.join(FILES_PATH, "command_dicts")
+COMMAND_DICTIONARIES_PATH = os.path.join(FILES_PATH, "dictionaries")
 COMMAND_DICTIONARY_PATH = os.path.join(COMMAND_DICTIONARIES_PATH, "command_banananation.xml")
 command_dictionary_id = -1
 
@@ -59,7 +59,7 @@ def set_up_environment(request):
 
     global command_dictionary_id
     with open(COMMAND_DICTIONARY_PATH, 'r') as fid:
-        command_dictionary_id = client.upload_command_dictionary(fid.read())
+        command_dictionary_id = client.create_dictionary(fid.read(), "COMMAND")
     
     # upload plan
     with open(PLAN_PATH) as fid:
