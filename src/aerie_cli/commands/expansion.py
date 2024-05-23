@@ -29,9 +29,9 @@ def bulk_deploy(
         ..., '--model-id', '-m', prompt='Mission Model ID',
         help='Mission Model ID'
     ),
-    command_dictionary_id: int = typer.Option(
-        ..., '--command-dict-id', '-d', prompt='Command Dictionary ID',
-        help='Command Dictionary ID'
+    parcel_id: int = typer.Option(
+        ..., '--parcel-id', '-p', prompt='Parcel ID',
+        help='Parcel ID'
     ),
     config_file: str = typer.Option(
         ..., "--config-file", "-c", prompt="Configuration file",
@@ -92,7 +92,7 @@ def bulk_deploy(
                 expansion_logic=expansion_logic,
                 activity_name=rule.activity_type,
                 model_id=model_id,
-                command_dictionary_id=command_dictionary_id,
+                parcel_id=parcel_id,
                 name=rule.name + name_suffix
             )
             typer.echo(f"Created expansion rule {rule.name + name_suffix}: {rule_id}")
@@ -112,7 +112,7 @@ def bulk_deploy(
             assert len(rule_ids)
 
             set_id = client.create_expansion_set(
-                command_dictionary_id=command_dictionary_id,
+                parcel_id=parcel_id,
                 model_id=model_id,
                 expansion_ids=rule_ids,
                 name=set.name + name_suffix
@@ -379,8 +379,8 @@ def list_expansion_sets():
     """
     client = CommandContext.get_client()
     sets = client.list_expansion_sets()
-    cmd_dicts = client.list_dictionaries()
-    cmd_dicts = {c.id: c for c in cmd_dicts}
+    parcels = client.list_parcels()
+    parcels_by_id = {p.id: p for p in parcels}
 
     table = Table(
         title="Expansion Sets"
@@ -388,16 +388,14 @@ def list_expansion_sets():
     table.add_column("ID", no_wrap=True)
     table.add_column("Name", no_wrap=True)
     table.add_column("Model ID", no_wrap=True)
-    table.add_column("CMD Dict. ID", no_wrap=True)
-    table.add_column("CMD Dict. Version", no_wrap=True)
+    table.add_column("Parcel", no_wrap=True)
     table.add_column("Owner", no_wrap=True)
     for e_set in sets:
         table.add_row(
             str(e_set.id),
             str(e_set.name),
             str(e_set.mission_model_id),
-            str(e_set.command_dictionary_id),
-            cmd_dicts[e_set.command_dictionary_id].version,
+            parcels_by_id[e_set.parcel_id].name,
             e_set.owner
         )
 
@@ -443,9 +441,9 @@ def create_expansion_set(
         ..., '--model-id', '-m', prompt='Mission Model ID',
         help='Mission Model ID'
     ),
-    command_dictionary_id: int = typer.Option(
-        ..., '--command-dict-id', '-d', prompt='Command Dictionary ID',
-        help='Command Dictionary ID'
+    parcel_id: int = typer.Option(
+        ..., '--parcel-id', '-p', prompt='Parcel ID',
+        help='Parcel ID'
     ),
     name: str = typer.Option(
         ..., "--name", "-n", prompt="Expansion set name",
@@ -466,7 +464,7 @@ def create_expansion_set(
     Uses the newest expansion rules for each given activity type.
     Specify either a list of activity type names or rule IDs. If activity type 
     names are given, rules are filtered to only those designated for the given 
-    mission model and command dictionary, then the highest rule ID is used for 
+    mission model and sequencing parcel, then the highest rule ID is used for 
     each activity type named.
     """
     client = CommandContext.get_client()
@@ -496,16 +494,19 @@ def create_expansion_set(
             try:
                 at_rules = expansion_rules[at]
                 for r in at_rules:
-                    if not r.parcel_id == command_dictionary_id:
+                    if not r.parcel_id == parcel_id:
                         at_rules.remove(r)
+                        continue
                     if not r.authoring_mission_model_id == model_id:
                         at_rules.remove(r)
+                        continue
                 rule_ids.append(max([r.id for r in at_rules]))
-            except (KeyError, ValueError):
+            except (KeyError, ValueError) as e:
+                print(e)
                 Console().print(
                     f"No expansion rules for activity type: {at}", style='red')
                 return
 
     set_id = client.create_expansion_set(
-        command_dictionary_id, model_id, rule_ids, name)
+        parcel_id, model_id, rule_ids, name)
     Console().print(f"Created expansion set: {set_id}")
