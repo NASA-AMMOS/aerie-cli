@@ -10,7 +10,6 @@ from typing import Dict
 from typing import Optional
 from typing import List
 from typing import Union
-from typing import Literal
 
 from attrs import define, field
 from attrs import converters
@@ -210,4 +209,4 @@ class ApiParcelCreate(ApiSerialize):
 @define
 class ApiParcelRead(ApiParcelCreate):
     id: int
-    parameter_dictionaries: Dict[Literal["parameter_dictionary_id"], int]
+    parameter_dictionaries: Dict[str, int]
