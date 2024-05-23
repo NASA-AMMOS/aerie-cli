@@ -2080,35 +2080,6 @@ class AerieClient:
         )
         return [ResourceType.from_dict(r) for r in resp]
 
-    # TODO remove
-    def get_sequence_json(self, command_dictionary_id: int, edsl_body: str) -> dict:
-        """Get user SeqJSON from EDSL
-        
-        Args:
-            command_dictionary_id (int): Command dictionary to generate the sequence json with
-            edsl_body (str): The EDSL code run to run through the sequence editor
-        
-        Returns:
-            dict: The sequence json as dictionary
-        """
-        get_sequence_json_query = """
-        query GenerateJSON($id: Int!, $body: String!) {
-            getUserSequenceSeqJson(
-                commandDictionaryID: $id
-                edslBody: $body
-            ){
-                seqJson
-            }
-        }
-        """
-
-        resp = self.aerie_host.post_to_graphql(
-            get_sequence_json_query,
-            id=command_dictionary_id,
-            body=edsl_body
-        )
-        return resp["seqJson"]
-
     def get_directive_metadata(self) -> list:
         """Get metatdata
 
