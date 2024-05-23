@@ -836,7 +836,7 @@ class AerieClient:
         expansion_logic: str,
         activity_name: str,
         model_id: str,
-        command_dictionary_id: str,
+        parcel_id: str,
         name: str = None,
         description: str = None
     ) -> int:
@@ -846,7 +846,7 @@ class AerieClient:
             expansion_logic (str): String contents of the expansion file
             activity_name (str): Name of the activity
             model_id (str): Aerie model ID
-            command_dictionary_id (str): Aerie command dictionary ID
+            parcel_id (str): Aerie sequencing parcel ID
             name (str, Optional): Name of the expansion rule
             description (str, Optional): Description of the expansion rule
 
@@ -863,7 +863,7 @@ class AerieClient:
         """
         rule = {
             "activity_type": activity_name,
-            "authoring_command_dict_id": command_dictionary_id,
+            "parcel_id": parcel_id,
             "authoring_mission_model_id": model_id,
             "expansion_logic": expansion_logic,
             "name": name if (name is not None) else activity_name + arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss"),
@@ -877,15 +877,16 @@ class AerieClient:
         return data["id"]
 
     def create_expansion_set(
-        self, command_dictionary_id: int, model_id: int, expansion_ids: List[int], name: str
+        self, parcel_id: int, model_id: int, expansion_ids: List[int], name: str, description: str=None
     ) -> int:
         """Create an Aerie expansion set given a list of activity IDs
 
         Args:
-            command_dictionary_id (int): ID of Aerie command dictionary
+            parcel_id (int): Aerie sequencing parcel ID
             model_id (int): ID of Aerie mission model
             expansion_ids (List[int]): List of expansion IDs to include in the set
             name (str): Name of the expansion set
+            description (str, Optional): Freeform description field
 
         Returns:
             int: Expansion set ID
@@ -893,16 +894,18 @@ class AerieClient:
 
         create_expansion_set_query = """
         mutation CreateExpansionSet(
-            $command_dictionary_id: Int!
-            $mission_model_id: Int!
-            $expansion_ids: [Int!]!
-            $name: String!
+            $expansion_ids: [Int!]!,
+            $mission_model_id: Int!,
+            $parcel_id: Int!,
+            $name: String!,
+            $description: String!
         ) {
             createExpansionSet(
-                commandDictionaryId: $command_dictionary_id
-                missionModelId: $mission_model_id
-                expansionIds: $expansion_ids
-                name: $name
+                expansionIds: $expansion_ids, 
+                missionModelId: $mission_model_id, 
+                parcelId: $parcel_id, 
+                name: $name, 
+                description: $description
             ) {
                 id
             }
@@ -910,10 +913,11 @@ class AerieClient:
         """
         data = self.aerie_host.post_to_graphql(
             create_expansion_set_query,
-            command_dictionary_id=command_dictionary_id,
+            parcel_id=parcel_id,
             mission_model_id=model_id,
             expansion_ids=expansion_ids,
-            name=name
+            name=name,
+            description="" if description is None else description
         )
         return data["id"]
 
@@ -926,7 +930,7 @@ class AerieClient:
                 updated_at
                 owner
                 updated_by
-                command_dict_id
+                parcel_id
                 expansion_rules {
                     id
                 }
@@ -1011,7 +1015,8 @@ class AerieClient:
                 activity_type
                 id
                 authoring_mission_model_id
-                authoring_command_dict_id
+                parcel_id
+                name
             }
         }
         """
@@ -2075,6 +2080,7 @@ class AerieClient:
         )
         return [ResourceType.from_dict(r) for r in resp]
 
+    # TODO remove
     def get_sequence_json(self, command_dictionary_id: int, edsl_body: str) -> dict:
         """Get user SeqJSON from EDSL
         

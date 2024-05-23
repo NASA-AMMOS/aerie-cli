@@ -361,9 +361,7 @@ class ExpansionSet(ClientSerialize):
         converter = arrow.get
     )
     updated_by: str
-    command_dictionary_id: int = field(
-        alias="command_dict_id"
-    )
+    parcel_id: int
     expansion_rules: List[int] = field(
         converter = lambda x: [i['id'] for i in x])
     description: str
@@ -379,6 +377,7 @@ class ExpansionRule(ClientSerialize):
     authoring_mission_model_id: int
     parcel_id: int
     expansion_logic: Optional[str] = None
+    name: Optional[str] = None
 
 
 @define
