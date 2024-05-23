@@ -7,8 +7,9 @@ from pathlib import Path
 
 from aerie_cli.__main__ import app
 from aerie_cli.schemas.client import ActivityPlanCreate
+from aerie_cli.schemas.client import Parcel
 
-from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH
 
 runner = CliRunner(mix_stderr = False)
 
@@ -17,6 +18,9 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 FILES_PATH = os.path.join(TEST_DIR, "files")
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
+
+EXPANSION_ARTIFACTS_PATH = Path(ARTIFACTS_PATH).joinpath("expansion")
+EXPANSION_ARTIFACTS_PATH.mkdir()
 
 # Model Variables
 model_id = -1
@@ -60,7 +64,10 @@ def set_up_environment(request):
     global command_dictionary_id
     with open(COMMAND_DICTIONARY_PATH, 'r') as fid:
         command_dictionary_id = client.create_dictionary(fid.read(), "COMMAND")
-    
+
+    global parcel_id
+    parcel_id = client.create_parcel(Parcel("Integration Test", command_dictionary_id, None, None, []))
+
     # upload plan
     with open(PLAN_PATH) as fid:
         contents = fid.read()
@@ -77,6 +84,11 @@ def set_up_environment(request):
 # TEST EXPANSION SEQUENCES
 # Uses plan and simulation dataset
 #######################
+
+def test_get_typescript_dictionary():
+    ts_dict = client.get_typescript_dictionary(command_dictionary_id)
+    with open(EXPANSION_ARTIFACTS_PATH.joinpath("command_dict.ts"), "w") as fid:
+        fid.write(ts_dict)
 
 def test_expansion_sequence_create():
     result = runner.invoke(
@@ -138,8 +150,8 @@ def test_expansion_deploy():
             "deploy",
             "-m",
             str(model_id),
-            "-d",
-            str(command_dictionary_id),
+            "-p",
+            str(parcel_id),
             "-c",
             EXPANSION_DEPLOY_CONFIG_PATH,
             "--rules-path",
@@ -168,7 +180,7 @@ def test_expansion_set_create():
             """,
         activity_name="BakeBananaBread",
         model_id=model_id,
-        command_dictionary_id=command_dictionary_id
+        parcel_id=parcel_id
     )
     result = runner.invoke(
         app,
@@ -178,8 +190,8 @@ def test_expansion_set_create():
             "create", 
             "-m", 
             str(model_id), 
-            "-d", 
-            str(command_dictionary_id), 
+            "-p", 
+            str(parcel_id), 
             "-n", 
             "integration_test-" + arrow.utcnow().format("YYYY-MM-DDTHH-mm-ss"),
             "-a",
