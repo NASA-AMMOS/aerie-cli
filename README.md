@@ -217,6 +217,42 @@ In this example, the user would be prompted to enter a value for "password" and,
   "password": "my_password"
 }
 ```
+Additional `external_auth` settings for providers that require non standard communication pattern
+|Key|Type|Description|Default|
+|---|----|-----------|-------|
+|data_as_headers|boolean|Send post_vars as request headers instead of body|False|
+|token_cookie_mappings|List of Dict|Map tokens in response body to session cookies|[]|
+|secret_prompt_mappings|Dict|Prompt for secret_post_vars with more descriptive names|
+Example:
+
+```json
+
+  {
+    "name": "my_host",
+    "graphql_url": "https://hostname/v1/graphql",
+    "gateway_url": "https://hostname/gateway",
+    "username": "my_username",
+    "external_auth": {
+      "auth_url": "https://auth_service/route",
+      "data_as_headers": true,
+      "static_post_vars": {
+        "username": "my_username"
+      },
+      "secret_post_vars": [
+        "x-password"
+      ],
+      "token_cookie_mappings": [
+        {
+          "key": "token_name_key",
+          "value": "token_value_key"
+        }
+      ],
+      "secret_prompt_mappings": {
+        "x-password": "Password"
+      }
+    }
+  }
+```
 
 #### Using a Hasura Admin Secret
 
