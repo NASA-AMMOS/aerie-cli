@@ -220,9 +220,9 @@ In this example, the user would be prompted to enter a value for "password" and,
 Additional `external_auth` settings for providers that require non standard communication pattern
 |Key|Type|Description|Default|
 |:--|:---|:----------|-------|
-|`data_as_headers`|boolean|Send post_vars as request headers instead of body|False|
-|`token_cookie_mappings`|List of Dict|Map tokens in response body to session cookies|[]|
-|`secret_prompt_mappings`|Dict|Prompt for secret_post_vars with more descriptive names|{}|
+|`data_as_headers`|`boolean`|Send post_vars as request headers instead of body|`False`|
+|`token_cookie_mappings`|`list` of `dict`|Map tokens in response body to session cookies|`[]`|
+|`secret_prompt_mappings`|`dict`|Prompt for `secret_post_vars` with more descriptive names|`{}`|
 
 Example:
 
