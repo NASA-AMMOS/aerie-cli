@@ -278,6 +278,18 @@ class AerieHost:
         if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
 
+    def validateSSO(self):
+        resp = self.session.get(self.gateway_url + "/auth/validateSSO")
+
+        if not resp.ok:
+            raise RuntimeError(f"failed to validate external credential")
+        resp_json = resp.json()
+
+        self.aerie_jwt = AerieJWT(resp_json["token"])
+        self.active_role = self.aerie_jwt.default_role
+
+        if not self.check_auth():
+            raise RuntimeError(f"Failed to open session")
 
 @define
 class ExternalAuthConfiguration:
@@ -293,6 +305,9 @@ class ExternalAuthConfiguration:
     auth_url: str
     static_post_vars: dict
     secret_post_vars: list
+    data_as_headers: bool
+    token_cookie_mappings: list
+    secret_prompt_mappings: dict
 
     @classmethod
     def from_dict(cls, config: Dict) -> "ExternalAuthConfiguration":
@@ -300,6 +315,18 @@ class ExternalAuthConfiguration:
             auth_url = config["auth_url"]
             static_post_vars = config["static_post_vars"]
             secret_post_vars = config["secret_post_vars"]
+            try:
+                data_as_headers = config["data_as_headers"]
+            except KeyError:
+                data_as_header = False
+            try:
+                token_cookie_mappings = config["token_cookie_mappings"]
+            except KeyError:
+                token_cookie_mappings = []
+            try:
+                secret_prompt_mappings = config["secret_prompt_mappings"]
+            except KeyError:
+                secret_prompt_mappings = {}
 
         except KeyError as e:
             raise ValueError(
@@ -316,13 +343,16 @@ class ExternalAuthConfiguration:
                 "Invalid value for 'secret_post_vars' in external auth configuration"
             )
 
-        return cls(auth_url, static_post_vars, secret_post_vars)
+        return cls(auth_url, static_post_vars, secret_post_vars, data_as_headers, token_cookie_mappings, secret_prompt_mappings)
 
     def to_dict(self) -> Dict:
         return {
             "auth_url": self.auth_url,
             "static_post_vars": self.static_post_vars,
             "secret_post_vars": self.secret_post_vars,
+            "data_as_headers": self.data_as_headers,
+            "token_cookie_mappings": self.token_cookie_mappings,
+            "secret_prompt_mappings": self.secret_prompt_mappings
         }
 
 
