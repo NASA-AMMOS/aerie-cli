@@ -318,7 +318,7 @@ class ExternalAuthConfiguration:
             try:
                 data_as_headers = config["data_as_headers"]
             except KeyError:
-                data_as_header = False
+                data_as_headers = False
             try:
                 token_cookie_mappings = config["token_cookie_mappings"]
             except KeyError:
