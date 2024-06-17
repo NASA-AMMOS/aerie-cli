@@ -99,20 +99,32 @@ def authenticate_with_external(
         secret_post_vars = {}
 
     for secret_var_name in configuration.secret_post_vars:
+        try:
+            secret_prompt = configuration.secret_prompt_mappings[secret_var_name]
+        except KeyError:
+            secret_prompt = secret_var_name
+            
         if secret_var_name in secret_post_vars.keys():
             post_vars[secret_var_name] = secret_post_vars[secret_var_name]
         else:
-            post_vars[secret_var_name] = typer.prompt(f"External authentication - {secret_var_name}", hide_input=True)
+            post_vars[secret_var_name] = typer.prompt(f"External authentication - {secret_prompt}", hide_input=True)
 
-    resp = session.post(configuration.auth_url, json=post_vars)
+    if configuration.data_as_headers:
+        session.headers = post_vars
+        resp = session.post(configuration.auth_url)
+    else:
+        resp = session.post(configuration.auth_url, json=post_vars)
 
     if not resp.ok:
         raise RuntimeError(
             f"Failed to authenticate with proxy: {configuration.auth_url}"
         )
 
-    return session
+    resp_json = resp.json()
+    for token in configuration.token_cookie_mappings:
+        session.cookies.set(resp_json[token['key']], resp_json[token['value']])
 
+    return session
 
 def start_session_from_configuration(
     configuration: AerieHostConfiguration, 
@@ -153,15 +165,18 @@ def start_session_from_configuration(
         configuration.name,
     )
 
-    if username is None:
-        if configuration.username is None:
-            username = typer.prompt("Aerie Username")
-        else:
-            username = configuration.username
+    if configuration.external_auth is None:
+        if username is None:
+            if configuration.username is None:
+                username = typer.prompt("Aerie Username")
+            else:
+                username = configuration.username
 
-    if password is None and hs.is_auth_enabled():
-        password = typer.prompt("Aerie Password", hide_input=True)
+        if password is None and hs.is_auth_enabled():
+            password = typer.prompt("Aerie Password", hide_input=True)
 
-    hs.authenticate(username, password)
+        hs.authenticate(username, password)
+    else:
+        hs.validateSSO()
 
     return hs
