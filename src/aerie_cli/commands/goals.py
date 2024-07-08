@@ -28,6 +28,8 @@ def new(
             None, '--plan', '-p', help="Plan ID of the specification to add this to"
         )
 ):
+    """Upload new scheduling goal"""
+
     client = CommandContext.get_client()
     filename, extension = _get_name_and_ext(path)
     if name is None:
@@ -65,6 +67,7 @@ def update(
         goal_id: Optional[int] = typer.Option(None, '--goal', '-g', help="Goal ID of goal to be updated (will search by name if omitted)"),
         name: Optional[str] = typer.Option(None, '--name', '-n', help="Name of the goal to be updated (ignored if goal is provided, default is the file name without extension)"),
 ):
+    """Upload an update to a scheduling goal"""
     client = CommandContext.get_client()
     filename, extension = _get_name_and_ext(path)
     if goal_id is None:
@@ -92,7 +95,7 @@ def update(
 @app.command()
 def delete(
     goal_id: int = typer.Option(
-        ..., help="Goal ID of goal to be deleted", prompt=True
+        ..., '--goal', '-g', help="Goal ID of goal to be deleted", prompt=True
     )
 ):
     """Delete scheduling goal"""

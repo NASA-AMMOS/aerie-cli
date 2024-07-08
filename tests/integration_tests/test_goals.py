@@ -31,7 +31,8 @@ sim_id = 0
 
 # Schedule Variables
 GOALS_PATH = os.path.join(FILES_PATH, "goals")
-GOAL_PATH = os.path.join(GOALS_PATH, "goal1.ts")
+GOAL_PATH_1 = os.path.join(GOALS_PATH, "goal1.ts")
+GOAL_PATH_2 = os.path.join(GOALS_PATH, "goal2.jar")
 goal_id = -1
 
 @pytest.fixture(scope="module", autouse=True)
@@ -64,35 +65,58 @@ def set_up_environment(request):
 # Uses model, plan, and simulation
 #######################
 
-def cli_schedule_upload():
-    schedule_file_path = os.path.join(GOALS_PATH, "schedule1.txt")
-    with open(schedule_file_path, "w") as fid:
-        fid.write(GOAL_PATH)
+def cli_goal_upload_ts():
     result = runner.invoke(
         app,
-        ["goals", "upload"],
-        input=str(model_id) + "\n" + str(plan_id) + "\n" + schedule_file_path + "\n",
+        ["goals", "new", GOAL_PATH_1, "-p", plan_id],
         catch_exceptions=False,
-        )
-    os.remove(schedule_file_path)
+    )
+    return result
+
+def cli_goal_upload_jar():
+    result = runner.invoke(
+        app,
+        ["goals", "new", GOAL_PATH_2, "-p", plan_id],
+        catch_exceptions=False
+    )
     return result
 
 def test_schedule_upload():
-    result = cli_schedule_upload()
+    result = cli_goal_upload_ts()
     assert result.exit_code == 0,\
         f"{result.stdout}"\
         f"{result.stderr}"
-    assert "Assigned goals in priority order" in result.stdout
+    assert "Uploaded scheduling goal to venue." in result.stdout
+
+    result = cli_goal_upload_jar()
+    assert result.exit_code == 0, \
+        f"{result.stdout}" \
+        f"{result.stderr}"
+    assert "Uploaded scheduling goal to venue." in result.stdout
+
     global goal_id
     for line in result.stdout.splitlines():
-        if not "Assigned goals in priority order" in line:
+        if not "Uploaded scheduling goal to venue" in line:
             continue
         # get expansion id from the end of the line
-        goal_id = int(line.split("ID ")[1][:-1])
+        goal_id = int(line.split("ID: ")[1])
+
     assert goal_id != -1, "Could not find goal ID, goal upload may have failed"\
         f"{result.stdout}"\
         f"{result.stderr}"
-def test_schedule_delete():
+
+def test_goal_update():
+    result = runner.invoke(
+        app,
+        ["goals", "update", GOAL_PATH_2],
+        catch_exceptions=False
+    )
+    assert result.exit_code == 0, \
+        f"{result.stdout}" \
+        f"{result.stderr}"
+    assert "Uploaded new version of scheduling goal to venue." in result.stdout
+
+def test_goal_delete():
     assert goal_id != -1, "Goal id was not set"
 
     result = runner.invoke(
@@ -108,7 +132,7 @@ def test_schedule_delete():
 
 def test_schedule_delete_all():
     # Upload a goal to delete
-    cli_schedule_upload()
+    cli_goal_upload_jar()
     
     # Delete all goals
     result = runner.invoke(
