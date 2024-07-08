@@ -2232,7 +2232,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.host_session.post_to_graphql(list_all_views_query)
+        resp = self.aerie_host.post_to_graphql(list_all_views_query)
         return [View.from_dict(r) for r in resp]
 
     def get_view_by_id(self, viewId):
@@ -2244,7 +2244,7 @@ class AerieClient:
         }
         """
 
-        resp = self.host_session.post_to_graphql(
+        resp = self.aerie_host.post_to_graphql(
             get_view_by_id_query,
             view_id=viewId
         )
@@ -2259,7 +2259,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.host_session.post_to_graphql(
+        resp = self.aerie_host.post_to_graphql(
             insert_view_mutation,
             view=view_to_create,
         )

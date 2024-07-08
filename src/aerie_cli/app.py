@@ -12,6 +12,7 @@ from aerie_cli.commands import expansion
 from aerie_cli.commands import constraints
 from aerie_cli.commands import scheduling
 from aerie_cli.commands import metadata
+from aerie_cli.commands import views
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.__version__ import __version__
@@ -34,6 +35,7 @@ app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
 app.add_typer(metadata.app, name="metadata")
+app.add_typer(views.app, name="views")
 
 
 def print_version(print_version: bool):

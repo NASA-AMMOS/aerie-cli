@@ -472,7 +472,7 @@ class SequenceAdaptationMetadata(ClientSerialize):
     )
 
 @define
-class View:
+class View(ClientSerialize):
     id: int
     name: str
     definition: Any
