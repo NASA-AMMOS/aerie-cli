@@ -612,20 +612,23 @@ class AerieClient:
 
         return resp["name"]
 
+    def upload_file(self, path: str) -> int:
+        upload_timestamp = arrow.utcnow().isoformat()
+        path_obj = Path(path)
+        server_side_path = (
+                path_obj.stem + "--" + upload_timestamp + path_obj.suffix
+        )
+        with open(path, "rb") as f:
+            resp = self.aerie_host.post_to_gateway_files(
+                server_side_path, f)
+            return resp["id"]
+
     def upload_mission_model(
         self, mission_model_path: str, project_name: str, mission: str, version: str
     ) -> int:
 
         # Create unique jar identifier for server side
-        upload_timestamp = arrow.utcnow().isoformat()
-        server_side_jar_name = (
-            Path(mission_model_path).stem + "--" + upload_timestamp + ".jar"
-        )
-        with open(mission_model_path, "rb") as jar_file:
-            resp = self.aerie_host.post_to_gateway_files(
-                server_side_jar_name, jar_file)
-
-        jar_id = resp["id"]
+        jar_id = self.upload_file(mission_model_path)
 
         create_model_mutation = """
         mutation CreateModel($model: mission_model_insert_input!) {
@@ -1739,7 +1742,7 @@ class AerieClient:
         """
         
         upload_scheduling_goals_query = """
-        mutation InsertGoal($input:[scheduling_goal_definition_insert_input]!){
+        mutation InsertGoal($input: [scheduling_goal_definition_insert_input!]!){
             insert_scheduling_goal_definition(objects: $input){
                 returning {goal_id}
             }
@@ -1765,6 +1768,25 @@ class AerieClient:
             get_scheduling_specification_for_plan_query, 
             plan_id=plan_id
         )
+        return resp[0]["id"]
+
+    def get_goal_id_for_name(self, name):
+        get_goal_id_for_name_query = """
+        query GetNameForGoalId($name: String!) {
+            scheduling_goal_metadata(where: {name: {_eq: $name}}) {
+                id
+            }
+        }
+        """
+
+        resp = self.aerie_host.post_to_graphql(
+            get_goal_id_for_name_query,
+            name=name
+        )
+        if len(resp) == 0:
+            raise RuntimeError(f"No goals found with name {name}. Specify goal id manually with -g.")
+        elif len(resp) > 1:
+            raise RuntimeError(f"Multiple goals found with name {name}. Specify goal id manually with -g.")
         return resp[0]["id"]
 
     def add_goals_to_specifications(self, upload_object):

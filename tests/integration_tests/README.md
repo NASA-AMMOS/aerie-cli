@@ -48,8 +48,8 @@ Integration tests are automatically run by CI against all supported Aerie versio
 - Test all `plans` commands
 - Tests simulations and `plans download...` commands as well
 
-### [Scheduling test](test_scheduling.py)
-- Test all `scheduling` commands
+### [Goals test](test_goals.py)
+- Test all `goals` commands
 
 ### [Expansion test](test_expansion.py)
 - Test all `expansion` commands
