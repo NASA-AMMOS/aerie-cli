@@ -70,7 +70,7 @@ def cli_schedule_upload():
         fid.write(GOAL_PATH)
     result = runner.invoke(
         app,
-        ["scheduling", "upload"],
+        ["goals", "upload"],
         input=str(model_id) + "\n" + str(plan_id) + "\n" + schedule_file_path + "\n",
         catch_exceptions=False,
         )
@@ -97,7 +97,7 @@ def test_schedule_delete():
 
     result = runner.invoke(
         app,
-        ["scheduling", "delete"],
+        ["goals", "delete"],
         input=str(goal_id) + "\n",
         catch_exceptions=False,
         )
@@ -113,7 +113,7 @@ def test_schedule_delete_all():
     # Delete all goals
     result = runner.invoke(
         app,
-        ["scheduling", "delete-all-goals-for-plan"],
+        ["goals", "delete-all-goals-for-plan"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,
         )
