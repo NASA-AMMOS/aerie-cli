@@ -7,6 +7,10 @@ from base64 import b64decode
 
 from attrs import define, field
 
+COMPATIBLE_AERIE_VERSIONS = [
+    "2.18.0"
+]
+
 
 def process_gateway_response(resp: requests.Response) -> dict:
     """Throw a RuntimeError if the Gateway response is malformed or contains errors
@@ -18,15 +22,12 @@ def process_gateway_response(resp: requests.Response) -> dict:
         dict: Contents of response JSON
     """
     if not resp.ok:
-        raise RuntimeError(f"Bad response from Aerie Gateway.")
+        raise RuntimeError("Bad response from Aerie Gateway")
 
     try:
         resp_json = resp.json()
     except requests.exceptions.JSONDecodeError:
-        raise RuntimeError(f"Failed to get response JSON")
-
-    if "success" in resp_json.keys() and not resp_json["success"]:
-        raise RuntimeError(f"Aerie Gateway request was not successful")
+        raise RuntimeError("Bad response from Aerie Gateway")
 
     return resp_json
 
@@ -277,6 +278,28 @@ class AerieHost:
 
         if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
+
+    def check_aerie_version(self) -> None:
+        """Assert that the Aerie host is a compatible version
+
+        Raises a `RuntimeError` if the host appears to be incompatible.
+        """
+
+        resp = self.session.get(self.gateway_url + "/version")
+
+        try:
+            resp_json = process_gateway_response(resp)
+            host_version = resp_json["version"]
+        except (RuntimeError, KeyError):
+            # If the Gateway responded, the route doesn't exist
+            if resp.text and "Aerie Gateway" in resp.text:
+                raise RuntimeError("Unknown Aerie host version")
+            
+            # Otherwise, it could just be a failed connection
+            raise
+
+        if host_version not in COMPATIBLE_AERIE_VERSIONS:
+            raise RuntimeError(f"Incompatible Aerie version: {host_version}")
 
 
 @define
