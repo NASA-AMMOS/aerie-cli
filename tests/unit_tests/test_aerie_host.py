@@ -57,7 +57,7 @@ def test_no_version_endpoint():
     with pytest.raises(RuntimeError) as e:
         aerie_host.check_aerie_version()
 
-    assert "Unknown Aerie host version" in str(e.value)
+    assert "Incompatible Aerie version: host version unknown" in str(e.value)
 
 
 def test_version_broken_gateway():
