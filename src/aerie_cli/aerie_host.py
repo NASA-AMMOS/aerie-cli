@@ -263,6 +263,8 @@ class AerieHost:
 
     def authenticate(self, username: str, password: str = None):
 
+        self.check_aerie_version()
+
         resp = self.session.post(
             self.gateway_url + "/auth/login",
             json={"username": username, "password": password},
@@ -293,7 +295,7 @@ class AerieHost:
         except (RuntimeError, KeyError):
             # If the Gateway responded, the route doesn't exist
             if resp.text and "Aerie Gateway" in resp.text:
-                raise RuntimeError("Unknown Aerie host version")
+                raise RuntimeError("Incompatible Aerie version: host version unknown")
             
             # Otherwise, it could just be a failed connection
             raise
