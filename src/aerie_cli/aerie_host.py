@@ -11,6 +11,9 @@ COMPATIBLE_AERIE_VERSIONS = [
     "2.18.0"
 ]
 
+class AerieHostVersionError(RuntimeError):
+    pass
+
 
 def process_gateway_response(resp: requests.Response) -> dict:
     """Throw a RuntimeError if the Gateway response is malformed or contains errors
@@ -261,9 +264,15 @@ class AerieHost:
 
         return True
 
-    def authenticate(self, username: str, password: str = None):
+    def authenticate(self, username: str, password: str = None, override: bool = False):
 
-        self.check_aerie_version()
+        try:
+            self.check_aerie_version()
+        except AerieHostVersionError as e:
+            if override:
+                print("Warning: " + e.args[0])
+            else:
+                raise
 
         resp = self.session.post(
             self.gateway_url + "/auth/login",
@@ -295,13 +304,13 @@ class AerieHost:
         except (RuntimeError, KeyError):
             # If the Gateway responded, the route doesn't exist
             if resp.text and "Aerie Gateway" in resp.text:
-                raise RuntimeError("Incompatible Aerie version: host version unknown")
+                raise AerieHostVersionError("Incompatible Aerie version: host version unknown")
             
             # Otherwise, it could just be a failed connection
             raise
 
         if host_version not in COMPATIBLE_AERIE_VERSIONS:
-            raise RuntimeError(f"Incompatible Aerie version: {host_version}")
+            raise AerieHostVersionError(f"Incompatible Aerie version: {host_version}")
 
 
 @define

@@ -2,11 +2,15 @@ from typing import Dict
 import pytest
 import requests
 
-from aerie_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS
+from aerie_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
 
+
+class MockJWT:
+    def __init__(self, *args, **kwargs):
+        self.default_role = 'viewer'
 
 class MockResponse:
-    def __init__(self, json: Dict, text: str, ok: bool) -> None:
+    def __init__(self, json: Dict, text: str = None, ok: bool = True) -> None:
         self.json_data = json
         self.text = text
         self.ok = ok
@@ -42,13 +46,45 @@ def test_check_aerie_version():
     aerie_host.check_aerie_version()
 
 
-def test_check_invalid_version():
-    aerie_host = get_mock_aerie_host(json={"version": "1.0.0"})
+def test_authenticate_invalid_version(capsys, monkeypatch):
+    ah = AerieHost("", "")
+
+    def mock_get(*_, **__):
+        return MockResponse({"version": "1.0.0"})
+    def mock_post(*_, **__):
+        return MockResponse({"token": ""})
+    def mock_check_auth(*_, **__):
+        return True
+
+    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(requests.Session, "post", mock_post)
+    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
 
     with pytest.raises(RuntimeError) as e:
-        aerie_host.check_aerie_version()
+        ah.authenticate("")
 
     assert "Incompatible Aerie version: 1.0.0" in str(e.value)
+
+
+def test_authenticate_invalid_version_override(capsys, monkeypatch):
+    ah = AerieHost("", "")
+
+    def mock_get(*_, **__):
+        return MockResponse({"version": "1.0.0"})
+    def mock_post(*_, **__):
+        return MockResponse({"token": ""})
+    def mock_check_auth(*_, **__):
+        return True
+
+    monkeypatch.setattr(requests.Session, "get", mock_get)
+    monkeypatch.setattr(requests.Session, "post", mock_post)
+    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
+
+    ah.authenticate("", override=True)
+
+    assert capsys.readouterr().out == "Warning: Incompatible Aerie version: 1.0.0\n"
 
 
 def test_no_version_endpoint():
