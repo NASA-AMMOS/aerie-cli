@@ -90,7 +90,8 @@ def activate_session(
     ),
     role: str = typer.Option(
         None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
-    )
+    ),
+    force: bool = typer.Option(False, "--force", help="Force connection to Aerie host and ignore version compatibility")
 ):
     """
     Activate a session with an Aerie host using a given configuration
@@ -102,7 +103,7 @@ def activate_session(
 
     conf = PersistentConfigurationManager.get_configuration_by_name(name)
 
-    session = start_session_from_configuration(conf, username)
+    session = start_session_from_configuration(conf, username, force=force)
 
     if role is not None:
         if role in session.aerie_jwt.allowed_roles:
