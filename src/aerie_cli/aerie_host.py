@@ -32,6 +32,9 @@ def process_gateway_response(resp: requests.Response) -> dict:
     except requests.exceptions.JSONDecodeError:
         raise RuntimeError("Bad response from Aerie Gateway")
 
+    if "success" in resp_json.keys() and not resp_json["success"]:
+        raise RuntimeError(f"Aerie Gateway request was not successful")
+
     return resp_json
 
 
