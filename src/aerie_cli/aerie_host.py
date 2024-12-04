@@ -264,12 +264,12 @@ class AerieHost:
 
         return True
 
-    def authenticate(self, username: str, password: str = None, override: bool = False):
+    def authenticate(self, username: str, password: str = None, force: bool = False):
 
         try:
             self.check_aerie_version()
         except AerieHostVersionError as e:
-            if override:
+            if force:
                 print("Warning: " + e.args[0])
             else:
                 raise

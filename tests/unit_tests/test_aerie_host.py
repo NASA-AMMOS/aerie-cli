@@ -67,7 +67,7 @@ def test_authenticate_invalid_version(capsys, monkeypatch):
     assert "Incompatible Aerie version: 1.0.0" in str(e.value)
 
 
-def test_authenticate_invalid_version_override(capsys, monkeypatch):
+def test_authenticate_invalid_version_force(capsys, monkeypatch):
     ah = AerieHost("", "")
 
     def mock_get(*_, **__):
@@ -82,7 +82,7 @@ def test_authenticate_invalid_version_override(capsys, monkeypatch):
     monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
     monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
 
-    ah.authenticate("", override=True)
+    ah.authenticate("", force=True)
 
     assert capsys.readouterr().out == "Warning: Incompatible Aerie version: 1.0.0\n"
 
