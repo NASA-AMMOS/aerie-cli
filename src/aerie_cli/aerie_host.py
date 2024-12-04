@@ -114,20 +114,20 @@ class AerieHost:
                 headers=self.get_auth_headers(),
             )
 
-            if resp.ok:
-                try:
-                    resp_json = resp.json()
-                except json.decoder.JSONDecodeError:
-                    raise RuntimeError(f"Failed to process response")
+            resp.raise_for_status()
+            try:
+                resp_json = resp.json()
+            except json.decoder.JSONDecodeError:
+                raise RuntimeError(f"Failed to process response")
 
-                if "success" in resp_json.keys() and not resp_json["success"]:
-                    raise RuntimeError("GraphQL request was not successful")
-                elif "errors" in resp_json.keys():
-                    raise RuntimeError(
-                        f"GraphQL Error: {json.dumps(resp_json['errors'])}"
-                    )
-                else:
-                    data = next(iter(resp.json()["data"].values()))
+            if "success" in resp_json.keys() and not resp_json["success"]:
+                raise RuntimeError("GraphQL request was not successful")
+            elif "errors" in resp_json.keys():
+                raise RuntimeError(
+                    f"GraphQL Error: {json.dumps(resp_json['errors'])}"
+                )
+            else:
+                data = next(iter(resp.json()["data"].values()))
 
             if data is None:
                 raise RuntimeError(f"Failed to process response: {resp}")
