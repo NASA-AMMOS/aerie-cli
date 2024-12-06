@@ -118,7 +118,8 @@ def start_session_from_configuration(
     configuration: AerieHostConfiguration, 
     username: str = None, 
     password: str = None,
-    secret_post_vars: Dict[str, str] = None
+    secret_post_vars: Dict[str, str] = None,
+    force: bool = False
 ):
     """Start and authenticate an Aerie Host session, with prompts if necessary
 
@@ -136,6 +137,7 @@ def start_session_from_configuration(
         username (str, optional): Aerie username.
         password (str, optional): Aerie password.
         secret_post_vars (Dict[str, str], optional): Optionally provide values for some or all secret post request variable values. Defaults to None.
+        force (bool, optional): Force connection to Aerie host and ignore version compatibility. Defaults to False.
 
     Returns:
         AerieHost: 
@@ -162,6 +164,6 @@ def start_session_from_configuration(
     if password is None and hs.is_auth_enabled():
         password = typer.prompt("Aerie Password", hide_input=True)
 
-    hs.authenticate(username, password)
+    hs.authenticate(username, password, force)
 
     return hs

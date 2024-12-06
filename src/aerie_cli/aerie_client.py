@@ -1862,7 +1862,7 @@ class AerieClient:
         for activity in plan.activities:
             if expand_all or activity.type in expand_types:
                 query = """
-                query ($args: ActivityArguments!, $act_type: String!, $model_id: ID!) {
+                query ($args: ActivityArguments!, $act_type: String!, $model_id: Int!) {
                     getActivityEffectiveArguments(
                         activityArguments: $args,
                         activityTypeName: $act_type,
