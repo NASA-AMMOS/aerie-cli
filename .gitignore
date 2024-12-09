@@ -12,3 +12,5 @@ __pycache__/
 args.json
 **/*.DS_Store
 tests/integration_tests/artifacts
+venv/
+.idea/
