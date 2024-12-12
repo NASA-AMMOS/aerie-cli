@@ -153,14 +153,14 @@ class ApiSimulatedActivity(ApiSerialize):
     attributes: Dict[str, Any]
     parent_id: Optional[int]
     start_time: Arrow = field(converter = arrow.get)
-    end_time: Arrow = field(converter = arrow.get)
+    end_time: Arrow = field(converter = arrow.get) # TODO what does this look like for an unfinished activity?
     start_offset: timedelta = field(converter = postgres_interval_to_timedelta)
-    duration: timedelta = field(converter = postgres_interval_to_timedelta)
+    duration: timedelta = field(converter = postgres_interval_to_timedelta) # TODO handle unfinished activties?
     activity_directive: Optional[ApiActivityRead] = field(converter = converters.optional(lambda a: ApiActivityRead.from_dict(a)))
 
 
 @define
-class ApiSimulationResults(ApiSerialize):
+class ApiSimulationDataset(ApiSerialize):
     id: int
     arguments: Dict[str, Any]
     status: str
