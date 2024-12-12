@@ -14,7 +14,7 @@ from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
 from .schemas.api import ApiParcelRead
-from .schemas.client import Activity, SimulationResults, UserSequence, Workspace
+from .schemas.client import Activity, SimulationDataset, UserSequence, Workspace
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import DictionaryMetadata
@@ -650,7 +650,7 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(query, id=sim_dataset_id)
-        sim_dataset = SimulationResults.from_api_dict(resp)
+        sim_dataset = SimulationDataset.from_api_dict(resp)
 
         plan_id = self.get_plan_id_by_sim_id(sim_dataset_id)
         plans_metadata = self.list_all_activity_plans()

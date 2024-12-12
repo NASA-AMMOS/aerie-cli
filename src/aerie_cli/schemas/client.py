@@ -26,7 +26,7 @@ from aerie_cli.schemas.api import ApiActivityRead
 from aerie_cli.schemas.api import ApiSimulatedActivity
 from aerie_cli.schemas.api import ApiResourceSampleResults
 from aerie_cli.schemas.api import ApiSimulatedResourceSample
-from aerie_cli.schemas.api import ApiSimulationResults
+from aerie_cli.schemas.api import ApiSimulationDataset
 from aerie_cli.schemas.api import ActivityBase
 from aerie_cli.schemas.api import ApiParcelRead
 from aerie_cli.schemas.api import ApiParcelCreate
@@ -313,7 +313,7 @@ class SimulatedResourceTimeline(ClientSerialize):
 
 
 @define
-class SimulationResults(ClientSerialize):
+class SimulationDataset(ClientSerialize):
     id: int
     arguments: Dict[str, Any]
     status: str
@@ -324,16 +324,16 @@ class SimulationResults(ClientSerialize):
     # resources: List[SimulatedResourceTimeline]
 
     @classmethod
-    def from_api_dict(cls, api_dict: Dict) -> "SimulationResults":
-        return cls.from_api_results(ApiSimulationResults.from_dict(api_dict))
+    def from_api_dict(cls, api_dict: Dict) -> "SimulationDataset":
+        return cls.from_api_results(ApiSimulationDataset.from_dict(api_dict))
 
     @classmethod
     def from_api_results(
         cls,
-        api_sim_results: ApiSimulationResults,
+        api_sim_results: ApiSimulationDataset,
         # api_resource_timeline: ApiResourceSampleResults,
-    ) -> "SimulationResults":
-        return SimulationResults(
+    ) -> "SimulationDataset":
+        return SimulationDataset(
             id=api_sim_results.id,
             arguments=api_sim_results.arguments,
             status=api_sim_results.status,
@@ -501,8 +501,8 @@ class Workspace(ClientSerialize):
 class UserSequence(ClientSerialize):
     name: str
     definition: str
-    parcel_id: str
-    workspace_id: str
+    parcel_id: int
+    workspace_id: int
     id: int = field(default=None)
 
     def to_api_create(self) -> ApiUserSequenceCreate:
