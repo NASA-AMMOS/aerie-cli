@@ -22,7 +22,7 @@ def new(
             None, '--name', '-n', help="Name of the new goal (default is the file name without extension)"
         ),
         model_id: Optional[int] = typer.Option(
-            None, '--model', '-m', help="Mission model ID of specification to add this to"
+            None, '--model', '-m', help="Mission model ID to associate with the scheduling goal"
         ),
         plan_id: Optional[int] = typer.Option(
             None, '--plan', '-p', help="Plan ID of the specification to add this to"
