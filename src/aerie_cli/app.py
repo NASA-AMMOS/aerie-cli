@@ -11,7 +11,7 @@ from aerie_cli.commands import plans
 from aerie_cli.commands import configurations
 from aerie_cli.commands import expansion
 from aerie_cli.commands import constraints
-from aerie_cli.commands import goals
+from aerie_cli.commands import scheduling
 from aerie_cli.commands import metadata
 
 from aerie_cli.commands.command_context import CommandContext
@@ -33,7 +33,7 @@ app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
 app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
-app.add_typer(goals.app, name="goals")
+app.add_typer(scheduling.app, name="scheduling")
 app.add_typer(metadata.app, name="metadata")
 
 
