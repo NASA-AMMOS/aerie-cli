@@ -35,7 +35,7 @@ def assert_deleted(dictionaries: List[DictionaryMetadata], id: int) -> bool:
 
 def test_command_dictionary():
     with open(COMMAND_XML_PATH, "r") as fid:
-        id = client.create_dictionary(fid.read(), DictionaryType.COMMAND)
+        id = client.create_dictionary(fid.read())
 
     assert_mission_version(
         client.list_dictionaries()[DictionaryType.COMMAND], id, "Banana Nation", "1.0.0.0")
@@ -48,7 +48,7 @@ def test_command_dictionary():
 
 def test_channel_dictionary():
     with open(CHANNEL_XML_PATH, "r") as fid:
-        id = client.create_dictionary(fid.read(), DictionaryType.CHANNEL)
+        id = client.create_dictionary(fid.read())
 
     assert_mission_version(
         client.list_dictionaries()[DictionaryType.CHANNEL], id, "Banana Nation", "1.0.0.0")
@@ -61,7 +61,7 @@ def test_channel_dictionary():
 
 def test_parameter_dictionary():
     with open(PARAMETER_XML_1_PATH, "r") as fid:
-        id = client.create_dictionary(fid.read(), DictionaryType.PARAMETER)
+        id = client.create_dictionary(fid.read())
 
     assert_mission_version(
         client.list_dictionaries()[DictionaryType.PARAMETER], id, "Banana Nation", "1.0.0.1")
@@ -91,17 +91,13 @@ def test_adaptation():
 def test_parcels():
     # Set up
     with open(COMMAND_XML_PATH, "r") as fid:
-        command_dictionary_id = client.create_dictionary(
-            fid.read(), DictionaryType.COMMAND)
+        command_dictionary_id = client.create_dictionary(fid.read())
     with open(CHANNEL_XML_PATH, "r") as fid:
-        channel_dictionary_id = client.create_dictionary(
-            fid.read(), DictionaryType.CHANNEL)
+        channel_dictionary_id = client.create_dictionary(fid.read())
     with open(PARAMETER_XML_1_PATH, "r") as fid:
-        parameter_dictionary_1_id = client.create_dictionary(
-            fid.read(), DictionaryType.PARAMETER)
+        parameter_dictionary_1_id = client.create_dictionary(fid.read())
     with open(PARAMETER_XML_2_PATH, "r") as fid:
-        parameter_dictionary_2_id = client.create_dictionary(
-            fid.read(), DictionaryType.PARAMETER)
+        parameter_dictionary_2_id = client.create_dictionary(fid.read())
     with open(ADAPTATION_JS_PATH, "r") as fid:
         adaptation_id = client.create_sequence_adaptation(fid.read())
 

@@ -8,7 +8,11 @@ from base64 import b64decode
 from attrs import define, field
 
 COMPATIBLE_AERIE_VERSIONS = [
-    "2.18.0"
+    "3.0.0",
+    "3.0.1",
+    "3.1.0",
+    "3.1.1",
+    "3.2.0",
 ]
 
 class AerieHostVersionError(RuntimeError):

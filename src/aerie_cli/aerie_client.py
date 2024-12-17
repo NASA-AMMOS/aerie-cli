@@ -1452,7 +1452,7 @@ class AerieClient:
 
         return resp
 
-    def create_dictionary(self, dictionary: str, dictionary_type: Union[str, DictionaryType]) -> int:
+    def create_dictionary(self, dictionary: str) -> int:
         """Upload an AMPCS command, channel, or parameter dictionary to an Aerie instance
 
         Args:
@@ -1463,23 +1463,21 @@ class AerieClient:
             int: Dictionary ID
         """
 
-        if not isinstance(dictionary_type, DictionaryType):
-            dictionary_type = DictionaryType(dictionary_type)
-
         query = """
-        mutation CreateDictionary($dictionary: String!, $type: String!) {
-            createDictionary: uploadDictionary(dictionary: $dictionary, type: $type) {
-                id
+        mutation CreateDictionary($dictionary: String!) {
+            createDictionary: uploadDictionary(dictionary: $dictionary) {
+                command
+                channel
+                parameter
             }
         }
         """
         resp = self.aerie_host.post_to_graphql(
             query,
-            dictionary=dictionary,
-            type=dictionary_type.value
+            dictionary=dictionary
         )
+        return next(iter(resp.values()))["id"]
 
-        return resp["id"]
 
     def list_dictionaries(self) -> Dict[DictionaryType, List[DictionaryMetadata]]:
         """List all command, parameter, and channel dictionaries

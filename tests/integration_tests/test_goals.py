@@ -68,7 +68,7 @@ def set_up_environment(request):
 def cli_goal_upload_ts():
     result = runner.invoke(
         app,
-        ["goals", "new", GOAL_PATH_1, "-p", plan_id],
+        ["scheduling", "new", GOAL_PATH_1, "-p", plan_id],
         catch_exceptions=False,
     )
     return result
@@ -76,7 +76,7 @@ def cli_goal_upload_ts():
 def cli_goal_upload_jar():
     result = runner.invoke(
         app,
-        ["goals", "new", GOAL_PATH_2, "-p", plan_id],
+        ["scheduling", "new", GOAL_PATH_2, "-p", plan_id],
         catch_exceptions=False
     )
     return result
@@ -108,7 +108,7 @@ def test_schedule_upload():
 def test_goal_update():
     result = runner.invoke(
         app,
-        ["goals", "update", GOAL_PATH_2],
+        ["scheduling", "update", GOAL_PATH_2],
         catch_exceptions=False
     )
     assert result.exit_code == 0, \
@@ -121,7 +121,7 @@ def test_goal_delete():
 
     result = runner.invoke(
         app,
-        ["goals", "delete"],
+        ["scheduling", "delete"],
         input=str(goal_id) + "\n",
         catch_exceptions=False,
         )
@@ -137,7 +137,7 @@ def test_schedule_delete_all():
     # Delete all goals
     result = runner.invoke(
         app,
-        ["goals", "delete-all-goals-for-plan"],
+        ["scheduling", "delete-all-goals-for-plan"],
         input=str(plan_id) + "\n",
         catch_exceptions=False,
         )
