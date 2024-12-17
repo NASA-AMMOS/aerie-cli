@@ -47,7 +47,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.6.15", "3.11"]
-        aerie-version: ["2.18.0"]
+        aerie-version: ["3.0.1", "3.1.1", "3.2.0"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
