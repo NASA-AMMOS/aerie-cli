@@ -63,7 +63,7 @@ def set_up_environment(request):
 
     global command_dictionary_id
     with open(COMMAND_DICTIONARY_PATH, 'r') as fid:
-        command_dictionary_id = client.create_dictionary(fid.read(), "COMMAND")
+        command_dictionary_id = client.create_dictionary(fid.read())
 
     global parcel_id
     parcel_id = client.create_parcel(Parcel("Integration Test", command_dictionary_id, None, None, []))
