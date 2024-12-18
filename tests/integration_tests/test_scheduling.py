@@ -3,7 +3,6 @@ import pytest
 import arrow
 
 from typer.testing import CliRunner
-from pathlib import Path
 
 from aerie_cli.__main__ import app
 from aerie_cli.schemas.client import ActivityPlanCreate

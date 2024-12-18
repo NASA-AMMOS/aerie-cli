@@ -1,23 +1,18 @@
 import typer
-import os
+from pathlib import Path
 from typing import Optional
 
 from aerie_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
-def _get_name_and_ext(path: str):
-    path = path.strip()
-    filename = os.path.basename(path)
-    return os.path.splitext(filename)
-
 @app.command()
 def new(
-        path: str = typer.Argument(default=...),
+        path: Path = typer.Argument(default=...),
         description: Optional[str] = typer.Option(
             None, '--description', '-d', help="Description metadata"
         ),
-        public: bool = typer.Option(False, '-pub', help="Indicates a public goal visible to all users (default false)"),
+        public: bool = typer.Option(False, '--public', '-pub', help="Indicates a public goal visible to all users (default false)"),
         name: Optional[str] = typer.Option(
             None, '--name', '-n', help="Name of the new goal (default is the file name without extension)"
         ),
@@ -31,7 +26,8 @@ def new(
     """Upload new scheduling goal"""
 
     client = CommandContext.get_client()
-    filename, extension = _get_name_and_ext(path)
+    filename = path.stem
+    extension = path.suffix
     if name is None:
         name = filename
     upload_obj = {}
@@ -63,13 +59,14 @@ def new(
 
 @app.command()
 def update(
-        path: str = typer.Argument(default=...),
+        path: Path = typer.Argument(default=...),
         goal_id: Optional[int] = typer.Option(None, '--goal', '-g', help="Goal ID of goal to be updated (will search by name if omitted)"),
         name: Optional[str] = typer.Option(None, '--name', '-n', help="Name of the goal to be updated (ignored if goal is provided, default is the file name without extension)"),
 ):
     """Upload an update to a scheduling goal"""
     client = CommandContext.get_client()
-    filename, extension = _get_name_and_ext(path)
+    filename = path.stem
+    extension = path.suffix
     if goal_id is None:
         if name is None:
             name = filename
