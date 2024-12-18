@@ -3,7 +3,6 @@
 `app` is the CLI application with which all commands, subcommands, and callbacks are registered.
 """
 import typer
-from rich import print
 from typing import Optional
 
 from aerie_cli.commands import models

@@ -1782,9 +1782,9 @@ class AerieClient:
             name=name
         )
         if len(resp) == 0:
-            raise RuntimeError(f"No goals found with name {name}. Specify goal id manually with -g.")
+            raise RuntimeError(f"No goals found with name {name}.")
         elif len(resp) > 1:
-            raise RuntimeError(f"Multiple goals found with name {name}. Specify goal id manually with -g.")
+            raise RuntimeError(f"Multiple goals found with name {name}.")
         return resp[0]["id"]
 
     def add_goals_to_specifications(self, upload_object):
