@@ -1,32 +1,32 @@
 import sys
 import time
-from copy import deepcopy
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Union
+from copy import deepcopy
 
 import arrow
 
-from .aerie_host import AerieHost
 from .schemas.api import ApiActivityPlanRead
 from .schemas.api import ApiEffectiveActivityArguments
 from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
-from .schemas.api import ApiParcelRead
 from .schemas.api import ApiResourceSampleResults
+from .schemas.api import ApiParcelRead
 from .schemas.client import Activity
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import DictionaryMetadata
 from .schemas.client import DictionaryType
-from .schemas.client import ExpansionRule
-from .schemas.client import ExpansionRun
-from .schemas.client import ExpansionSet
-from .schemas.client import Parcel
-from .schemas.client import ResourceType
 from .schemas.client import SequenceAdaptationMetadata
+from .schemas.client import Parcel
+from .schemas.client import ExpansionRun
+from .schemas.client import ExpansionRule
+from .schemas.client import ExpansionSet
+from .schemas.client import ResourceType
 from .utils.serialization import postgres_interval_to_microseconds
+from .aerie_host import AerieHost
 
 
 class AerieClient:
@@ -43,9 +43,7 @@ class AerieClient:
         """
         self.aerie_host = aerie_host
 
-    def get_activity_plan_by_id(
-        self, plan_id: int, full_args: str = None
-    ) -> ActivityPlanRead:
+    def get_activity_plan_by_id(self, plan_id: int, full_args: str = None) -> ActivityPlanRead:
         """Download activity plan from Aerie
 
         Args:
@@ -141,6 +139,40 @@ class AerieClient:
 
         return plans
 
+    def get_simulated_activities(self, simulation_dataset_id: int) -> List[Dict]:
+        """Get simulated activities from a simulated Dataset
+         Args:
+            simulation_dataset_id (int): Aerie Simulation Dataset ID
+
+        Returns:
+            Activity Structure, may need definition
+
+        """
+        get_simulated_plans_query = """
+        query GetSimulatedActivities($simulation_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                simulated_activities(order_by: { start_offset: asc }) {
+                    activity_directive {
+                        name
+                        metadata
+                    }
+                    activity_type_name
+                    id
+                    start_time
+                    end_time
+                    parent_id
+                    duration
+                    attributes
+                }
+            }
+        }
+                """
+        resp = self.aerie_host.post_to_graphql(
+            get_simulated_plans_query, simulation_dataset_id=simulation_dataset_id
+        )
+        return resp["simulated_activities"]
+
+
     def get_plan_id_by_sim_id(self, simulation_dataset_id: int) -> int:
         """Get Plan ID by Simulation Dataset ID
 
@@ -162,9 +194,10 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            get_plan_id_query, simulation_dataset_id=simulation_dataset_id
+            get_plan_id_query,
+              simulation_dataset_id=simulation_dataset_id
         )
-        return resp["simulation"]["plan"]["id"]
+        return resp['simulation']['plan']['id']
 
     def get_tag_id_by_name(self, tag_name: str):
         get_tags_by_name_query = """
@@ -184,7 +217,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_tags_by_name_query, name=tag_name)
+        resp = self.aerie_host.post_to_graphql(
+            get_tags_by_name_query,
+              name=tag_name
+              )
 
         # if a tag with the specified name exists then returns the ID, else creates a new tag with this name
         if len(resp) > 0:
@@ -209,10 +245,12 @@ class AerieClient:
 
         # add tag to plan
         resp = self.aerie_host.post_to_graphql(
-            add_tag_to_plan, plan_id=plan_id, tag_id=self.get_tag_id_by_name(tag_name)
+            add_tag_to_plan,
+              plan_id=plan_id,
+              tag_id=self.get_tag_id_by_name(tag_name)
         )
 
-        return resp["returning"][0]
+        return resp['returning'][0]
 
     def create_activity_plan(
         self, model_id: int, plan_to_create: ActivityPlanCreate
@@ -229,12 +267,12 @@ class AerieClient:
         """
         plan_resp = self.aerie_host.post_to_graphql(
             create_plan_mutation,
-            plan=api_plan_create.to_dict(),
+            plan=api_plan_create.to_dict()
         )
         plan_id = plan_resp["id"]
         plan_revision = plan_resp["revision"]
 
-        # add plan tags if exists from plan_to_create
+        #add plan tags if exists from plan_to_create
         for tag in plan_to_create.tags:
             self.add_plan_tag(plan_id, tag["tag"]["name"])
 
@@ -287,7 +325,7 @@ class AerieClient:
             update_simulation_mutation,
             plan_id=plan_id,
             simulation_start_time=simulation_start_time,
-            simulation_end_time=simulation_end_time,
+            simulation_end_time=simulation_end_time
         )
 
         return plan_id
@@ -302,14 +340,18 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            insert_activity_mutation, activity=api_activity_create.to_dict()
+            insert_activity_mutation,
+            activity=api_activity_create.to_dict()
         )
         activity_id = resp["id"]
 
         return activity_id
 
     def update_activity(
-        self, activity_id: int, activity_to_update: Activity, plan_id: int
+        self,
+        activity_id: int,
+        activity_to_update: Activity,
+        plan_id: int
     ) -> int:
         activity_dict: Dict = activity_to_update.to_api_update().to_dict()
         update_activity_mutation = """
@@ -342,7 +384,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_all_presets_query, model_id=m_id)
+        resp = self.aerie_host.post_to_graphql(
+            get_all_presets_query,
+            model_id=m_id
+        )
         return resp
 
     def upload_activity_presets(self, upload_obj):
@@ -363,7 +408,8 @@ class AerieClient:
         }"""
 
         resp = self.aerie_host.post_to_graphql(
-            upload_activity_presets_query, object=upload_obj
+            upload_activity_presets_query,
+            object=upload_obj
         )
 
         return resp["returning"]
@@ -397,15 +443,11 @@ class AerieClient:
         return sim_dataset_id
 
     def get_resource_timelines(self, plan_id: int):
-        samples = self.get_resource_samples(
-            self.get_simulation_dataset_ids_by_plan_id(plan_id)[0]
-        )
+        samples = self.get_resource_samples(self.get_simulation_dataset_ids_by_plan_id(plan_id)[0])
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(
-        self, simulation_dataset_id: int, state_names: List = None
-    ):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List = None):
         """Pull resource samples from a simulation dataset, optionally filtering for specific states
 
         Each resource's values are returned in a list of points {x: <time>, y: <value>}.
@@ -443,11 +485,7 @@ class AerieClient:
             }
             """
 
-            resp = self.aerie_host.post_to_graphql(
-                resource_profile_query,
-                simulation_dataset_id=simulation_dataset_id,
-                state_names=state_names,
-            )
+            resp = self.aerie_host.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id, state_names=state_names)
 
         else:
             resource_profile_query = """
@@ -466,9 +504,7 @@ class AerieClient:
                 }
             }
             """
-            resp = self.aerie_host.post_to_graphql(
-                resource_profile_query, simulation_dataset_id=simulation_dataset_id
-            )
+            resp = self.aerie_host.post_to_graphql(resource_profile_query, simulation_dataset_id=simulation_dataset_id)
 
         profiles = resp["dataset"]["profiles"]
 
@@ -514,7 +550,7 @@ class AerieClient:
                 dynamics = segment["dynamics"]
 
                 # Discrete profiles don't have rates
-                if profile_type == "discrete":
+                if profile_type == 'discrete':
 
                     # Define points at the start and end of this profile segment
                     start_value = {
@@ -540,7 +576,7 @@ class AerieClient:
                         values.append(end_value)
 
                 # Real profiles can have rates over time
-                elif profile_type == "real":
+                elif profile_type == 'real':
 
                     start_value = {
                         "x": segment_start_time,
@@ -567,7 +603,9 @@ class AerieClient:
                     raise ValueError(f"Unknown resource profile type: {profile_type}")
 
             resources[name] = values
-        return {"resourceSamples": resources}
+        return {
+            "resourceSamples": resources
+        }
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
@@ -588,8 +626,7 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            sim_result_query, sim_dataset_id=sim_dataset_id
-        )
+            sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
 
     def delete_plan(self, plan_id: int) -> str:
@@ -602,16 +639,20 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(delete_plan_mutation, plan_id=plan_id)
+        resp = self.aerie_host.post_to_graphql(
+            delete_plan_mutation, plan_id=plan_id)
 
         return resp["name"]
 
     def upload_file(self, path: str) -> int:
         upload_timestamp = arrow.utcnow().isoformat()
         path_obj = Path(path)
-        server_side_path = path_obj.stem + "--" + upload_timestamp + path_obj.suffix
+        server_side_path = (
+            path_obj.stem + "--" + upload_timestamp + path_obj.suffix
+        )
         with open(path, "rb") as f:
-            resp = self.aerie_host.post_to_gateway_files(server_side_path, f)
+            resp = self.aerie_host.post_to_gateway_files(
+                server_side_path, f)
             return resp["id"]
 
     def upload_mission_model(
@@ -673,7 +714,8 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(delete_model_mutation, model_id=model_id)
+        resp = self.aerie_host.post_to_graphql(
+            delete_model_mutation, model_id=model_id)
 
         return resp["name"]
 
@@ -692,7 +734,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(get_mission_model_query)
-        api_mission_models = [ApiMissionModelRead.from_dict(model) for model in resp]
+        api_mission_models = [
+            ApiMissionModelRead.from_dict(model) for model in resp]
 
         return api_mission_models
 
@@ -767,8 +810,7 @@ class AerieClient:
             final_args[arg] = args[arg]
 
         resp = self.aerie_host.post_to_graphql(
-            update_config_arg_query, sim_id=sim_id, args=final_args
-        )
+            update_config_arg_query, sim_id=sim_id, args=final_args)
 
         return resp["arguments"]
 
@@ -785,7 +827,8 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_config_query, sim_id=sim_id)
+        resp = self.aerie_host.post_to_graphql(
+            get_config_query, sim_id=sim_id)
 
         return resp["arguments"]
 
@@ -831,7 +874,7 @@ class AerieClient:
         model_id: str,
         parcel_id: str,
         name: str = None,
-        description: str = None,
+        description: str = None
     ) -> int:
         """Submit expansion logic to an Aerie instance
 
@@ -859,22 +902,17 @@ class AerieClient:
             "parcel_id": parcel_id,
             "authoring_mission_model_id": model_id,
             "expansion_logic": expansion_logic,
-            "name": name
-            if (name is not None)
-            else activity_name + arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss"),
+            "name": name if (name is not None) else activity_name + arrow.utcnow().format("_YYYY-MM-DDTHH-mm-ss"),
             "description": description if (description is not None) else "",
         }
-        data = self.aerie_host.post_to_graphql(create_expansion_logic_query, rule=rule)
+        data = self.aerie_host.post_to_graphql(
+            create_expansion_logic_query,
+            rule=rule
+        )
 
         return data["id"]
 
-    def create_expansion_set(
-        self,
-        parcel_id: int,
-        model_id: int,
-        expansion_ids: List[int],
-        name: str,
-        description: str = None,
+    def create_expansion_set( self, parcel_id: int, model_id: int, expansion_ids: List[int], name: str, description: str = None
     ) -> int:
         """Create an Aerie expansion set given a list of activity IDs
 
@@ -914,7 +952,7 @@ class AerieClient:
             mission_model_id=model_id,
             expansion_ids=expansion_ids,
             name=name,
-            description="" if description is None else description,
+            description="" if description is None else description
         )
         return data["id"]
 
@@ -995,8 +1033,7 @@ class AerieClient:
             }
         """
         data = self.aerie_host.post_to_graphql(
-            get_expansion_ids_query, activity_type=activity_type
-        )
+            get_expansion_ids_query, activity_type=activity_type)
         rule_ids = [int(v["id"]) for v in data]
         rule_ids.sort()
         return rule_ids
@@ -1059,8 +1096,7 @@ class AerieClient:
         }
         """
         data = self.aerie_host.post_to_graphql(
-            get_simulation_dataset_query, plan_id=plan_id
-        )
+            get_simulation_dataset_query, plan_id=plan_id)
         return [d["id"] for d in data[0]["simulation_datasets"]]
 
     def expand_simulation(
@@ -1097,6 +1133,43 @@ class AerieClient:
 
         return int(data["id"])
 
+    def expand_simulation_and_get_ids(
+        self, simulation_dataset_id: int, expansion_set_id: int
+    ) -> int:
+        """Expand simulated activities from a simulation dataset given an expansion set
+
+        Args:
+            simulation_dataset_id (int): Dataset of activities to be expanded
+            expansion_set_id (int): ID of expansion set to use
+
+        Returns:
+            int: Expansion Run ID
+        """
+
+        expand_simulation_query = """
+        mutation ExpandPlan(
+            $expansion_set_id: Int!
+            $simulation_dataset_id: Int!
+        ) {
+            expandAllActivities(
+                expansionSetId: $expansion_set_id,
+                simulationDatasetId: $simulation_dataset_id
+            ) {
+                expandedActivityInstances
+                {
+                id
+                }
+            }
+        }
+        """
+        data = self.aerie_host.post_to_graphql(
+            expand_simulation_query,
+            expansion_set_id=expansion_set_id,
+            simulation_dataset_id=simulation_dataset_id,
+        )
+
+        return int(data["id"])
+
     def get_expansion_rule_by_set(self, expansion_set_id: int) -> List[ExpansionRule]:
         """
         Get the expansion rules in in an expansion set
@@ -1113,7 +1186,7 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(
             get_exps_query, expansion_set_id=expansion_set_id
         )
-        return resp.json()["data"]["expansion_set_by_pk"]["expansion_rules"]
+        return resp
 
     def list_expansion_runs(self, simulation_dataset_id: int) -> List[ExpansionRun]:
         """
@@ -1130,7 +1203,8 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            get_runs_query, simulation_dataset_id=simulation_dataset_id
+            get_runs_query,
+            simulation_dataset_id=simulation_dataset_id
         )
         return [ExpansionRun.from_dict(r) for r in resp]
 
@@ -1159,7 +1233,7 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(
             get_run_query,
             expansion_run_id=expansion_run_id,
-            include_commands=include_commands,
+            include_commands=include_commands
         )
         return ExpansionRun.from_dict(resp[0])
 
@@ -1204,6 +1278,56 @@ class AerieClient:
                 simulated_activity_id=simulated_activity_id,
                 simulation_dataset_id=simulation_dataset_id,
             )
+
+    def bulk_link_activities_to_sequence(self, bulk_replacement_object) -> List[int]:
+        """ replaces the expanded sequences in a plan with sequences provided in the bulk_replacement_object"""
+        bulk_replace_query = """
+        mutation AssignSeqidsToActivities($activity_seqid_assignments: [sequence_to_simulated_activity_insert_input]!) {
+            insert_sequence_to_simulated_activity(objects: $activity_seqid_assignments, on_conflict: {constraint: sequence_to_simulated_activity_primary_key, update_columns: seq_id}) {
+                returning {
+                    simulated_activity_id
+                    seq_id
+                }
+            }
+        }"""
+
+        resp = self.aerie_host.post_to_graphql(
+            bulk_replace_query,
+            activity_seqid_assignments = bulk_replacement_object
+        )
+
+        return(resp)
+
+    def replace_expansion_sequences(self, seq_ids: list,  simulation_dataset_id: int, sequences: List) -> List[int]:
+        """ Niche mutation to replace a set of expanded sequences
+
+        Args:
+
+        Returns:
+        """
+
+        replace_sequence_query = """
+        mutation CreateExpansionSequences($seqids: [String]!, $simulation_dataset_id: Int!, $sequences: [sequence_insert_input]!) {
+                    delete_sequence(where: {simulation_dataset_id: {_eq: $simulation_dataset_id}, seq_id: {_in: $seqids}}) {
+                        returning {
+                            seq_id
+                        }
+                    }
+                    insert_sequence(objects: $sequences) {
+                        returning {
+                            seq_id
+                        }
+                    }
+                }
+                """
+        resp = self.aerie_host.post_to_graphql(
+            replace_sequence_query,
+            seqids=seq_ids,
+            simulation_dataset_id=simulation_dataset_id,
+            sequences=sequences
+        )
+
+        return resp
 
     def get_simulated_activity_ids(self, simulation_dataset_id: int) -> List[int]:
         """Get the IDs of all simulated activities in a simulation dataset
@@ -1272,8 +1396,8 @@ class AerieClient:
         @param inputs should be JSON-like with keys seq_id, simulation_dataset_id
         [
             {
-                goal_id: int,
-                specification_id: int
+                seq_id: string,
+                simulation_dataset_id: int
             },
             ...
         ]
@@ -1282,16 +1406,16 @@ class AerieClient:
         query GetSequenceSeqJsonBulk(
             $input :  [GetSequenceSeqJsonsInput!]!
         ) {
-            getSequenceSeqJson(inputs: $input
+            getSequenceSeqJsonBulk(inputs: $input
             ) {
-                seqJsons
+                seqJson
             }
         }
         """
-        data = self.aerie_host.post_to_graphql(
-            get_expanded_sequences_query, bulk_sequence_object
+        resp = self.aerie_host.post_to_graphql(
+            get_expanded_sequences_query, input = bulk_sequence_object
         )
-        return data["getSequenceSeqJsonBulk"]
+        return resp
 
     def list_sequences(self, simulation_dataset_id: int) -> List[str]:
         """List all sequences tied to a simulation dataset
@@ -1311,7 +1435,8 @@ class AerieClient:
         }
         """
         data = self.aerie_host.post_to_graphql(
-            list_sequences_query, simulation_dataset_id=simulation_dataset_id
+            list_sequences_query,
+            simulation_dataset_id=simulation_dataset_id
         )
         return [s["seq_id"] for s in data]
 
@@ -1332,7 +1457,7 @@ class AerieClient:
         self.aerie_host.post_to_graphql(
             delete_sequence_query,
             seq_id=seq_id,
-            simulation_dataset_id=simulation_dataset_id,
+            simulation_dataset_id=simulation_dataset_id
         )
 
     def get_all_expansion_run_commands(self, expansion_run_id: int) -> List:
@@ -1394,7 +1519,10 @@ class AerieClient:
             }
         }
         """
-        data = self.aerie_host.post_to_graphql(get_types_query, model_id=model_id)
+        data = self.aerie_host.post_to_graphql(
+            get_types_query,
+            model_id=model_id
+        )
         activity_types = [o["name"] for o in data]
         return activity_types
 
@@ -1487,7 +1615,8 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            list_all_goals_by_spec_query, spec=spec_id
+            list_all_goals_by_spec_query,
+            spec=spec_id
         )
 
         return resp
@@ -1512,7 +1641,10 @@ class AerieClient:
             }
         }
         """
-        resp = self.aerie_host.post_to_graphql(query, dictionary=dictionary)
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            dictionary=dictionary
+        )
         return next(iter(resp.values()))["id"]
 
     def list_dictionaries(self) -> Dict[DictionaryType, List[DictionaryMetadata]]:
@@ -1532,10 +1664,8 @@ class AerieClient:
                 mission
             }
         }
-        """
-        )
-        channel_dictionaries = self.aerie_host.post_to_graphql(
-            """query ListDictionaries {
+        """)
+        channel_dictionaries = self.aerie_host.post_to_graphql("""query ListDictionaries {
             channel_dictionary {
                 id
                 version
@@ -1546,8 +1676,7 @@ class AerieClient:
         }
         """
         )
-        parameter_dictionaries = self.aerie_host.post_to_graphql(
-            """query ListDictionaries {
+        parameter_dictionaries = self.aerie_host.post_to_graphql("""query ListDictionaries {
             parameter_dictionary {
                 id
                 version
@@ -1556,18 +1685,11 @@ class AerieClient:
                 mission
             }
         }
-        """
-        )
+        """)
         return {
-            DictionaryType.COMMAND: [
-                DictionaryMetadata.from_dict(i) for i in command_dictionaries
-            ],
-            DictionaryType.CHANNEL: [
-                DictionaryMetadata.from_dict(i) for i in channel_dictionaries
-            ],
-            DictionaryType.PARAMETER: [
-                DictionaryMetadata.from_dict(i) for i in parameter_dictionaries
-            ],
+            DictionaryType.COMMAND: [DictionaryMetadata.from_dict(i) for i in command_dictionaries],
+            DictionaryType.CHANNEL: [DictionaryMetadata.from_dict(i) for i in channel_dictionaries],
+            DictionaryType.PARAMETER: [DictionaryMetadata.from_dict(i) for i in parameter_dictionaries],
         }
 
     def delete_dictionary(
@@ -1604,7 +1726,7 @@ class AerieClient:
                     id
                 }
             }
-            """,
+            """
         }
         self.aerie_host.post_to_graphql(queries[dictionary_type], id=id)
 
@@ -1625,9 +1747,7 @@ class AerieClient:
             }
         }
         """
-        resp = self.aerie_host.post_to_graphql(
-            query, adaptation={"adaptation": adaptation}
-        )
+        resp = self.aerie_host.post_to_graphql(query, adaptation={"adaptation": adaptation})
 
         return resp["id"]
 
@@ -1667,9 +1787,7 @@ class AerieClient:
             }
         }
         """
-        self.aerie_host.post_to_graphql(
-            query, adaptation={"adaptation": adaptation}, id=id
-        )
+        self.aerie_host.post_to_graphql(query, adaptation={"adaptation": adaptation}, id=id)
 
     def delete_sequence_adaptation(self, id: int) -> None:
         """Delete Phoenix Editor sequence adaptation
@@ -1707,14 +1825,15 @@ class AerieClient:
                     id
                 }
             }
-            """,
-            parcel=parcel.to_api_create().to_dict(),
+            """, parcel=parcel.to_api_create().to_dict(),
         )
         parcel_id = resp["id"]
 
         parameter_dictionaries = [
-            {"parameter_dictionary_id": p, "parcel_id": parcel_id}
-            for p in parcel.parameter_dictionary_ids
+            {
+                "parameter_dictionary_id": p,
+                  "parcel_id": parcel_id
+            } for p in parcel.parameter_dictionary_ids
         ]
         self.aerie_host.post_to_graphql(
             """
@@ -1724,7 +1843,7 @@ class AerieClient:
                 }
             }
             """,
-            parameter_dictionaries=parameter_dictionaries,
+            parameter_dictionaries=parameter_dictionaries
         )
         return parcel_id
 
@@ -1768,7 +1887,7 @@ class AerieClient:
                 }
             }
             """,
-            id=id,
+            id=id
         )
 
     def upload_scheduling_goals(self, upload_object):
@@ -1799,7 +1918,8 @@ class AerieClient:
         }"""
 
         resp = self.aerie_host.post_to_graphql(
-            upload_scheduling_goals_query, input=upload_object
+            upload_scheduling_goals_query,
+            input=upload_object
         )
 
         return resp["returning"]
@@ -1814,7 +1934,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            get_scheduling_specification_for_plan_query, plan_id=plan_id
+            get_scheduling_specification_for_plan_query,
+            plan_id=plan_id
         )
         return resp[0]["id"]
 
@@ -1827,7 +1948,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_goal_id_for_name_query, name=name)
+        resp = self.aerie_host.post_to_graphql(
+            get_goal_id_for_name_query,
+            name=name
+        )
         if len(resp) == 0:
             raise RuntimeError(f"No goals found with name {name}.")
         elif len(resp) > 1:
@@ -1861,10 +1985,11 @@ class AerieClient:
         }
         """
         resp = self.aerie_host.post_to_graphql(
-            add_goal_to_specification_query, object=upload_object
+            add_goal_to_specification_query,
+            object=upload_object
         )
 
-        return resp["returning"]
+        return resp['returning']
 
     def delete_scheduling_goal(self, goal_id):
         return self.delete_scheduling_goals(list([goal_id]))
@@ -1883,7 +2008,8 @@ class AerieClient:
         """
 
         resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
-            delete_scheduling_goals_from_all_specs_query, id_list=goal_id_list
+            delete_scheduling_goals_from_all_specs_query,
+            id_list=goal_id_list
         )
 
         # Note that deleting the scheduling goal metadata entry will take care of the
@@ -1897,7 +2023,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            delete_scheduling_goals_query, id_list=goal_id_list
+            delete_scheduling_goals_query,
+            id_list=goal_id_list
         )
 
         return resp["returning"]
@@ -1911,13 +2038,14 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(get_plan_revision_query, plan_id=planId)
+        resp = self.aerie_host.post_to_graphql(
+            get_plan_revision_query,
+            plan_id=planId
+        )
 
         return resp[0]["revision"]
 
-    def __expand_activity_arguments(
-        self, plan: ActivityPlanRead, full_args: str = None
-    ) -> ActivityPlanRead:
+    def __expand_activity_arguments(self, plan: ActivityPlanRead, full_args: str = None) -> ActivityPlanRead:
         if full_args is None or full_args == "" or full_args.lower() == "false":
             return plan
         expand_all = full_args.lower() == "true"
@@ -1944,8 +2072,7 @@ class AerieClient:
                     model_id=plan.model_id,
                 )
                 activity.arguments = ApiEffectiveActivityArguments.from_dict(
-                    resp
-                ).arguments
+                    resp).arguments
         return plan
 
     def upload_constraint(self, constraint):
@@ -1958,7 +2085,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            upload_constraint_query, constraint=constraint
+            upload_constraint_query,
+            constraint=constraint
         )
         return resp["constraint_id"]
 
@@ -1983,7 +2111,7 @@ class AerieClient:
             plan_id=plan_id,
         )
 
-        return resp["constraint_id"]
+        return resp['constraint_id']
 
     def delete_constraint(self, id):
 
@@ -2000,7 +2128,8 @@ class AerieClient:
         """
 
         resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
-            delete_constraint_from_all_specs_query, id=id
+            delete_constraint_from_all_specs_query,
+            id=id
         )
 
         delete_constraint_query = """
@@ -2040,7 +2169,9 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            update_constraint_query, constarint_id=id, definition=definition
+            update_constraint_query,
+            constarint_id=id,
+            definition=definition
         )
         return resp
 
@@ -2065,7 +2196,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            get_constraint_by_id_query, constraint_id=id
+            get_constraint_by_id_query,
+            constraint_id=id
         )
         return resp
 
@@ -2079,7 +2211,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            get_constraint_specification_for_plan_query, plan_id=plan_id
+            get_constraint_specification_for_plan_query,
+            plan_id=plan_id
         )
         return resp[0]["id"]
 
@@ -2143,7 +2276,8 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            get_resource_types_query, missionModelId=model_id
+            get_resource_types_query,
+            missionModelId=model_id
         )
         return [ResourceType.from_dict(r) for r in resp]
 
@@ -2187,7 +2321,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(add_schemas_query, schemas=schemas)
+        resp = self.aerie_host.post_to_graphql(
+            add_schemas_query,
+            schemas=schemas
+        )
         return resp
 
     def delete_directive_metadata_schema(self, key) -> list:
@@ -2204,7 +2341,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(delete_schema_query, key=key)
+        resp = self.aerie_host.post_to_graphql(
+            delete_schema_query,
+            key=key
+        )
         return resp["key"]
 
     def list_plan_collaborators(self, plan_id: int) -> list:
@@ -2226,7 +2366,10 @@ class AerieClient:
         }
         """
 
-        resp = self.aerie_host.post_to_graphql(query, plan_id=plan_id)
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            plan_id=plan_id
+        )
         return [c["collaborator"] for c in resp["collaborators"]]
 
     def add_plan_collaborator(self, plan_id: int, user: str):
@@ -2244,7 +2387,11 @@ class AerieClient:
         }
         """
 
-        self.aerie_host.post_to_graphql(query, plan_id=plan_id, collaborator=user)
+        self.aerie_host.post_to_graphql(
+            query,
+            plan_id=plan_id,
+            collaborator=user
+            )
 
     def delete_plan_collaborator(self, plan_id: int, user: str):
         """Delete a plan collaborator
@@ -2264,7 +2411,9 @@ class AerieClient:
         """
 
         resp = self.aerie_host.post_to_graphql(
-            query, plan_id=plan_id, collaborator=user
+            query,
+            plan_id=plan_id,
+            collaborator=user
         )
 
         if resp is None:
