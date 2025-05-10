@@ -13,6 +13,9 @@ COMPATIBLE_AERIE_VERSIONS = [
     "3.1.0",
     "3.1.1",
     "3.2.0",
+    "3.3.0",
+    "3.3.1",
+    "3.4.0"
 ]
 
 class AerieHostVersionError(RuntimeError):

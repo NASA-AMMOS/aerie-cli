@@ -14,7 +14,7 @@ from .schemas.api import ApiMissionModelCreate
 from .schemas.api import ApiMissionModelRead
 from .schemas.api import ApiResourceSampleResults
 from .schemas.api import ApiParcelRead
-from .schemas.client import Activity
+from .schemas.client import Activity, SimulationDataset, UserSequence, Workspace
 from .schemas.client import ActivityPlanCreate
 from .schemas.client import ActivityPlanRead
 from .schemas.client import DictionaryMetadata
@@ -576,6 +576,7 @@ class AerieClient:
         }
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
+        """Older implementation"""
 
         sim_result_query = """
         query Simulation($sim_dataset_id: Int!) {
@@ -596,6 +597,67 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(
             sim_result_query, sim_dataset_id=sim_dataset_id)
         return resp
+
+    def get_model_effective_arguments(self, arguments: Dict, model_id: int) -> Dict:
+        query = """
+        query GetModelEffectiveArguments($model_id: Int!, $arguments: ModelArguments!) {
+            getModelEffectiveArguments(missionModelId: $model_id, modelArguments: $arguments) {
+                arguments
+                success
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            model_id=model_id,
+            arguments=arguments
+        )
+        
+        return resp["arguments"]
+
+    def get_simulation_dataset(self, sim_dataset_id: int):
+        """Newer implementation"""
+        query = """
+        query GetSimulationDataset($id: Int!) {
+            simulation_dataset_by_pk(id: $id) {
+                id
+                arguments
+                status
+                dataset_id
+                simulation_start_time
+                simulation_end_time
+                simulated_activities {
+                    id
+                    activity_type_name
+                    attributes
+                    parent_id
+                    start_time
+                    end_time
+                    start_offset
+                    duration
+                    activity_directive {
+                        id
+                        name
+                        type
+                        start_offset
+                        arguments
+                        metadata
+                        anchor_id
+                        anchored_to_start
+                    }
+                }
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, id=sim_dataset_id)
+        sim_dataset = SimulationDataset.from_api_dict(resp)
+
+        plan_id = self.get_plan_id_by_sim_id(sim_dataset_id)
+        plans_metadata = self.list_all_activity_plans()
+        model_id = next(filter(lambda p: p.id == plan_id, plans_metadata)).model_id
+        full_arguments = self.get_model_effective_arguments(sim_dataset.arguments, model_id)
+        sim_dataset.arguments = full_arguments
+        return sim_dataset
 
     def delete_plan(self, plan_id: int) -> str:
 
@@ -2237,3 +2299,112 @@ class AerieClient:
 
         if resp is None:
             raise RuntimeError(f"Failed to delete plan collaborator")
+
+    def create_workspace(self, name: str) -> int:
+        query = """
+        mutation CreateWorkspace($workspace: workspace_insert_input!) {
+            createWorkspace: insert_workspace_one(object: $workspace) {
+                id
+            }
+        }
+        """
+        workspace = {
+            "name": name
+        }
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            workspace=workspace
+        )
+
+        return resp["id"]
+
+    def get_workspaces(self) -> List[Workspace]:
+        query = """
+        query GetWorkspaces {
+            workspace {
+                id
+                name
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query)
+        return [Workspace.from_dict(w) for w in resp]
+
+    def get_workspace_id_by_name(self, name: str) -> int:
+        """Get ID of workspace by name, creating if it doesn't exist
+
+        Args:
+            name (str): Workspace name
+
+        Returns:
+            int: Workspace ID
+        """
+        workspaces = self.list_workspaces()
+        workspace = next(filter(workspaces, lambda w: w.name == name), None)
+
+        if workspace is None:
+            return self.create_workspace(name)
+
+        return workspace.id
+
+    def create_user_sequence(self, sequence: UserSequence) -> int:
+        query = """
+        mutation CreateUserSequence($sequence: user_sequence_insert_input!) {
+            createUserSequence: insert_user_sequence_one(object: $sequence) {
+                id
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(
+            query,
+            sequence=sequence.to_api_create().to_dict()
+        )
+
+        return resp["id"]
+
+    def get_user_sequences(self) -> List[UserSequence]:
+        query = """
+        query GetUserSequences {
+            user_sequence {
+                id
+                name
+                definition
+                workspace_id
+                parcel_id
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query)
+        return [UserSequence.from_api_dict(s) for s in resp]
+
+    def update_user_sequence(self, sequence: UserSequence):
+        query = """
+        mutation UpdateUserSequence($id: Int!, $sequence: user_sequence_set_input!) {
+            updateUserSequence: update_user_sequence_by_pk(
+                pk_columns: { id: $id }, _set: $sequence
+            ) {
+                id
+            }
+        }
+        """
+        if sequence.id is None:
+            raise ValueError("User sequence ID must be specified to update")
+
+        self.aerie_host.post_to_graphql(
+            query,
+            sequence=sequence.to_api_create().to_dict(),
+            id=id
+        )
+
+    def delete_user_sequence(self, id: int):
+        query = """
+        mutation DeleteUserSequence($id: Int!) {
+            deleteUserSequence: delete_user_sequence_by_pk(id: $id) {
+                id
+            }
+        }
+        """
+        self.aerie_host.post_to_graphql(
+            query,
+            id=id
+        )

@@ -23,13 +23,15 @@ from aerie_cli.schemas.api import ApiActivityUpdate
 from aerie_cli.schemas.api import ApiActivityPlanCreate
 from aerie_cli.schemas.api import ApiActivityPlanRead
 from aerie_cli.schemas.api import ApiActivityRead
-from aerie_cli.schemas.api import ApiAsSimulatedActivity
+from aerie_cli.schemas.api import ApiSimulatedActivity
 from aerie_cli.schemas.api import ApiResourceSampleResults
 from aerie_cli.schemas.api import ApiSimulatedResourceSample
-from aerie_cli.schemas.api import ApiSimulationResults
+from aerie_cli.schemas.api import ApiSimulationDataset
 from aerie_cli.schemas.api import ActivityBase
 from aerie_cli.schemas.api import ApiParcelRead
 from aerie_cli.schemas.api import ApiParcelCreate
+from aerie_cli.schemas.api import ApiUserSequenceCreate
+from aerie_cli.schemas.api import ApiUserSequenceRead
 
 def parse_timedelta_str_converter(t) -> timedelta:
     if isinstance(t, str):
@@ -245,31 +247,38 @@ class ActivityPlanRead(EmptyActivityPlan):
 
 
 @define
-class AsSimulatedActivity(ClientSerialize):
-    type: str
+class SimulatedActivity(ClientSerialize):
     id: str
+    type: str
+    arguments: Dict[str, Any]
+    computed_attributes: Dict[str, Any]
     parent_id: Optional[str]
-    start_time: Arrow = field(
-        converter = arrow.get
-    )
-    children: List[str]
-    duration: timedelta = field(
-        converter = parse_timedelta_str_converter
-    )
-    parameters: Dict[str, Any]
+    start_time: Arrow = field(converter = arrow.get)
+    end_time: Arrow = field(converter = arrow.get)
+    start_offset: timedelta = field(converter = parse_timedelta_str_converter)
+    duration: timedelta = field(converter = parse_timedelta_str_converter)
+    directive: Optional[Activity]
 
     @classmethod
     def from_api_as_simulated_activity(
-        cls, api_as_simulated_activity: ApiAsSimulatedActivity, id: str
+        cls, api_as_simulated_activity: ApiSimulatedActivity
     ):
-        return AsSimulatedActivity(
-            type=api_as_simulated_activity.type,
-            id=id,
+        if api_as_simulated_activity.activity_directive is None:
+            directive = None
+        else:
+            directive = Activity.from_api_read(api_as_simulated_activity.activity_directive)
+
+        return SimulatedActivity(
+            id=api_as_simulated_activity.id,
+            type=api_as_simulated_activity.activity_type_name,
+            arguments=api_as_simulated_activity.attributes["arguments"],
+            computed_attributes=api_as_simulated_activity.attributes["computedAttributes"],
             parent_id=api_as_simulated_activity.parent_id,
-            start_time=api_as_simulated_activity.start_timestamp,
-            children=api_as_simulated_activity.children,
+            start_time=api_as_simulated_activity.start_time,
+            end_time=api_as_simulated_activity.end_time,
+            start_offset=api_as_simulated_activity.start_offset,
             duration=api_as_simulated_activity.duration,
-            parameters=api_as_simulated_activity.arguments,
+            directive=directive
         )
 
 
@@ -304,32 +313,43 @@ class SimulatedResourceTimeline(ClientSerialize):
 
 
 @define
-class SimulationResults(ClientSerialize):
-    start_time: Arrow = field(
-        converter = arrow.get
-    )
-    activities: List[AsSimulatedActivity]
-    resources: List[SimulatedResourceTimeline]
+class SimulationDataset(ClientSerialize):
+    id: int
+    arguments: Dict[str, Any]
+    status: str
+    dataset_id: int
+    start_time: Arrow = field(converter = arrow.get)
+    end_time: Arrow = field(converter = arrow.get)
+    activities: List[SimulatedActivity]
+    # resources: List[SimulatedResourceTimeline]
+
+    @classmethod
+    def from_api_dict(cls, api_dict: Dict) -> "SimulationDataset":
+        return cls.from_api_results(ApiSimulationDataset.from_dict(api_dict))
 
     @classmethod
     def from_api_results(
         cls,
-        api_sim_results: ApiSimulationResults,
-        api_resource_timeline: ApiResourceSampleResults,
-    ):
-        plan_start = api_sim_results.start
-        return SimulationResults(
-            start_time=plan_start,
+        api_sim_results: ApiSimulationDataset,
+        # api_resource_timeline: ApiResourceSampleResults,
+    ) -> "SimulationDataset":
+        return SimulationDataset(
+            id=api_sim_results.id,
+            arguments=api_sim_results.arguments,
+            status=api_sim_results.status,
+            dataset_id=api_sim_results.dataset_id,
+            start_time=api_sim_results.simulation_start_time,
+            end_time=api_sim_results.simulation_end_time,
             activities=[
-                AsSimulatedActivity.from_api_as_simulated_activity(act, id)
-                for id, act in api_sim_results.activities.items()
-            ],
-            resources=[
-                SimulatedResourceTimeline.from_api_sim_res_timeline(
-                    name, api_timeline, plan_start
-                )
-                for name, api_timeline in api_resource_timeline.resourceSamples.items()
-            ],
+                SimulatedActivity.from_api_as_simulated_activity(act)
+                for act in api_sim_results.simulated_activities
+            ]
+            # resources=[
+            #     SimulatedResourceTimeline.from_api_sim_res_timeline(
+            #         name, api_timeline, plan_start
+            #     )
+            #     for name, api_timeline in api_resource_timeline.resourceSamples.items()
+            # ],
         )
 
 
@@ -469,3 +489,40 @@ class SequenceAdaptationMetadata(ClientSerialize):
     updated_at: Arrow = field(
         converter=arrow.get
     )
+
+
+@define
+class Workspace(ClientSerialize):
+    name: str
+    id: int
+
+
+@define
+class UserSequence(ClientSerialize):
+    name: str
+    definition: str
+    parcel_id: int
+    workspace_id: int
+    id: int = field(default=None)
+
+    def to_api_create(self) -> ApiUserSequenceCreate:
+        return ApiUserSequenceCreate(
+            name=self.name,
+            definition=self.definition,
+            parcel_id=self.parcel_id,
+            workspace_id=self.workspace_id
+        )
+
+    @classmethod
+    def from_api_dict(cls, sequence: Dict) -> "UserSequence":
+        return cls.from_api_read(ApiUserSequenceRead.from_dict(sequence))
+
+    @classmethod
+    def from_api_read(cls, sequence: ApiUserSequenceRead) -> "UserSequence":
+        return cls(
+            name=sequence.name,
+            definition=sequence.definition,
+            parcel_id=sequence.parcel_id,
+            workspace_id=sequence.workspace_id,
+            id=sequence.id
+        )

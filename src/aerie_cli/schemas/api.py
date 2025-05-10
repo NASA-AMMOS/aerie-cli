@@ -147,17 +147,27 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
 
 
 @define
-class ApiAsSimulatedActivity(ApiSerialize):
-    type: str
-    parent_id: Optional[str]
-    start_timestamp: Arrow = field(
-        converter = arrow.get
-    )
-    children: List[str]
-    duration: timedelta = field(
-        converter = lambda microseconds: timedelta(microseconds=microseconds)
-    )
+class ApiSimulatedActivity(ApiSerialize):
+    id: int
+    activity_type_name: str
+    attributes: Dict[str, Any]
+    parent_id: Optional[int]
+    start_time: Arrow = field(converter = arrow.get)
+    end_time: Arrow = field(converter = arrow.get) # TODO what does this look like for an unfinished activity?
+    start_offset: timedelta = field(converter = postgres_interval_to_timedelta)
+    duration: timedelta = field(converter = postgres_interval_to_timedelta) # TODO handle unfinished activties?
+    activity_directive: Optional[ApiActivityRead] = field(converter = converters.optional(lambda a: ApiActivityRead.from_dict(a)))
+
+
+@define
+class ApiSimulationDataset(ApiSerialize):
+    id: int
     arguments: Dict[str, Any]
+    status: str
+    dataset_id: int
+    simulation_start_time: Arrow = field(converter = arrow.get)
+    simulation_end_time: Arrow = field(converter = arrow.get)
+    simulated_activities: List[ApiSimulatedActivity] = field(converter = lambda acts: [ApiSimulatedActivity.from_dict(a) for a in acts])
 
 
 @define
@@ -166,19 +176,6 @@ class ApiSimulatedResourceSample(ApiSerialize):
         converter = lambda microseconds: timedelta(microseconds=microseconds)
     )
     y: Any
-
-
-@define
-class ApiSimulationResults(ApiSerialize):
-    start: Arrow = field(
-        converter = arrow.get
-    )
-    activities: Dict[str, ApiAsSimulatedActivity]
-    unfinishedActivities: Any
-    # TODO: implement constraints
-    constraints: Any
-    # TODO: implement events
-    events: Any
 
 
 @define
@@ -210,3 +207,14 @@ class ApiParcelCreate(ApiSerialize):
 class ApiParcelRead(ApiParcelCreate):
     id: int
     parameter_dictionaries: Dict[str, int]
+
+@define
+class ApiUserSequenceCreate(ApiSerialize):
+    name: str
+    definition: str
+    parcel_id: str
+    workspace_id: str
+
+@define
+class ApiUserSequenceRead(ApiUserSequenceCreate):
+    id: int
