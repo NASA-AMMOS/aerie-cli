@@ -7,7 +7,8 @@ from aerie_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
 
 class MockJWT:
     def __init__(self, *args, **kwargs):
-        self.default_role = 'viewer'
+        self.default_role = "viewer"
+
 
 class MockResponse:
     def __init__(self, json: Dict, text: str = None, ok: bool = True) -> None:
@@ -33,15 +34,16 @@ class MockSession:
         return self.mock_response
 
 
-def get_mock_aerie_host(json: Dict = None, text: str = None, ok: bool = True) -> AerieHost:
+def get_mock_aerie_host(
+    json: Dict = None, text: str = None, ok: bool = True
+) -> AerieHost:
     mock_response = MockResponse(json, text, ok)
     mock_session = MockSession(mock_response)
-    return AerieHost("", "", mock_session)
+    return AerieHost("", "", "", mock_session)
 
 
 def test_check_aerie_version():
-    aerie_host = get_mock_aerie_host(
-        json={"version": COMPATIBLE_AERIE_VERSIONS[0]})
+    aerie_host = get_mock_aerie_host(json={"version": COMPATIBLE_AERIE_VERSIONS[0]})
 
     aerie_host.check_aerie_version()
 
@@ -51,8 +53,10 @@ def test_authenticate_invalid_version(capsys, monkeypatch):
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
+
     def mock_post(*_, **__):
         return MockResponse({"token": ""})
+
     def mock_check_auth(*_, **__):
         return True
 
@@ -72,8 +76,10 @@ def test_authenticate_invalid_version_force(capsys, monkeypatch):
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
+
     def mock_post(*_, **__):
         return MockResponse({"token": ""})
+
     def mock_check_auth(*_, **__):
         return True
 
@@ -97,8 +103,7 @@ def test_no_version_endpoint():
 
 
 def test_version_broken_gateway():
-    aerie_host = get_mock_aerie_host(
-        text="502 Bad Gateway or something", ok=True)
+    aerie_host = get_mock_aerie_host(text="502 Bad Gateway or something", ok=True)
 
     with pytest.raises(RuntimeError) as e:
         aerie_host.check_aerie_version()

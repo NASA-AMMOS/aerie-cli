@@ -2,6 +2,7 @@
 
 `app` is the CLI application with which all commands, subcommands, and callbacks are registered.
 """
+
 import typer
 from typing import Optional
 
@@ -12,6 +13,7 @@ from aerie_cli.commands import expansion
 from aerie_cli.commands import constraints
 from aerie_cli.commands import scheduling
 from aerie_cli.commands import metadata
+from aerie_cli.commands import workspace
 
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.__version__ import __version__
@@ -34,6 +36,7 @@ app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
 app.add_typer(metadata.app, name="metadata")
+app.add_typer(workspace.app, name="workspace")
 
 
 def print_version(print_version: bool):
@@ -86,12 +89,20 @@ def activate_session(
         None, "--name", "-n", help="Name for this configuration", metavar="NAME"
     ),
     username: str = typer.Option(
-        None, "--username", "-u", help="Specify/override configured Aerie username", metavar="USERNAME"
+        None,
+        "--username",
+        "-u",
+        help="Specify/override configured Aerie username",
+        metavar="USERNAME",
     ),
     role: str = typer.Option(
         None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
     ),
-    force: bool = typer.Option(False, "--force", help="Force connection to Aerie host and ignore version compatibility")
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Force connection to Aerie host and ignore version compatibility",
+    ),
 ):
     """
     Activate a session with an Aerie host using a given configuration

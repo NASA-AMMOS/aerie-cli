@@ -329,6 +329,7 @@ my_custom_requests_session = Session()
 aerie_host = AerieHost(
     GRAPHQL_URL,
     GATEWAY_URL,
+    FILESTORE_URL,
     session=my_custom_requests_session
 )
 aerie_host.authenticate(...)
