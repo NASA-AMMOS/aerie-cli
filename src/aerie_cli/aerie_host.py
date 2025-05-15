@@ -1,4 +1,6 @@
 import json
+from posixpath import basename
+from urllib.parse import urlencode
 import requests
 from copy import deepcopy
 from typing import Dict
@@ -13,7 +15,9 @@ COMPATIBLE_AERIE_VERSIONS = [
     "3.1.0",
     "3.1.1",
     "3.2.0",
+    "3.4.0",
 ]
+
 
 class AerieHostVersionError(RuntimeError):
     pass
@@ -54,7 +58,9 @@ class AerieJWT:
             self.allowed_roles = payload["https://hasura.io/jwt/claims"][
                 "x-hasura-allowed-roles"
             ]
-            self.default_role = payload["https://hasura.io/jwt/claims"]["x-hasura-default-role"]
+            self.default_role = payload["https://hasura.io/jwt/claims"][
+                "x-hasura-default-role"
+            ]
             self.username = payload["username"]
 
         except KeyError:
@@ -78,6 +84,7 @@ class AerieHost:
         self,
         graphql_url: str,
         gateway_url: str,
+        filestore_url: str,
         session: requests.Session = None,
         configuration_name: str = None,
     ) -> None:
@@ -92,6 +99,7 @@ class AerieHost:
         self.session = session if session else requests.Session()
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
+        self.filestore_url = filestore_url
         self.configuration_name = configuration_name
         self.aerie_jwt = None
         self.active_role = None
@@ -127,9 +135,7 @@ class AerieHost:
             if "success" in resp_json.keys() and not resp_json["success"]:
                 raise RuntimeError("GraphQL request was not successful")
             elif "errors" in resp_json.keys():
-                raise RuntimeError(
-                    f"GraphQL Error: {json.dumps(resp_json['errors'])}"
-                )
+                raise RuntimeError(f"GraphQL Error: {json.dumps(resp_json['errors'])}")
             else:
                 data = next(iter(resp.json()["data"].values()))
 
@@ -201,6 +207,78 @@ class AerieHost:
         else:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
+    def create_workspace(
+        self,
+        name: str,
+        parcel_id: int,
+        disk_location: str,
+    ) -> int:
+        file_url = f"{self.filestore_url}/ws/create"
+        resp = self.session.post(
+            file_url,
+            json={
+                "workspaceLocation": disk_location,
+                "parcelId": parcel_id,
+                "workspaceName": name,
+            },
+            headers=self.get_auth_headers(),
+        )
+        workspace_id = int(resp.text)
+        return workspace_id
+
+    def put_workspace_file(
+        self,
+        workspace_id: int,
+        path: str,
+        file_contents: bytes,
+    ) -> str:
+        """Save file contents to workspace"""
+        file_url = f"{self.filestore_url}/ws/{workspace_id}/{path}?type=file"
+        self.session.put(
+            file_url,
+            files={"file": (basename(path), file_contents)},
+            headers=self.get_auth_headers(),
+        )
+        return file_url
+
+    def put_workspace_directory(
+        self,
+        workspace_id: int,
+        path: str,
+    ) -> str:
+        """Save directory to workspace"""
+        file_url = f"{self.filestore_url}/ws/{workspace_id}/{path}?type=directory"
+        self.session.put(
+            file_url,
+            headers=self.get_auth_headers(),
+        )
+        return file_url
+
+    def get_workspace_file(
+        self,
+        workspace_id: int,
+        path: str,
+    ) -> bytes:
+        """Save file contents from workspace"""
+        file_url = f"{self.filestore_url}/ws/{workspace_id}/{path}"
+        resp = self.session.get(
+            file_url,
+            headers=self.get_auth_headers(),
+        )
+        return resp.content
+
+    def list_files(
+        self,
+        workspace_id: int,
+        prefix: Optional[str],
+        depth: Optional[int],
+    ):
+        """List"""
+        sub_dir = "" if prefix is None else f"/{prefix}"
+        qs = "" if depth is None else f'?{urlencode({"depth": depth})}'
+        list_url = f"{self.filestore_url}/ws/{workspace_id}{sub_dir}{qs}"
+        return self.session.get(list_url, headers=self.get_auth_headers())
+
     def change_role(self, new_role: str) -> None:
         """Change role for Aerie interaction
 
@@ -217,7 +295,7 @@ class AerieHost:
 
     def check_auth(self) -> bool:
         """Checks if session is correctly authenticated with Aerie host
-        
+
         Looks for errors received after pinging GATEWAY_URL/auth/session.
         Also returns False if the session has not yet been authenticated (no JWT).
 
@@ -254,11 +332,14 @@ class AerieHost:
             bool: False if authentication is disabled, otherwise True
         """
         # Try to login using blank credentials. If "Authentication is disabled" is returned, we can safely skip auth
-        resp = self.session.post(self.gateway_url + "/auth/login", json={"username": "", "password": ""},)
+        resp = self.session.post(
+            self.gateway_url + "/auth/login",
+            json={"username": "", "password": ""},
+        )
 
         if resp.ok:
             try:
-                resp_json = process_gateway_response(resp)                
+                resp_json = process_gateway_response(resp)
                 if (
                     "message" in resp_json.keys()
                     and resp_json["message"] == "Authentication is disabled"
@@ -311,8 +392,10 @@ class AerieHost:
         except (RuntimeError, KeyError):
             # If the Gateway responded, the route doesn't exist
             if resp.text and "Aerie Gateway" in resp.text:
-                raise AerieHostVersionError("Incompatible Aerie version: host version unknown")
-            
+                raise AerieHostVersionError(
+                    "Incompatible Aerie version: host version unknown"
+                )
+
             # Otherwise, it could just be a failed connection
             raise
 
@@ -372,6 +455,7 @@ class AerieHostConfiguration:
     name: str
     graphql_url: str
     gateway_url: str
+    filestore_url: str
     username: Optional[str] = field(default=None)
     external_auth: Optional[ExternalAuthConfiguration] = field(default=None)
 
@@ -381,19 +465,27 @@ class AerieHostConfiguration:
             name = config["name"]
             graphql_url = config["graphql_url"]
             gateway_url = config["gateway_url"]
+            filestore_url = config["filestore_url"]
             username = config["username"] if "username" in config.keys() else None
-            external_auth = ExternalAuthConfiguration.from_dict(config["external_auth"]) if "external_auth" in config.keys() else None
+            external_auth = (
+                ExternalAuthConfiguration.from_dict(config["external_auth"])
+                if "external_auth" in config.keys()
+                else None
+            )
 
         except KeyError as e:
             raise ValueError(f"Configuration missing required field: {e.args[0]}")
 
-        return cls(name, graphql_url, gateway_url, username, external_auth)
+        return cls(
+            name, graphql_url, gateway_url, filestore_url, username, external_auth
+        )
 
     def to_dict(self) -> Dict:
         retval = {
             "name": self.name,
             "graphql_url": self.graphql_url,
-            "gateway_url": self.gateway_url
+            "gateway_url": self.gateway_url,
+            "filestore_url": self.filestore_url,
         }
 
         if self.username is not None:

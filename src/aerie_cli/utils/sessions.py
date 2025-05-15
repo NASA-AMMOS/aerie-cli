@@ -3,9 +3,15 @@ from typing import Dict
 import typer
 from copy import deepcopy
 
-from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration, ExternalAuthConfiguration, AerieJWT
+from aerie_cli.aerie_host import (
+    AerieHost,
+    AerieHostConfiguration,
+    ExternalAuthConfiguration,
+    AerieJWT,
+)
 from aerie_cli.aerie_client import AerieClient
 from aerie_cli.persistent import PersistentSessionManager
+
 
 def get_active_session_client():
     """Instantiate AerieClient with the active host session
@@ -27,12 +33,14 @@ def get_localhost_client() -> AerieClient:
     return AerieClient(aerie_host)
 
 
-def get_preauthenticated_client_native(encoded_jwt: str, graphql_url: str, gateway_url: str) -> AerieClient:
+def get_preauthenticated_client_native(
+    encoded_jwt: str, graphql_url: str, gateway_url: str
+) -> AerieClient:
     """Get AerieClient instance preauthenticated with native Aerie JWT auth
 
     Args:
         encoded_jwt (str): base64-encoded Aerie JWT
-        graphql_url (str) 
+        graphql_url (str)
         gateway_url (str)
 
     Raises:
@@ -48,7 +56,9 @@ def get_preauthenticated_client_native(encoded_jwt: str, graphql_url: str, gatew
     return AerieClient(aerie_host)
 
 
-def get_preauthenticated_client_cookie(cookies: dict, encoded_jwt: str, graphql_url: str, gateway_url: str) -> AerieClient:
+def get_preauthenticated_client_cookie(
+    cookies: dict, encoded_jwt: str, graphql_url: str, gateway_url: str
+) -> AerieClient:
     """Get AerieClient instance preauthenticated with an external cookie(s) and JWT
 
     Args:
@@ -102,7 +112,9 @@ def authenticate_with_external(
         if secret_var_name in secret_post_vars.keys():
             post_vars[secret_var_name] = secret_post_vars[secret_var_name]
         else:
-            post_vars[secret_var_name] = typer.prompt(f"External authentication - {secret_var_name}", hide_input=True)
+            post_vars[secret_var_name] = typer.prompt(
+                f"External authentication - {secret_var_name}", hide_input=True
+            )
 
     resp = session.post(configuration.auth_url, json=post_vars)
 
@@ -115,11 +127,11 @@ def authenticate_with_external(
 
 
 def start_session_from_configuration(
-    configuration: AerieHostConfiguration, 
-    username: str = None, 
+    configuration: AerieHostConfiguration,
+    username: str = None,
     password: str = None,
     secret_post_vars: Dict[str, str] = None,
-    force: bool = False
+    force: bool = False,
 ):
     """Start and authenticate an Aerie Host session, with prompts if necessary
 
@@ -128,8 +140,8 @@ def start_session_from_configuration(
     If password is not provided but the Aerie instance has authentication enabled, it will be requested via CLI prompt.
     If the Aerie instance has authentication disabled, a password is not necessary.
 
-    If external authentication is specified in the configuration, `secret_post_vars` can be used to pass in 
-    credentials. If external auth is specified with secrets and matching credentials aren't provided, they will be 
+    If external authentication is specified in the configuration, `secret_post_vars` can be used to pass in
+    credentials. If external auth is specified with secrets and matching credentials aren't provided, they will be
     requested via CLI prompt.
 
     Args:
@@ -140,17 +152,20 @@ def start_session_from_configuration(
         force (bool, optional): Force connection to Aerie host and ignore version compatibility. Defaults to False.
 
     Returns:
-        AerieHost: 
+        AerieHost:
     """
 
     if configuration.external_auth is None:
         session = requests.Session()
     else:
-        session = authenticate_with_external(configuration.external_auth, secret_post_vars)
+        session = authenticate_with_external(
+            configuration.external_auth, secret_post_vars
+        )
 
     hs = AerieHost(
         configuration.graphql_url,
         configuration.gateway_url,
+        configuration.filestore_url,
         session,
         configuration.name,
     )

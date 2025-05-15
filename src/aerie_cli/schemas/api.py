@@ -24,6 +24,7 @@ from aerie_cli.utils.serialization import timedelta_to_postgres_interval
 
 import json
 
+
 def convert_to_time_delta(t: Union[str, timedelta]) -> timedelta:
     """Convert a string to timedelta.
 
@@ -33,6 +34,7 @@ def convert_to_time_delta(t: Union[str, timedelta]) -> timedelta:
         return t
     return postgres_interval_to_timedelta(t)
 
+
 def serialize_api(inst: type, field: Attribute, value: Any):
     if isinstance(value, timedelta):
         return timedelta_to_postgres_interval(value)
@@ -40,20 +42,25 @@ def serialize_api(inst: type, field: Attribute, value: Any):
         return str(value)
     return value
 
+
 class ApiSerialize:
     @classmethod
     def from_dict(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**dictionary)
+
     def to_dict(self) -> Dict:
         return asdict(self, value_serializer=serialize_api)
+
     @classmethod
     def from_json(cls, dictionary: Dict) -> "ApiSerialize":
         return cls(**json.loads(dictionary))
+
 
 @define
 class ApiEffectiveActivityArguments(ApiSerialize):
     arguments: Dict[str, Any]
     success: bool
+
 
 @define
 class ActivityBase(ApiSerialize):
@@ -63,14 +70,10 @@ class ActivityBase(ApiSerialize):
     """
 
     type: str
-    start_offset: timedelta = field(
-        converter = convert_to_time_delta
-    )
+    start_offset: timedelta = field(converter=convert_to_time_delta)
     metadata: Optional[Dict[str, str]] = field(factory=lambda: {}, kw_only=True)
     name: Optional[str] = field(factory=lambda: "", kw_only=True)
-    arguments: Optional[Dict[str, Any]] = field(
-        factory=lambda: [], kw_only=True
-    )
+    arguments: Optional[Dict[str, Any]] = field(factory=lambda: [], kw_only=True)
     anchor_id: Optional[int] = field(default=None, kw_only=True)
     anchored_to_start: Optional[bool] = field(default=None, kw_only=True)
 
@@ -79,7 +82,9 @@ class ActivityBase(ApiSerialize):
         # Enforce that anchored_to_start must be specified if an anchor ID is given
         if self.anchored_to_start is None:
             if self.anchor_id is not None:
-                raise ValueError(f"anchor_id was specified but anchored_to_start was not")
+                raise ValueError(
+                    "anchor_id was specified but anchored_to_start was not"
+                )
             self.anchored_to_start = True
 
 
@@ -112,37 +117,40 @@ class ApiActivityRead(ActivityBase):
 
     id: int
 
+
 @define
 class ApiActivityPlanBase(ApiSerialize):
     model_id: int
     name: str
-    start_time: Arrow = field(
-        converter=arrow.get
-    )
+    start_time: Arrow = field(converter=arrow.get)
+
 
 @define
 class ApiActivityPlanCreate(ApiActivityPlanBase):
     duration: timedelta = field(
-        converter = convert_to_time_delta,
+        converter=convert_to_time_delta,
     )
+
 
 @define
 class ApiActivityPlanRead(ApiActivityPlanBase):
     id: int
     simulations: List[int]
     duration: timedelta = field(
-        converter = convert_to_time_delta,
+        converter=convert_to_time_delta,
     )
     activity_directives: Optional[List[ApiActivityRead]] = field(
-        default = None,
+        default=None,
         converter=converters.optional(
-            lambda listOfDicts: [ApiActivityRead.from_dict(d) if isinstance(d, dict) else d for d in listOfDicts])
+            lambda listOfDicts: [
+                ApiActivityRead.from_dict(d) if isinstance(d, dict) else d
+                for d in listOfDicts
+            ]
+        ),
     )
     tags: Optional[List[Dict]] = field(
-        default = [], 
-        converter=converters.optional(
-            lambda listOfDicts: [d for d in listOfDicts]
-        )
+        default=[],
+        converter=converters.optional(lambda listOfDicts: [d for d in listOfDicts]),
     )
 
 
@@ -150,12 +158,10 @@ class ApiActivityPlanRead(ApiActivityPlanBase):
 class ApiAsSimulatedActivity(ApiSerialize):
     type: str
     parent_id: Optional[str]
-    start_timestamp: Arrow = field(
-        converter = arrow.get
-    )
+    start_timestamp: Arrow = field(converter=arrow.get)
     children: List[str]
     duration: timedelta = field(
-        converter = lambda microseconds: timedelta(microseconds=microseconds)
+        converter=lambda microseconds: timedelta(microseconds=microseconds)
     )
     arguments: Dict[str, Any]
 
@@ -163,16 +169,14 @@ class ApiAsSimulatedActivity(ApiSerialize):
 @define
 class ApiSimulatedResourceSample(ApiSerialize):
     x: timedelta = field(
-        converter = lambda microseconds: timedelta(microseconds=microseconds)
+        converter=lambda microseconds: timedelta(microseconds=microseconds)
     )
     y: Any
 
 
 @define
 class ApiSimulationResults(ApiSerialize):
-    start: Arrow = field(
-        converter = arrow.get
-    )
+    start: Arrow = field(converter=arrow.get)
     activities: Dict[str, ApiAsSimulatedActivity]
     unfinishedActivities: Any
     # TODO: implement constraints
@@ -206,7 +210,17 @@ class ApiParcelCreate(ApiSerialize):
     channel_dictionary_id: int
     sequence_adaptation_id: int
 
+
 @define
 class ApiParcelRead(ApiParcelCreate):
     id: int
     parameter_dictionaries: Dict[str, int]
+
+
+@define
+class ApiWorkspaceCreate(ApiSerialize):
+    name: str
+    owner: str
+    parcel_id: int
+    disk_location: str
+    updated_by: str
