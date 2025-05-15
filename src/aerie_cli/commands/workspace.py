@@ -1,7 +1,6 @@
-from builtins import list as list_builtin
-from genericpath import isdir, isfile
+from genericpath import isdir
 from os import walk
-from posixpath import commonpath, join, normpath, relpath
+from posixpath import join, normpath, relpath
 from typing import Optional
 
 import typer
@@ -39,7 +38,7 @@ def create(
 @app.command()
 def list(
     workspace_id: Optional[int] = typer.Option(
-        None, "--workspace_id", "-w", help="The workspace id"
+        None, "--workspace_id", "-w", help="Workspace id to list"
     ),
     base_directory: Optional[str] = typer.Option(
         None, "--base_directory", "-b", help="Path of directory within workspace"
@@ -94,7 +93,7 @@ def list_workspace_contents(
 @app.command()
 def save(
     workspace_id: int = typer.Option(
-        ..., "--workspace_id", "-w", help="The workspace id"
+        ..., "--workspace_id", "-w", help="Id of workspace to save file to"
     ),
     workspace_path: str = typer.Option(
         ..., "--path", "-p", help="The relative path within the workspace"
@@ -132,7 +131,7 @@ def contained_files(path: str):
 @app.command()
 def get(
     workspace_id: int = typer.Option(
-        ..., "--workspace_id", "-w", help="The workspace id"
+        ..., "--workspace_id", "-w", help="Id of workspace to get file from"
     ),
     workspace_path: str = typer.Option(
         ..., "--path", "-p", help="The relative path within the workspace"

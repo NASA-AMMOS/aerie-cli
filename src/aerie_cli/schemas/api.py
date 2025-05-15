@@ -83,7 +83,7 @@ class ActivityBase(ApiSerialize):
         if self.anchored_to_start is None:
             if self.anchor_id is not None:
                 raise ValueError(
-                    f"anchor_id was specified but anchored_to_start was not"
+                    "anchor_id was specified but anchored_to_start was not"
                 )
             self.anchored_to_start = True
 

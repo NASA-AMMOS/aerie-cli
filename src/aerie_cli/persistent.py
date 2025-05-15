@@ -23,6 +23,7 @@ CONFIGURATION_FILE_PATH = CONFIGURATION_FILE_DIRECTORY.joinpath("config.json")
 SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_config_dir).resolve().absolute()
 SESSION_TIMESTAMP_FSTRING = r"%Y-%jT%H-%M-%S.%f"
 SESSION_TIMEOUT = timedelta(hours=12)
+SESSION_FILE_PATTERN = "*.aerie_cli.session"
 
 
 def delete_all_persistent_files():
@@ -127,7 +128,7 @@ class PersistentSessionManager:
 
         # Get any/all open sessions. List in chronological order, newest first
         session_files: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob("*.aerie_cli.session")
+            f for f in SESSION_FILE_DIRECTORY.glob(SESSION_FILE_PATTERN)
         ]
         session_files.sort(reverse=True)
 
@@ -180,7 +181,7 @@ class PersistentSessionManager:
             return False
 
         session_files: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob("*.aerie_cli.session")
+            f for f in SESSION_FILE_DIRECTORY.glob(SESSION_FILE_PATTERN)
         ]
         for session_file in session_files:
             session_file.unlink()
@@ -211,7 +212,7 @@ class PersistentSessionManager:
         except NoActiveSessionError:
             return None
 
-        fs: List[Path] = [f for f in SESSION_FILE_DIRECTORY.glob("*.aerie_cli.session")]
+        fs: List[Path] = [f for f in SESSION_FILE_DIRECTORY.glob(SESSION_FILE_PATTERN)]
         for fn in fs:
             fn.unlink()
 
@@ -224,7 +225,7 @@ class PersistentSessionManager:
         cls._active_session = None
 
         # Get any/all open sessions. List in chronological order, newest first
-        fs: List[Path] = [f for f in SESSION_FILE_DIRECTORY.glob("*.aerie_cli.session")]
+        fs: List[Path] = [f for f in SESSION_FILE_DIRECTORY.glob(SESSION_FILE_PATTERN)]
         if not len(fs):
             return
         # Delete all session files
