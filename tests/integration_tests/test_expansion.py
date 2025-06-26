@@ -2,16 +2,13 @@ import os
 import pytest
 import arrow
 
-from typer.testing import CliRunner
 from pathlib import Path
 
 from aerie_cli.__main__ import app
 from aerie_cli.schemas.client import ActivityPlanCreate
 from aerie_cli.schemas.client import Parcel
 
-from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH
-
-runner = CliRunner(mix_stderr = False)
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH, RUNNER
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -91,7 +88,7 @@ def test_get_typescript_dictionary():
         fid.write(ts_dict)
 
 def test_expansion_sequence_create():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sequences", "create"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + str(2) + "\n",
@@ -102,7 +99,7 @@ def test_expansion_sequence_create():
     assert "Successfully created sequence" in result.stdout
 
 def test_expansion_sequence_list():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sequences", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
@@ -113,7 +110,7 @@ def test_expansion_sequence_list():
     assert "All sequences for Simulation Dataset" in result.stdout
 
 def test_expansion_sequence_download():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sequences", "download"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
@@ -126,7 +123,7 @@ def test_expansion_sequence_download():
     path_to_sequence.unlink()
 
 def test_expansion_sequence_delete():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sequences", "delete"],
         input=str(sim_id) + "\n" + str(expansion_sequence_id) + "\n",
@@ -143,7 +140,7 @@ def test_expansion_sequence_delete():
 
 
 def test_expansion_deploy():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         [
             "expansion",
@@ -182,7 +179,7 @@ def test_expansion_set_create():
         model_id=model_id,
         parcel_id=parcel_id
     )
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         [
             "expansion", 
@@ -212,7 +209,7 @@ def test_expansion_set_create():
         f"{result.stderr}"
 
 def test_expansion_set_get():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sets", "get"],
         input=str(expansion_set_id) + "\n",
@@ -223,7 +220,7 @@ def test_expansion_set_get():
     assert "Expansion Set" in result.stdout and "Contents" in result.stdout
 
 def test_expansion_set_list():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "sets", "list"],
         catch_exceptions=False,)
@@ -238,7 +235,7 @@ def test_expansion_set_list():
 # Uses plan and simulation dataset
 #######################
 def test_expansion_run_create():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "runs", "create"],
         input=str(sim_id) + "\n" + str(expansion_set_id) + "\n",
@@ -249,7 +246,7 @@ def test_expansion_run_create():
     assert "Expansion Run ID: " in result.stdout
 
 def test_expansion_runs_list():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["expansion", "runs", "list"],
         input="2" + "\n" + str(sim_id) + "\n",
@@ -264,7 +261,7 @@ def test_expansion_runs_list():
 #######################
 
 def test_model_delete():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),

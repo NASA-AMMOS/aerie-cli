@@ -1,15 +1,12 @@
 import os
 import pytest
 
-from typer.testing import CliRunner
 from pathlib import Path
 
 from aerie_cli.__main__ import app
 from aerie_cli.commands import plans
 
-from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH
-
-runner = CliRunner(mix_stderr = False)
+from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH, RUNNER
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -45,7 +42,7 @@ def set_up_environment(request):
         version=MODEL_VERSION)
 
 def cli_plan_simulate():
-    return runner.invoke(
+    return RUNNER.invoke(
         app,
         ["plans", "simulate", "--output", PLAN_ARTIFACTS_PATH.joinpath("cli_plan_simulate.json")],
         input=str(plan_id) + "\n",
@@ -62,7 +59,7 @@ def test_plan_upload():
     plans.clean()
 
     # Test plan upload
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "upload", "--time-tag"],
         input=PLAN_JSON + "\n" + str(model_id) + "\n",
@@ -81,7 +78,7 @@ def test_plan_upload():
     assert f"Created plan ID: {plan_id}" in result.stdout
 
 def test_plan_duplicate():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "duplicate"],
         input=str(plan_id) + "\n" + DUP_PLAN_NAME + "\n",
@@ -100,7 +97,7 @@ def test_plan_duplicate():
 
 
 def test_plan_list():
-    result = runner.invoke(app, ["plans", "list"],
+    result = RUNNER.invoke(app, ["plans", "list"],
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -118,7 +115,7 @@ def test_list_empty_plan_collaborators():
     """
     Should be no plan collaborators to start
     """
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "collaborators", "list"],
         input=str(plan_id) + "\n",
@@ -136,7 +133,7 @@ def test_add_collaborators():
 
     # Add all additional users as collaborators
     for username in ADDITIONAL_USERS:
-        result = runner.invoke(
+        result = RUNNER.invoke(
             app,
             ["plans", "collaborators", "add"],
             input=str(plan_id) + "\n" + username + "\n",
@@ -154,7 +151,7 @@ def test_list_plan_collaborators():
     """
     Check that the `plans collaborators list` command lists all collaborators
     """
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "collaborators", "list"],
         input=str(plan_id) + "\n",
@@ -171,7 +168,7 @@ def test_delete_collaborators():
     Delete a collaborator and verify the result
     """
     user_to_delete = ADDITIONAL_USERS[0]
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "collaborators", "delete"],
         input=str(plan_id) + "\n" + "1" + "\n",
@@ -198,7 +195,7 @@ def test_plan_simulate():
     assert f"Simulation completed" in result.stdout
 
 def test_plan_download():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "download"],
         input=str(plan_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
@@ -216,7 +213,7 @@ def test_plan_download_expanded_args():
     """
     Download a plan, exercising the --full-args option to get effective activity arguments
     """
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "download", "--full-args", "true"],
         input=str(plan_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
@@ -231,7 +228,7 @@ def test_plan_download_expanded_args():
     assert f"Wrote activity plan" in result.stdout
 
 def test_plan_download_resources():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "download-resources"],
         input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
@@ -246,7 +243,7 @@ def test_plan_download_resources():
     assert f"Wrote resource timelines" in result.stdout
 
 def test_plan_download_simulation():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "download-simulation"],
         input=str(sim_id) + "\n" + DOWNLOADED_FILE_NAME + "\n",
@@ -261,7 +258,7 @@ def test_plan_download_simulation():
     assert f"Wrote activity plan" in result.stdout
 
 def test_plan_create_config():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "create-config"],
         input=str(plan_id) + "\n" + PLAN_ARGS_INIT + "\n",
@@ -282,7 +279,7 @@ def test_simulate_after_create_config():
     assert f"Simulation completed" in result.stdout
 
 def test_plan_update_config():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "update-config"],
         input=str(plan_id) + "\n" + PLAN_ARGS_UPDATE + "\n",
@@ -307,7 +304,7 @@ def test_simulate_after_update_config():
 #######################
 
 def test_plan_delete():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "delete"],
         input=str(plan_id) + "\n",
@@ -319,7 +316,7 @@ def test_plan_delete():
 
 
 def test_plan_clean():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["plans", "clean"],
         catch_exceptions=False,)
@@ -336,7 +333,7 @@ def test_plan_clean():
 #######################
 
 def test_model_delete():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),

@@ -4,9 +4,11 @@
 import os
 import sys
 import shutil
+import inspect
 
-from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
+from typer.testing import CliRunner
+
+from aerie_cli.aerie_host import AerieHostConfiguration
 from aerie_cli.commands.configurations import (
     delete_all_persistent_files,
     upload_configurations,
@@ -43,10 +45,18 @@ ARTIFACTS_PATH = os.path.join(TEST_DIR, "artifacts")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_VERSION = os.environ.get("AERIE_VERSION", "2.18.0")
+MODEL_VERSION = os.environ.get("AERIE_VERSION", "3.2.0")
 MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
 MODEL_NAME = "banananation"
 MODEL_VERSION = "0.0.1"
+
+def get_test_runner():
+    kwargs = {}
+    if "mix_stderr" in inspect.signature(CliRunner).parameters:
+        # click < 8.2
+        kwargs["mix_stderr"] = False
+    return CliRunner(**kwargs)
+RUNNER = get_test_runner()
 
 # Clean any old artifacts and create folder
 if os.path.exists(ARTIFACTS_PATH):

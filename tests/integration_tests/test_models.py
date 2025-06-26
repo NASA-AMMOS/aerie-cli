@@ -1,12 +1,8 @@
 import os
 
-from typer.testing import CliRunner
-
 from aerie_cli.__main__ import app
 
-from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
-
-runner = CliRunner(mix_stderr = False)
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, RUNNER
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,7 +12,7 @@ FILES_PATH = os.path.join(TEST_DIR, "files")
 model_id = -1
 
 def test_model_clean():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "clean"],
         catch_exceptions=False,
@@ -30,7 +26,7 @@ def test_model_clean():
     )
 
 def test_model_upload():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "upload", "--time-tag-version"],
         input=MODEL_JAR 
@@ -57,7 +53,7 @@ def test_model_upload():
     )
 
 def test_model_list():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "list"],
         catch_exceptions=False,)
@@ -67,7 +63,7 @@ def test_model_list():
     assert "Current Mission Models" in result.stdout
 
 def test_model_delete():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["models", "delete"],
         input=str(model_id),
