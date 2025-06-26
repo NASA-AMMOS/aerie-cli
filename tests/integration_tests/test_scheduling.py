@@ -2,14 +2,10 @@ import os
 import pytest
 import arrow
 
-from typer.testing import CliRunner
-
 from aerie_cli.__main__ import app
 from aerie_cli.schemas.client import ActivityPlanCreate
 
-from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
-
-runner = CliRunner(mix_stderr = False)
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, RUNNER
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -65,7 +61,7 @@ def set_up_environment(request):
 #######################
 
 def cli_goal_upload_ts():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["scheduling", "new", GOAL_PATH_1, "-p", plan_id],
         catch_exceptions=False,
@@ -73,7 +69,7 @@ def cli_goal_upload_ts():
     return result
 
 def cli_goal_upload_jar():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["scheduling", "new", GOAL_PATH_2, "-p", plan_id],
         catch_exceptions=False
@@ -105,7 +101,7 @@ def test_schedule_upload():
         f"{result.stderr}"
 
 def test_goal_update():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["scheduling", "update", GOAL_PATH_2],
         catch_exceptions=False
@@ -118,7 +114,7 @@ def test_goal_update():
 def test_goal_delete():
     assert goal_id != -1, "Goal id was not set"
 
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["scheduling", "delete"],
         input=str(goal_id) + "\n",
@@ -134,7 +130,7 @@ def test_schedule_delete_all():
     cli_goal_upload_jar()
     
     # Delete all goals
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["scheduling", "delete-all-goals-for-plan"],
         input=str(plan_id) + "\n",

@@ -1,6 +1,4 @@
-from typer.testing import CliRunner
-
-from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION
+from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, RUNNER
 from aerie_cli.__main__ import app
 
 from aerie_cli.schemas.client import ActivityPlanCreate
@@ -8,8 +6,6 @@ from aerie_cli.schemas.client import ActivityPlanCreate
 import os
 import pytest
 import arrow
-
-runner = CliRunner(mix_stderr = False)
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -51,7 +47,7 @@ def set_up_environment(request):
     client.simulate_plan(plan_id)
 
 def test_constraint_upload():
-    result = runner.invoke(app, ["constraints", "upload"],
+    result = RUNNER.invoke(app, ["constraints", "upload"],
                            input="Test" + "\n" + CONSTRAINT_PATH + "\n" + str(model_id) + "\n",
                                    catch_exceptions=False)
     assert result.exit_code == 0,\
@@ -69,7 +65,7 @@ def test_constraint_upload():
         f"{result.stderr}"
 
 def test_constraint_add_to_plan():
-    result = runner.invoke(app, ["constraints", "add-to-plan"],
+    result = RUNNER.invoke(app, ["constraints", "add-to-plan"],
                            input=str(plan_id) + "\n" + str(constraint_id) + "\n", catch_exceptions=False)
     assert result.exit_code == 0,\
         f"{result.stdout}"\
@@ -77,7 +73,7 @@ def test_constraint_add_to_plan():
     assert "Added constraint" in result.stdout
 
 def test_constraint_update():
-    result = runner.invoke(app, ["constraints", "update"],
+    result = RUNNER.invoke(app, ["constraints", "update"],
                            input=str(constraint_id) + "\n" + CONSTRAINT_PATH + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -86,7 +82,7 @@ def test_constraint_update():
     assert "Updated constraint" in result.stdout
 
 def test_constraint_violations():
-    result = runner.invoke(app, ["constraints", "violations"],
+    result = RUNNER.invoke(app, ["constraints", "violations"],
                            input=str(plan_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
@@ -98,7 +94,7 @@ def test_constraint_violations():
     assert "Constraint violations: [{" in result.stdout
 
 def test_constraint_delete():
-    result = runner.invoke(app, ["constraints", "delete"],
+    result = RUNNER.invoke(app, ["constraints", "delete"],
                            input=str(constraint_id) + "\n",
                                    catch_exceptions=False,)
     assert result.exit_code == 0,\
