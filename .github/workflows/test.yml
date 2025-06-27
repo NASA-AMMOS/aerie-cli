@@ -49,14 +49,34 @@ jobs:
           pip install . &&
           cd tests &&
           pytest unit_tests"
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+      - name: extract versions
+        id: versions
+        run: |
+          versions=$(python3 -c "from aerie_cli.aerie_host import COMPATIBLE_AERIE_VERSIONS; import json; print(json.dumps(COMPATIBLE_AERIE_VERSIONS))")
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
   integration-test:
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     environment: integration-test-workflow
+    needs: prepare
     strategy:
       matrix:
         python-version: ["3.12"]
-        aerie-version: ["3.0.1", "3.1.1", "3.2.0"]
+        aerie-version: ${{ fromJson(needs.prepare.outputs.versions) }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
