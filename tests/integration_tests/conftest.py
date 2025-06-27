@@ -8,7 +8,7 @@ import inspect
 
 from typer.testing import CliRunner
 
-from aerie_cli.aerie_host import AerieHostConfiguration
+from aerie_cli.aerie_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
 from aerie_cli.commands.configurations import (
     delete_all_persistent_files,
     upload_configurations,
@@ -45,10 +45,9 @@ ARTIFACTS_PATH = os.path.join(TEST_DIR, "artifacts")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_VERSION = os.environ.get("AERIE_VERSION", "3.2.0")
+MODEL_VERSION = os.environ.get("AERIE_VERSION", sorted(COMPATIBLE_AERIE_VERSIONS)[-1])
 MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
 MODEL_NAME = "banananation"
-MODEL_VERSION = "0.0.1"
 
 def get_test_runner():
     kwargs = {}
