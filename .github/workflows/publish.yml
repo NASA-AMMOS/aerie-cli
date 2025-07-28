@@ -1,0 +1,29 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+
+jobs:
+  publish-to-pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          python3 -m pip install poetry
+      - name: Build
+        run: |
+          poetry build
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          print_hash: true
+          verbose: true
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf *.egg-info dist
