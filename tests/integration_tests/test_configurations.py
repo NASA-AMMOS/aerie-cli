@@ -1,7 +1,5 @@
 import os
 
-from typer.testing import CliRunner
-
 from aerie_cli.__main__ import app
 import pytest
 
@@ -9,11 +7,10 @@ from .conftest import\
     HASURA_ADMIN_SECRET,\
     GRAPHQL_URL,\
     GATEWAY_URL,\
-    USERNAME
+    USERNAME,\
+    RUNNER
 from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, NoActiveSessionError
 from aerie_cli.utils.sessions import start_session_from_configuration
-
-runner = CliRunner(mix_stderr = False)
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,7 +24,7 @@ CONFIGURATION_NAME = "localhost"
 configuration_id = -1
 
 def test_configurations_clean():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["configurations", "clean"],
         input="y" + "\n",
@@ -44,7 +41,7 @@ def test_configurations_clean():
 
     no_session_error = False
     try:
-        runner.invoke(
+        RUNNER.invoke(
             app,
             ["-c", "localhost", "--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
             catch_exceptions=False,)
@@ -56,7 +53,7 @@ def test_configurations_clean():
         pytest.exit(f"CONFIGURATION SHOULD NOT EXIST. Failed when using active -c option {other}\n",
                      returncode=pytest.ExitCode.TESTS_FAILED)
     try:
-        runner.invoke(
+        RUNNER.invoke(
             app,
             ["--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
             catch_exceptions=False,)
@@ -72,7 +69,7 @@ def test_configurations_clean():
                 returncode=pytest.ExitCode.TESTS_FAILED)
 
 def test_configurations_create():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["configurations", "create"],
         input=CONFIGURATION_NAME + "\n"
@@ -100,7 +97,7 @@ def test_activate():
     PersistentConfigurationManager.read_configurations()
     assert len(PersistentConfigurationManager.get_configurations()) == before_refresh
 
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["activate"],
         input=str(configuration_id) + "\n",
@@ -120,7 +117,7 @@ def test_deactivate():
 
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"
 
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["deactivate"],
         input=str(configuration_id) + "\n",
@@ -136,7 +133,7 @@ def test_deactivate():
     )
     
     try:
-        runner.invoke(
+        RUNNER.invoke(
             app,
             ["--hasura-admin-secret", HASURA_ADMIN_SECRET, "models", "list"],
             catch_exceptions=False,)
@@ -169,7 +166,7 @@ def test_configurations_delete():
     PersistentSessionManager.set_active_session(session)
     assert PersistentSessionManager.get_active_session().configuration_name == "localhost"
 
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["configurations", "delete"],
         input=str(configuration_id) + "\n",
@@ -181,7 +178,7 @@ def test_configurations_delete():
         f"{result.stderr}"
 
 def test_configurations_load():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["configurations", "load"],
         input=CONFIGURATION_PATH + "\n",
@@ -218,7 +215,7 @@ def test_configurations_load():
 #         f"{result.stderr}"
 
 def test_configurations_list():
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["configurations", "list"],
         catch_exceptions=False,
@@ -241,7 +238,7 @@ def test_last_activate():
 
     assert PersistentConfigurationManager.get_configurations()[configuration_id].name == ("localhost")
 
-    result = runner.invoke(
+    result = RUNNER.invoke(
         app,
         ["activate", "-r", "aerie_admin"],
         input=str(configuration_id) + "\n",
