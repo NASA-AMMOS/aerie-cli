@@ -15,6 +15,7 @@ FILES_PATH = os.path.join(TEST_DIR, "files")
 PLAN_ARTIFACTS_PATH = Path(ARTIFACTS_PATH).joinpath("plans")
 PLAN_ARTIFACTS_PATH.mkdir()
 
+# TODO use temp files via pytest fixture
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
 
 # Model Variables
@@ -227,6 +228,7 @@ def test_plan_download_expanded_args():
         f"{result.stderr}"
     assert f"Wrote activity plan" in result.stdout
 
+# TODO assert some results here
 def test_plan_download_resources():
     result = RUNNER.invoke(
         app,
