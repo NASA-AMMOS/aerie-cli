@@ -45,7 +45,7 @@ ARTIFACTS_PATH = os.path.join(TEST_DIR, "artifacts")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_VERSION = os.environ.get("AERIE_VERSION", sorted(COMPATIBLE_AERIE_VERSIONS)[-1])
+MODEL_VERSION = os.environ.get("AERIE_VERSION", sorted(COMPATIBLE_AERIE_VERSIONS)[-1]) # Default to latest compatible version
 MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
 MODEL_NAME = "banananation"
 
