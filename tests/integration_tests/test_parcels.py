@@ -91,13 +91,13 @@ def test_adaptation():
 def test_parcels():
     # Set up
     with open(COMMAND_XML_PATH, "r") as fid:
-        command_dictionary_id = client.create_dictionary(fid.read())
+        command_dictionary_id = client.create_dictionary(fid.read(), False)
     with open(CHANNEL_XML_PATH, "r") as fid:
-        channel_dictionary_id = client.create_dictionary(fid.read())
+        channel_dictionary_id = client.create_dictionary(fid.read(), False)
     with open(PARAMETER_XML_1_PATH, "r") as fid:
-        parameter_dictionary_1_id = client.create_dictionary(fid.read())
+        parameter_dictionary_1_id = client.create_dictionary(fid.read(), False)
     with open(PARAMETER_XML_2_PATH, "r") as fid:
-        parameter_dictionary_2_id = client.create_dictionary(fid.read())
+        parameter_dictionary_2_id = client.create_dictionary(fid.read(), False)
     with open(ADAPTATION_JS_PATH, "r") as fid:
         adaptation_id = client.create_sequence_adaptation(fid.read())
 
