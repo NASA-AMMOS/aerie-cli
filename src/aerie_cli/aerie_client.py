@@ -1452,20 +1452,20 @@ class AerieClient:
 
         return resp
 
-    def create_dictionary(self, dictionary: str) -> int:
+    def create_dictionary(self, dictionary: str, persist: bool=True) -> int:
         """Upload an AMPCS command, channel, or parameter dictionary to an Aerie instance
 
         Args:
             dictionary (str): Contents from XML dictionary file (newlne-delimited)
-            type (Union[str, DictionaryType]): Type of dictionary to use
+            persist (bool, optional): Persist the uploaded source dictionary in Aerie. Defaults to True.
 
         Returns:
             int: Dictionary ID
         """
 
         query = """
-        mutation CreateDictionary($dictionary: String!) {
-            createDictionary: uploadDictionary(dictionary: $dictionary) {
+        mutation CreateDictionary($dictionary: String!, $persist: Boolean!) {
+            createDictionary: uploadDictionary(dictionary: $dictionary, persistDictionaryToFilesystem: $persist) {
                 command
                 channel
                 parameter
@@ -1474,7 +1474,8 @@ class AerieClient:
         """
         resp = self.aerie_host.post_to_graphql(
             query,
-            dictionary=dictionary
+            dictionary=dictionary,
+            persist=persist
         )
         return next(iter(resp.values()))["id"]
 
