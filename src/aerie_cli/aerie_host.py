@@ -9,7 +9,8 @@ from attrs import define, field
 
 COMPATIBLE_AERIE_VERSIONS = [
     "3.5.0",
-    "3.5.1"
+    "3.5.1",
+    "3.5.2",
 ]
 
 class AerieHostVersionError(RuntimeError):
