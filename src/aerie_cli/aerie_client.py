@@ -1069,14 +1069,14 @@ class AerieClient:
 
     def update_simulation_boundary(self, plan_id:int, sim_start: str, sim_end: str) -> int:
         change_boundary_mutation = """
-        mutation ChangeBounds(
-            $plan_id: String!
-            $new_start: String!
-            $new_end: String!
+        mutation ChangeBounds($plan_id: Int!, $new_start: timestamptz!, $new_end: timestamptz!) {
+        update_simulation(where: { plan_id: { _eq: $plan_id}}, _set: { simulation_end_time: $new_end, simulation_start_time: $new_start}
         ) {
-        update_simulation({ where: { plan_id: { _eq: $plan_id}}, _set: { simulation_end_time: $new_end, simulation_start_time: $new_start}
-        ) {
-                id
+                affected_rows
+                returning{    
+      					simulation_end_time
+      					simulation_start_time
+                }
             }
         }
         """
@@ -1086,7 +1086,7 @@ class AerieClient:
             new_start=sim_start,
             new_end=sim_end
         )
-        return int(data["id"])
+        return str(data["affected_rows"])
 
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
