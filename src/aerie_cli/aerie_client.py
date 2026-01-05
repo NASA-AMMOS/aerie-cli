@@ -1067,6 +1067,27 @@ class AerieClient:
             get_simulation_dataset_query, plan_id=plan_id)
         return [d["id"] for d in data[0]["simulation_datasets"]]
 
+    def update_simulation_boundary(self, plan_id:int, sim_start: str, sim_end: str) -> int:
+        change_boundary_mutation = """
+        mutation ChangeBounds(
+            $plan_id: String!
+            $new_start: String!
+            $new_end: String!
+        ) {
+        update_simulation({ where: { plan_id: { _eq: $plan_id}}, _set: { simulation_end_time: $new_end, simulation_start_time: $new_start}
+        ) {
+                id
+            }
+        }
+        """
+        data = self.aerie_host.post_to_graphql(
+            change_boundary_mutation,
+            plan_id=plan_id,
+            new_start=sim_start,
+            new_end=sim_end
+        )
+        return int(data["id"])
+
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
     ) -> int:
@@ -1478,7 +1499,6 @@ class AerieClient:
             persist=persist
         )
         return next(iter(resp.values()))["id"]
-
 
     def list_dictionaries(self) -> Dict[DictionaryType, List[DictionaryMetadata]]:
         """List all command, parameter, and channel dictionaries
@@ -1917,7 +1937,6 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(upload_constraint_query, constraint=constraint)
         return resp["constraint_id"]
     
-
     def add_constraint_to_plan(self, constraint_id, plan_id):
         """
         Add a constraint to a plan's constraint specification.

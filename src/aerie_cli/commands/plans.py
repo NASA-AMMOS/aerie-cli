@@ -198,7 +198,17 @@ def duplicate(
     duplicated_plan_id = client.create_activity_plan(plan.model_id, plan_to_duplicate)
     typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
-
+@plans_app.command()
+def update_bounds(
+    id: int = typer.Option(..., help="Plan ID", prompt=True),
+    simulation_start: str = typer.Option(..., help="Simulation Start Time", prompt=True),
+    simulation_end: str = typer.Option(..., help="Simulation End Time", prompt=True),
+):
+    """ Change Simulation Boundaries"""
+    client = CommandContext.get_client()
+    success = client.update_simulation_boundary(id, simulation_start, simulation_end)
+    
+    
 @plans_app.command()
 def simulate(
     id: int = typer.Option(..., help="Plan ID", prompt=True),
