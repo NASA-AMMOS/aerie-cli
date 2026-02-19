@@ -200,14 +200,15 @@ def duplicate(
 
 @plans_app.command()
 def update_bounds(
-    id: int = typer.Option(..., help="Plan ID", prompt=True),
-    simulation_start: str = typer.Option(..., help="Simulation Start Time", prompt=True),
-    simulation_end: str = typer.Option(..., help="Simulation End Time", prompt=True),
+    id: int = typer.Option(..., '-i', help="Plan ID", prompt=True),
+    simulation_start: str = typer.Option(..., '-st', help="Simulation Start Time", prompt=True),
+    simulation_end: str = typer.Option(..., '-et', help="Simulation End Time", prompt=True),
 ):
     """ Change Simulation Boundaries"""
     client = CommandContext.get_client()
-    success = client.update_simulation_boundary(id, simulation_start, simulation_end)
-    
+    client.update_simulation_boundary(id, simulation_start, simulation_end)
+    typer.echo(f"Simulation bounds changed to {simulation_start} : {simulation_end}")
+
     
 @plans_app.command()
 def simulate(

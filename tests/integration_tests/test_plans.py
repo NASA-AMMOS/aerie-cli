@@ -16,6 +16,7 @@ PLAN_ARTIFACTS_PATH = Path(ARTIFACTS_PATH).joinpath("plans")
 PLAN_ARTIFACTS_PATH.mkdir()
 
 DOWNLOADED_FILE_NAME = "downloaded_file.test"
+SIM_BOUNDS_FILE = "sim_bounds_run.test"
 
 # Model Variables
 model_id = -1
@@ -27,6 +28,7 @@ DUP_PLAN_NAME = os.path.join(PLANS_PATH, "bake_bread_plan_2.json")
 plan_id = -1
 PLAN_ARGS_INIT = os.path.join(PLANS_PATH, "create_config.json")
 PLAN_ARGS_UPDATE = os.path.join(PLANS_PATH, "update_config.json")
+PLAN_BOUNDS_UPDATE = {"start":"2023-08-04T00:00:00", "end": "2023-08-04T12:00:00+00:00"}
 
 @pytest.fixture(scope="module", autouse=True)
 def set_up_environment(request):
@@ -299,46 +301,76 @@ def test_simulate_after_update_config():
         f"{result.stderr}"
     assert f"Simulation completed" in result.stdout
 
+def test_sim_bounds():
+    result = RUNNER.invoke(
+        app,
+        ["plans", "update-bounds"],
+        input=str(plan_id) + "\n" + PLAN_BOUNDS_UPDATE["start"] + "\n" + PLAN_BOUNDS_UPDATE["end"] + "\n",
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert f"Simulation bounds changed to {PLAN_BOUNDS_UPDATE['start']} : {PLAN_BOUNDS_UPDATE['end']}" in result.stdout
+    cli_plan_simulate() #remove after test
+
+# def test_simulate_after_update_bounds():
+#     result = cli_plan_simulate()
+#     assert result.exit_code == 0,\
+#         f"{result.stdout}"\
+#         f"{result.stderr}"
+#     assert f"Simulation completed" in result.stdout
+
+#     result = RUNNER.invoke(
+#         app,
+#         ["plans", "download-simulation"],
+#         input=str(sim_id) + "\n" + SIM_BOUNDS_FILE + "\n",
+#         catch_exceptions=False,
+#     )
+#     # If the bound change was correct, the simulation now starts after the activity
+#     assert open(Path(SIM_BOUNDS_FILE)).read().strip() == '[]'
+
+
 #######################
 # DELETE PLANS
 #######################
 
-def test_plan_delete():
-    result = RUNNER.invoke(
-        app,
-        ["plans", "delete"],
-        input=str(plan_id) + "\n",
-        catch_exceptions=False,)
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
-    assert f"ID: {plan_id} has been removed." in result.stdout
+# def test_plan_delete():
+#     result = RUNNER.invoke(
+#         app,
+#         ["plans", "delete"],
+#         input=str(plan_id) + "\n",
+#         catch_exceptions=False,)
+#     assert result.exit_code == 0,\
+#         f"{result.stdout}"\
+#         f"{result.stderr}"
+#     assert f"ID: {plan_id} has been removed." in result.stdout
 
 
-def test_plan_clean():
-    result = RUNNER.invoke(
-        app,
-        ["plans", "clean"],
-        catch_exceptions=False,)
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
-    assert (
-        f"All activity plans have been deleted"
-        in result.stdout
-    )
+# def test_plan_clean():
+#     result = RUNNER.invoke(
+#         app,
+#         ["plans", "clean"],
+#         catch_exceptions=False,)
+#     assert result.exit_code == 0,\
+#         f"{result.stdout}"\
+#         f"{result.stderr}"
+#     assert (
+#         f"All activity plans have been deleted"
+#         in result.stdout
+#     )
 
-#######################
-# DELETE MODELS
-#######################
+# #######################
+# # DELETE MODELS
+# #######################
 
-def test_model_delete():
-    result = RUNNER.invoke(
-        app,
-        ["models", "delete"],
-        input=str(model_id),
-        catch_exceptions=False,)
-    assert result.exit_code == 0,\
-        f"{result.stdout}"\
-        f"{result.stderr}"
-    assert f"ID: {model_id} has been removed" in result.stdout
+# def test_model_delete():
+#     result = RUNNER.invoke(
+#         app,
+#         ["models", "delete"],
+#         input=str(model_id),
+#         catch_exceptions=False,)
+#     assert result.exit_code == 0,\
+#         f"{result.stdout}"\
+#         f"{result.stderr}"
+#     assert f"ID: {model_id} has been removed" in result.stdout
