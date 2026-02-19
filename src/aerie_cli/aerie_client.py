@@ -1088,6 +1088,21 @@ class AerieClient:
         )
         return str(data["affected_rows"])
 
+    def get_simulation_boundary(self, plan_id:int) -> int:
+        get_boundary_mutation = """
+        query GetBounds($plan_id: Int!) {
+        simulation_by_pk(id: $plan_id) {
+            simulation_end_time
+            simulation_start_time
+            }
+        }
+        """
+        data = self.aerie_host.post_to_graphql(
+            get_boundary_mutation,
+            plan_id=plan_id
+        )
+        return str(f"start: {data['simulation_start_time']} end: {data['simulation_end_time']}")
+
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
     ) -> int:

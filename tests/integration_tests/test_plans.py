@@ -312,65 +312,59 @@ def test_sim_bounds():
         f"{result.stdout}"\
         f"{result.stderr}"
     assert f"Simulation bounds changed to {PLAN_BOUNDS_UPDATE['start']} : {PLAN_BOUNDS_UPDATE['end']}" in result.stdout
-    cli_plan_simulate() #remove after test
 
-# def test_simulate_after_update_bounds():
-#     result = cli_plan_simulate()
-#     assert result.exit_code == 0,\
-#         f"{result.stdout}"\
-#         f"{result.stderr}"
-#     assert f"Simulation completed" in result.stdout
+def test_simulate_after_update_bounds():
+    result = cli_plan_simulate()
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert f"Simulation completed" in result.stdout
 
-#     result = RUNNER.invoke(
-#         app,
-#         ["plans", "download-simulation"],
-#         input=str(sim_id) + "\n" + SIM_BOUNDS_FILE + "\n",
-#         catch_exceptions=False,
-#     )
-#     # If the bound change was correct, the simulation now starts after the activity
-#     assert open(Path(SIM_BOUNDS_FILE)).read().strip() == '[]'
+    result = client.get_simulation_boundary(plan_id)
+    # If the bound change was correct, the simulation now starts after the activity
+    assert f"{PLAN_BOUNDS_UPDATE['start']}" in result and f"{PLAN_BOUNDS_UPDATE['end']}" in result
 
 
-#######################
+######################
 # DELETE PLANS
+######################
+
+def test_plan_delete():
+    result = RUNNER.invoke(
+        app,
+        ["plans", "delete"],
+        input=str(plan_id) + "\n",
+        catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert f"ID: {plan_id} has been removed." in result.stdout
+
+
+def test_plan_clean():
+    result = RUNNER.invoke(
+        app,
+        ["plans", "clean"],
+        catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert (
+        f"All activity plans have been deleted"
+        in result.stdout
+    )
+
+#######################
+# DELETE MODELS
 #######################
 
-# def test_plan_delete():
-#     result = RUNNER.invoke(
-#         app,
-#         ["plans", "delete"],
-#         input=str(plan_id) + "\n",
-#         catch_exceptions=False,)
-#     assert result.exit_code == 0,\
-#         f"{result.stdout}"\
-#         f"{result.stderr}"
-#     assert f"ID: {plan_id} has been removed." in result.stdout
-
-
-# def test_plan_clean():
-#     result = RUNNER.invoke(
-#         app,
-#         ["plans", "clean"],
-#         catch_exceptions=False,)
-#     assert result.exit_code == 0,\
-#         f"{result.stdout}"\
-#         f"{result.stderr}"
-#     assert (
-#         f"All activity plans have been deleted"
-#         in result.stdout
-#     )
-
-# #######################
-# # DELETE MODELS
-# #######################
-
-# def test_model_delete():
-#     result = RUNNER.invoke(
-#         app,
-#         ["models", "delete"],
-#         input=str(model_id),
-#         catch_exceptions=False,)
-#     assert result.exit_code == 0,\
-#         f"{result.stdout}"\
-#         f"{result.stderr}"
-#     assert f"ID: {model_id} has been removed" in result.stdout
+def test_model_delete():
+    result = RUNNER.invoke(
+        app,
+        ["models", "delete"],
+        input=str(model_id),
+        catch_exceptions=False,)
+    assert result.exit_code == 0,\
+        f"{result.stdout}"\
+        f"{result.stderr}"
+    assert f"ID: {model_id} has been removed" in result.stdout
