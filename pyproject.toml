@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "aerie-cli"
 version = "2.11.0"
-description = "A CLI application and Python API for interacting with Aerie."
+description = "A CLI application and Python API for interacting with PlanDev."
 authors = []
 license = "MIT"
 readme = "README.md"

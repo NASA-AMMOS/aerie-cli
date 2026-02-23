@@ -1067,6 +1067,42 @@ class AerieClient:
             get_simulation_dataset_query, plan_id=plan_id)
         return [d["id"] for d in data[0]["simulation_datasets"]]
 
+    def update_simulation_boundary(self, plan_id:int, sim_start: str, sim_end: str) -> int:
+        change_boundary_mutation = """
+        mutation ChangeBounds($plan_id: Int!, $new_start: timestamptz!, $new_end: timestamptz!) {
+        update_simulation(where: { plan_id: { _eq: $plan_id}}, _set: { simulation_end_time: $new_end, simulation_start_time: $new_start}
+        ) {
+                affected_rows
+                returning{    
+      					simulation_end_time
+      					simulation_start_time
+                }
+            }
+        }
+        """
+        data = self.aerie_host.post_to_graphql(
+            change_boundary_mutation,
+            plan_id=plan_id,
+            new_start=sim_start,
+            new_end=sim_end
+        )
+        return str(data["affected_rows"])
+
+    def get_simulation_boundary(self, plan_id:int) -> int:
+        get_boundary_mutation = """
+        query GetBounds($plan_id: Int!) {
+        simulation_by_pk(id: $plan_id) {
+            simulation_end_time
+            simulation_start_time
+            }
+        }
+        """
+        data = self.aerie_host.post_to_graphql(
+            get_boundary_mutation,
+            plan_id=plan_id
+        )
+        return str(f"start: {data['simulation_start_time']} end: {data['simulation_end_time']}")
+
     def expand_simulation(
         self, simulation_dataset_id: int, expansion_set_id: int
     ) -> int:
@@ -1478,7 +1514,6 @@ class AerieClient:
             persist=persist
         )
         return next(iter(resp.values()))["id"]
-
 
     def list_dictionaries(self) -> Dict[DictionaryType, List[DictionaryMetadata]]:
         """List all command, parameter, and channel dictionaries
@@ -1917,7 +1952,6 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(upload_constraint_query, constraint=constraint)
         return resp["constraint_id"]
     
-
     def add_constraint_to_plan(self, constraint_id, plan_id):
         """
         Add a constraint to a plan's constraint specification.

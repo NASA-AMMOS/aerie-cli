@@ -88,9 +88,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install .
-      - name: Set up instance of Aerie ${{ matrix.aerie-version }}
+      - name: Set up instance of PlanDev ${{ matrix.aerie-version }}
         env:
-          DOCKER_TAG: v${{ matrix.aerie-version }} # Prefix 'v' used in Aerie Docker image tags
+          DOCKER_TAG: v${{ matrix.aerie-version }} # Prefix 'v' used in PlanDev Docker image tags
         run: |
           docker compose -f docker-compose-test.yml up -d
           docker images
