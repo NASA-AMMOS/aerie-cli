@@ -187,6 +187,7 @@ def download_simulation_full_results(
     typer.echo(f"Downloading resource timelines for dataset {sim_id}...")
     resources = client.get_resource_samples(sim_id)
     n_resources = len(resources.get("resourceSamples", {}))
+    profile_types = resources.get("profileTypes", {})
     typer.echo(f"  Downloaded {n_resources} resource profiles")
 
     typer.echo("Fetching resource schemas from mission model...")
@@ -197,7 +198,7 @@ def download_simulation_full_results(
     typer.echo(f"  Fetched {len(resource_schemas)} resource schemas")
 
     typer.echo("Converting to upload format...")
-    result = build_simulation_upload(simulated_activities, resources, resource_schemas)
+    result = build_simulation_upload(simulated_activities, resources, resource_schemas, profile_types)
 
     acts = result["spans"]["simulatedActivities"]
     real_profiles = result["profiles"]["realProfiles"]

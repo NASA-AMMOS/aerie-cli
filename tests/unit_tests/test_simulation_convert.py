@@ -423,6 +423,43 @@ def test_convert_resources_no_resource_samples():
     assert discrete == []
 
 
+def test_convert_resources_db_profile_type_overrides_schema():
+    """A resource with value type 'real' but stored as a discrete profile in the
+    DB should be classified as discrete, not real. This is the key fix for the
+    staggered-curve bug: the orbiter model stores floating-point resources as
+    discrete profiles sampled every 30s; the converter must honour the DB profile
+    type rather than the value schema."""
+    # Discrete-style flattened samples: constant within each 30s segment,
+    # discontinuity (two points at same x) at boundaries.
+    resources = {
+        "resourceSamples": {
+            "BetaAngle": [
+                {"x": 0, "y": 57.734},
+                {"x": 30_000_000, "y": 57.734},
+                {"x": 30_000_000, "y": 57.735},
+                {"x": 60_000_000, "y": 57.735},
+            ]
+        }
+    }
+    schemas = {"BetaAngle": {"type": "real"}}
+    # Without profile_types, schema says "real" → routed to _real_segments
+    real, discrete = convert_resources(resources, 60_000_000, schemas)
+    assert len(real) == 1
+    assert len(discrete) == 0
+
+    # With profile_types from DB saying "discrete" → routed to _discrete_segments
+    profile_types = {"BetaAngle": "discrete"}
+    real, discrete = convert_resources(resources, 60_000_000, schemas, profile_types)
+    assert len(real) == 0
+    assert len(discrete) == 1
+    assert discrete[0]["name"] == "BetaAngle"
+    # Schema should still come from the model
+    assert discrete[0]["schema"] == {"type": "real"}
+    # Discrete segments hold the value, not {initial, rate}
+    assert discrete[0]["segments"][0]["dynamics"] == 57.734
+    assert discrete[0]["segments"][1]["dynamics"] == 57.735
+
+
 # --------------------------------------------------------------------------- #
 # infer_window
 # --------------------------------------------------------------------------- #

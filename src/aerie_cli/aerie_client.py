@@ -237,7 +237,6 @@ class AerieClient:
             plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
-        plan_revision = plan_resp["revision"]
 
         #add plan tags if exists from plan_to_create
         for tag in plan_to_create.tags:
@@ -491,10 +490,12 @@ class AerieClient:
 
         # Parse profile segments into resource timelines
         resources = {}
+        profile_types = {}
         for profile in sorted(profiles, key=lambda _: _["name"]):
             name = profile["name"]
             profile_segments = profile["profile_segments"]
             profile_type = profile["type"]["type"]
+            profile_types[name] = profile_type
             values = []
 
             for i in range(len(profile_segments)):
@@ -572,7 +573,8 @@ class AerieClient:
 
             resources[name] = values
         return {
-            "resourceSamples": resources
+            "resourceSamples": resources,
+            "profileTypes": profile_types
         }
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
@@ -1837,7 +1839,7 @@ class AerieClient:
         }
         """
 
-        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+        self.aerie_host.post_to_graphql(
             delete_scheduling_goals_from_all_specs_query, 
             id_list=goal_id_list
         )
@@ -1955,7 +1957,7 @@ class AerieClient:
         }
         """
 
-        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+        self.aerie_host.post_to_graphql(
             delete_constraint_from_all_specs_query, 
             id=id
         )
@@ -1972,19 +1974,6 @@ class AerieClient:
         return resp["id"]
     
     def update_constraint(self, id, definition):
-        old_update_constraint_query = """
-        mutation UpdateConstraint($constarint_id: Int!, $constraint: constraint_definition_set_input!) {
-            update_constraint_definition_by_pk(
-                pk_columns: { constarint_id: $constraint_id }, _set: $constraint
-            ) {
-                constarint_id
-                definition
-                author
-                created_at
-            }
-        }
-        """
-
         update_constraint_query = """
         mutation UpdateConstraint($constarint_id: Int!, $definition: String!) {
             update_constraint_definition_many(
@@ -2239,4 +2228,4 @@ class AerieClient:
         )
 
         if resp is None:
-            raise RuntimeError(f"Failed to delete plan collaborator")
+            raise RuntimeError("Failed to delete plan collaborator")

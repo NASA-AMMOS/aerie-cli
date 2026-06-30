@@ -220,7 +220,8 @@ def _discrete_segments(samples: list, sim_end_us: int) -> list:
 
 
 def convert_resources(
-    resources: dict, sim_end_us: int, resource_schemas: dict = None
+    resources: dict, sim_end_us: int, resource_schemas: dict = None,
+    profile_types: dict = None
 ) -> tuple:
     """
     aerie-cli resourceSamples -> (realProfiles, discreteProfiles).
@@ -234,12 +235,15 @@ def convert_resources(
         sim_end_us:       simulation duration in microseconds
         resource_schemas: optional dict mapping resource name -> schema dict
                           (from AerieClient.get_resource_types()). When provided,
-                          schemas and real/discrete classification come from the
-                          model rather than value-sniffing.
+                          schemas come from the model rather than value-sniffing.
+        profile_types:    optional dict mapping resource name -> "real" or "discrete"
+                          (from the database profile type). When provided, this is
+                          the authoritative source for real-vs-discrete classification.
     """
     real_profiles, discrete_profiles = [], []
     resource_samples = resources.get("resourceSamples", {})
     schemas = resource_schemas or {}
+    db_types = profile_types or {}
 
     for name in sorted(resource_samples):
         samples = resource_samples[name]
@@ -249,7 +253,14 @@ def convert_resources(
         kind = _classify(samples, schema)
         first_val = next((p["y"] for p in samples if p.get("y") is not None), None)
 
-        if kind in _REAL_PROFILE_TYPES:
+        # Use the DB profile type when available; it is authoritative.
+        # The resource schema describes the *value* type (e.g. "real" for a
+        # floating-point number) but the profile may still be stored as
+        # discrete in the database.
+        db_type = db_types.get(name)
+        is_real_profile = (db_type == "real") if db_type else (kind in _REAL_PROFILE_TYPES)
+
+        if is_real_profile:
             real_profiles.append({
                 "name": name,
                 "schema": _schema_for(kind, first_val, schema),
@@ -296,7 +307,8 @@ def infer_window(activities: list, resources: dict) -> tuple:
 # --------------------------------------------------------------------------- #
 
 def build_simulation_upload(
-    activities: list, resources: dict, resource_schemas: dict = None
+    activities: list, resources: dict, resource_schemas: dict = None,
+    profile_types: dict = None
 ) -> dict:
     """
     Convert aerie-cli simulation and resource downloads to the PlanDev
@@ -310,6 +322,9 @@ def build_simulation_upload(
                           provided, resource types (real vs int vs struct etc.)
                           are taken from the model rather than inferred from
                           sample values.
+        profile_types:    optional dict mapping resource name -> "real" or "discrete"
+                          (from the database profile type). Authoritative source
+                          for real-vs-discrete classification.
 
     Returns:
         dict ready to be serialized as JSON and uploaded via uploadSimulationDataset.
@@ -319,7 +334,7 @@ def build_simulation_upload(
 
     simulated_activities, unfinished = convert_activities(activities)
     real_profiles, discrete_profiles = convert_resources(
-        resources, sim_end_us, resource_schemas
+        resources, sim_end_us, resource_schemas, profile_types
     )
 
     return {
