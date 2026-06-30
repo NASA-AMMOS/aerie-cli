@@ -10,6 +10,7 @@ from rich.table import Table
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
 from aerie_cli.utils.prompts import select_from_list
+from aerie_cli.utils.simulation_convert import build_simulation_upload
 
 plans_app = typer.Typer()
 collaborators_app = typer.Typer()
@@ -158,6 +159,53 @@ def download_resources(
         with open(output, "w") as out_file:
             out_file.write(json.dumps(resources, indent=2))
             typer.echo(f"Wrote resource timelines to {output}")
+
+
+@plans_app.command()
+def download_simulation_full_results(
+    sim_id: int = typer.Option(
+        ..., '--sim-id', '-s',
+        help="Simulation Dataset ID", prompt=True),
+    output: str = typer.Option(
+        ..., '--output', '-o',
+        help="The output file destination", prompt=True),
+):
+    """
+    Download simulated activities and resource timelines for a simulation dataset,
+    convert them to the PlanDev SimulationResultsWriter upload format, and save
+    the result to a JSON file.
+
+    Internally runs the equivalent of download-simulation and download-resources,
+    then converts the combined data into the uploadSimulationDataset JSON format.
+    """
+    client = CommandContext.get_client()
+
+    typer.echo(f"Downloading simulated activities for dataset {sim_id}...")
+    simulated_activities = client.get_simulation_results(sim_id)
+    typer.echo(f"  Downloaded {len(simulated_activities)} activities")
+
+    typer.echo(f"Downloading resource timelines for dataset {sim_id}...")
+    resources = client.get_resource_samples(sim_id)
+    n_resources = len(resources.get("resourceSamples", {}))
+    typer.echo(f"  Downloaded {n_resources} resource profiles")
+
+    typer.echo("Converting to upload format...")
+    result = build_simulation_upload(simulated_activities, resources)
+
+    acts = result["spans"]["simulatedActivities"]
+    real_profiles = result["profiles"]["realProfiles"]
+    disc_profiles = result["profiles"]["discreteProfiles"]
+    n_parents = sum(1 for a in acts if a["parentId"] is not None)
+    n_real_seg = sum(len(p["segments"]) for p in real_profiles)
+    n_disc_seg = sum(len(p["segments"]) for p in disc_profiles)
+
+    with open(output, "w") as out_file:
+        out_file.write(json.dumps(result, indent=2))
+
+    typer.echo(f"Activities       : {len(acts)} ({n_parents} with parents)")
+    typer.echo(f"Real profiles    : {len(real_profiles)} ({n_real_seg} segments)")
+    typer.echo(f"Discrete profiles: {len(disc_profiles)} ({n_disc_seg} segments)")
+    typer.echo(f"Wrote full simulation results to {output}")
 
 
 @plans_app.command()

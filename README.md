@@ -194,6 +194,102 @@ Alternatively, arguments can be provided using flags:
 ➜  aerie-cli plans download --id 42 --output sample-output.json
 ```
 
+#### `plans download-simulation-full-results`
+
+Downloads simulated activities and resource timelines for a given simulation dataset, converts them into the PlanDev `SimulationResultsWriter` upload format, and writes the result to a single JSON file. This is the all-in-one equivalent of running `download-simulation` and `download-resources` separately and then converting the outputs.
+
+**Usage:**
+
+```sh
+aerie-cli plans download-simulation-full-results --sim-id <SIMULATION_DATASET_ID> --output <OUTPUT_FILE>
+```
+
+**Arguments:**
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--sim-id` | `-s` | Simulation Dataset ID (prompted if omitted) |
+| `--output` | `-o` | Output JSON file path (prompted if omitted) |
+
+**Example:**
+
+```sh
+aerie-cli plans download-simulation-full-results --sim-id 83 --output simulation_upload.json
+```
+
+Typical output:
+
+```
+Activities       : 256 (16 with parents)
+Real profiles    : 129 (130412 segments)
+Discrete profiles: 45 (18130 segments)
+Wrote full simulation results to simulation_upload.json
+```
+
+**Output format:**
+
+The JSON file produced matches the `SimulationResultsWriter` format parsed by PlanDev's `uploadSimulationDataset` endpoint:
+
+```json
+{
+  "simulationStartTime": "2024-002T00:00:00.000000",
+  "simulationEndTime": "2024-004T00:00:00.000000",
+  "profiles": {
+    "realProfiles": [
+      {
+        "name": "BetaAngle",
+        "schema": { "type": "real" },
+        "segments": [
+          { "extent": "00:00:30.000000", "dynamics": { "initial": 57.7, "rate": 0.0 } }
+        ]
+      }
+    ],
+    "discreteProfiles": [
+      {
+        "name": "SpacecraftMode",
+        "schema": { "type": "string" },
+        "segments": [
+          { "extent": "01:19:33.200711", "dynamics": "SAFE" }
+        ]
+      }
+    ]
+  },
+  "spans": {
+    "simulatedActivities": [
+      {
+        "id": 1,
+        "type": "MyActivity",
+        "directiveId": 42,
+        "parentId": null,
+        "childIds": [],
+        "startTime": "2024-002T08:00:00.000000",
+        "duration": "00:30:00.000000",
+        "arguments": {},
+        "attributes": {}
+      }
+    ],
+    "unfinishedActivities": []
+  }
+}
+```
+
+**Key format details:**
+
+- Timestamps are DOY strings: `YYYY-DDDThh:mm:ss.ssssss`
+- Durations and extents are `HH:MM:SS.ssssss` (hours not capped at 24)
+- Activity `arguments` and `attributes` are raw serialized values — no `{"type","value"}` wrapper
+- Real profile segment dynamics: `{"initial": <float>, "rate": <float per second>}`
+- Discrete profile segment dynamics: the raw value (`"NONE"`, `false`, `[x,y,z]`, etc.)
+- `childIds` are derived by inverting `parent_id` back-references across all activities
+- `unfinishedActivities` is always `[]` (the CLI download has no concept of an unfinished activity)
+- The simulation window is inferred: start = earliest activity `start_time`; end = start + max resource sample offset (falls back to latest activity `end_time` if there are no resources)
+
+**Limitations:**
+
+- `struct`-typed resources fall back to a `string` schema (not present in most models)
+- All numeric resources are labeled `real`; integer-valued resources are safe as PlanDev represents them as real for profiles
+- Real profile adjacent segments that share an endpoint value are merged (lossless for interpolated values, but segment count may differ from the original simulation)
+
 ### Advanced Topics
 
 #### Configuring for External Authentication
