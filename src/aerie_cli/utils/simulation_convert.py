@@ -308,23 +308,26 @@ def infer_window(activities: list, resources: dict) -> tuple:
 
 def build_simulation_upload(
     activities: list, resources: dict, resource_schemas: dict = None,
-    profile_types: dict = None
+    profile_types: dict = None, simulation_arguments: dict = None
 ) -> dict:
     """
     Convert aerie-cli simulation and resource downloads to the PlanDev
     SimulationResultsWriter upload format.
 
     Args:
-        activities:       list returned by AerieClient.get_simulation_results()
-        resources:        dict returned by AerieClient.get_resource_samples()
-        resource_schemas: optional dict mapping resource name -> schema dict,
-                          built from AerieClient.get_resource_types(). When
-                          provided, resource types (real vs int vs struct etc.)
-                          are taken from the model rather than inferred from
-                          sample values.
-        profile_types:    optional dict mapping resource name -> "real" or "discrete"
-                          (from the database profile type). Authoritative source
-                          for real-vs-discrete classification.
+        activities:            list returned by AerieClient.get_simulation_results()
+        resources:             dict returned by AerieClient.get_resource_samples()
+        resource_schemas:      optional dict mapping resource name -> schema dict,
+                               built from AerieClient.get_resource_types(). When
+                               provided, resource types (real vs int vs struct etc.)
+                               are taken from the model rather than inferred from
+                               sample values.
+        profile_types:         optional dict mapping resource name -> "real" or "discrete"
+                               (from the database profile type). Authoritative source
+                               for real-vs-discrete classification.
+        simulation_arguments:  optional dict of simulation configuration arguments
+                               (from simulation_dataset.arguments). Preserved so the
+                               uploaded dataset retains the original sim config.
 
     Returns:
         dict ready to be serialized as JSON and uploaded via uploadSimulationDataset.
@@ -337,7 +340,7 @@ def build_simulation_upload(
         resources, sim_end_us, resource_schemas, profile_types
     )
 
-    return {
+    result = {
         "simulationStartTime": dt_to_doy(start_dt),
         "simulationEndTime": dt_to_doy(end_dt),
         "profiles": {
@@ -349,3 +352,8 @@ def build_simulation_upload(
             "unfinishedActivities": unfinished,
         },
     }
+
+    if simulation_arguments:
+        result["simulationArguments"] = simulation_arguments
+
+    return result

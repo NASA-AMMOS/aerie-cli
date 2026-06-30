@@ -197,8 +197,15 @@ def download_simulation_full_results(
     resource_schemas = {rt.name: rt.schema for rt in resource_types}
     typer.echo(f"  Fetched {len(resource_schemas)} resource schemas")
 
+    typer.echo("Fetching simulation configuration arguments...")
+    sim_config = client.get_simulation_dataset_arguments(sim_id)
+    typer.echo(f"  Fetched {len(sim_config)} configuration arguments")
+
     typer.echo("Converting to upload format...")
-    result = build_simulation_upload(simulated_activities, resources, resource_schemas, profile_types)
+    result = build_simulation_upload(
+        simulated_activities, resources, resource_schemas, profile_types,
+        simulation_arguments=sim_config,
+    )
 
     acts = result["spans"]["simulatedActivities"]
     real_profiles = result["profiles"]["realProfiles"]

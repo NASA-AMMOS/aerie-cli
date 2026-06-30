@@ -534,3 +534,19 @@ def test_build_simulation_upload_with_resource_schemas():
     mode_profile = next(p for p in disc if p["name"] == "mode")
     assert mode_profile["schema"]["type"] == "variant"
     assert "variants" in mode_profile["schema"]
+
+
+def test_build_simulation_upload_includes_simulation_arguments():
+    sim_args = {"batteryCapacity": 30, "solarPanelArea": 12.5}
+    result = build_simulation_upload(
+        [ACTIVITY_A], RESOURCES_MIXED, simulation_arguments=sim_args)
+    assert result["simulationArguments"] == sim_args
+
+
+def test_build_simulation_upload_omits_simulation_arguments_when_empty():
+    result = build_simulation_upload([ACTIVITY_A], RESOURCES_MIXED)
+    assert "simulationArguments" not in result
+
+    result2 = build_simulation_upload(
+        [ACTIVITY_A], RESOURCES_MIXED, simulation_arguments={})
+    assert "simulationArguments" not in result2

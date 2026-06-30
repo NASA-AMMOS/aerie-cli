@@ -577,6 +577,25 @@ class AerieClient:
             "profileTypes": profile_types
         }
 
+    def get_simulation_dataset_arguments(self, sim_dataset_id: int) -> dict:
+        """Get the simulation configuration arguments snapshot for a dataset.
+
+        Args:
+            sim_dataset_id (int): Simulation Dataset ID
+
+        Returns:
+            dict: Simulation configuration arguments (e.g. {"batteryCapacity": 30})
+        """
+        query = """
+        query GetSimDatasetArgs($sim_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $sim_dataset_id) {
+                arguments
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, sim_dataset_id=sim_dataset_id)
+        return resp.get("arguments") or {}
+
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
         sim_result_query = """
