@@ -108,8 +108,13 @@ def _normalize_duration(dur: str) -> str:
 # Resources
 # --------------------------------------------------------------------------- #
 
-def _classify(samples: list) -> str:
-    """Return one of: 'real', 'string', 'boolean', 'series', 'struct'."""
+def _classify(samples: list, schema: dict = None) -> str:
+    """Return one of: 'real', 'int', 'string', 'boolean', 'series', 'struct', 'variant', 'duration', 'path'.
+
+    When a model schema is provided it is used directly; value-sniffing is the fallback.
+    """
+    if schema:
+        return schema.get("type", "string")
     for p in samples:
         y = p.get("y")
         if y is None:
@@ -127,9 +132,19 @@ def _classify(samples: list) -> str:
     return "string"  # all-null / empty: harmless default
 
 
-def _schema_for(kind: str, sample_value: Any) -> dict:
-    if kind == "real":
-        return {"type": "real"}
+# Schema types that map to real profiles (linear interpolation dynamics).
+_REAL_PROFILE_TYPES = {"real", "int"}
+
+
+def _schema_for(kind: str, sample_value: Any, schema: dict = None) -> dict:
+    """Return the profile schema dict.
+
+    Uses the model-provided schema when available; falls back to value-sniffing.
+    """
+    if schema is not None:
+        return schema
+    if kind in _REAL_PROFILE_TYPES:
+        return {"type": kind}
     if kind == "string":
         return {"type": "string"}
     if kind == "boolean":
@@ -145,9 +160,8 @@ def _schema_for(kind: str, sample_value: Any) -> dict:
             elif isinstance(v0, (int, float)):
                 item = "real"
         return {"type": "series", "items": {"type": item}}
-    if kind == "struct":
-        # Without per-field schema we cannot fully describe a struct; fall back to string schema.
-        return {"type": "string"}
+    # struct, variant, duration, path — return the full model schema if available,
+    # otherwise a best-effort string fallback.
     return {"type": "string"}
 
 
@@ -205,33 +219,46 @@ def _discrete_segments(samples: list, sim_end_us: int) -> list:
     return segs
 
 
-def convert_resources(resources: dict, sim_end_us: int) -> tuple:
+def convert_resources(
+    resources: dict, sim_end_us: int, resource_schemas: dict = None
+) -> tuple:
     """
     aerie-cli resourceSamples -> (realProfiles, discreteProfiles).
 
     Real profiles carry {initial, rate} dynamics; everything else (string,
-    boolean, series/vector) is a discrete profile whose dynamics is the raw value.
+    boolean, series/vector, struct, variant, …) is a discrete profile whose
+    dynamics is the raw value.
+
+    Args:
+        resources:        dict from AerieClient.get_resource_samples()
+        sim_end_us:       simulation duration in microseconds
+        resource_schemas: optional dict mapping resource name -> schema dict
+                          (from AerieClient.get_resource_types()). When provided,
+                          schemas and real/discrete classification come from the
+                          model rather than value-sniffing.
     """
     real_profiles, discrete_profiles = [], []
     resource_samples = resources.get("resourceSamples", {})
+    schemas = resource_schemas or {}
 
     for name in sorted(resource_samples):
         samples = resource_samples[name]
         if not samples:
             continue
-        kind = _classify(samples)
+        schema = schemas.get(name)
+        kind = _classify(samples, schema)
         first_val = next((p["y"] for p in samples if p.get("y") is not None), None)
 
-        if kind == "real":
+        if kind in _REAL_PROFILE_TYPES:
             real_profiles.append({
                 "name": name,
-                "schema": {"type": "real"},
+                "schema": _schema_for(kind, first_val, schema),
                 "segments": _real_segments(samples),
             })
         else:
             discrete_profiles.append({
                 "name": name,
-                "schema": _schema_for(kind, first_val),
+                "schema": _schema_for(kind, first_val, schema),
                 "segments": _discrete_segments(samples, sim_end_us),
             })
 
@@ -268,14 +295,21 @@ def infer_window(activities: list, resources: dict) -> tuple:
 # Top-level conversion
 # --------------------------------------------------------------------------- #
 
-def build_simulation_upload(activities: list, resources: dict) -> dict:
+def build_simulation_upload(
+    activities: list, resources: dict, resource_schemas: dict = None
+) -> dict:
     """
     Convert aerie-cli simulation and resource downloads to the PlanDev
     SimulationResultsWriter upload format.
 
     Args:
-        activities: list returned by AerieClient.get_simulation_results()
-        resources:  dict returned by AerieClient.get_resource_samples()
+        activities:       list returned by AerieClient.get_simulation_results()
+        resources:        dict returned by AerieClient.get_resource_samples()
+        resource_schemas: optional dict mapping resource name -> schema dict,
+                          built from AerieClient.get_resource_types(). When
+                          provided, resource types (real vs int vs struct etc.)
+                          are taken from the model rather than inferred from
+                          sample values.
 
     Returns:
         dict ready to be serialized as JSON and uploaded via uploadSimulationDataset.
@@ -284,7 +318,9 @@ def build_simulation_upload(activities: list, resources: dict) -> dict:
     sim_end_us = int((end_dt - start_dt).total_seconds() * 1_000_000)
 
     simulated_activities, unfinished = convert_activities(activities)
-    real_profiles, discrete_profiles = convert_resources(resources, sim_end_us)
+    real_profiles, discrete_profiles = convert_resources(
+        resources, sim_end_us, resource_schemas
+    )
 
     return {
         "simulationStartTime": dt_to_doy(start_dt),

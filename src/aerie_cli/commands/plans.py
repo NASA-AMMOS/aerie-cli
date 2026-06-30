@@ -189,8 +189,15 @@ def download_simulation_full_results(
     n_resources = len(resources.get("resourceSamples", {}))
     typer.echo(f"  Downloaded {n_resources} resource profiles")
 
+    typer.echo("Fetching resource schemas from mission model...")
+    plan_id = client.get_plan_id_by_sim_id(sim_id)
+    plan = client.get_activity_plan_by_id(plan_id)
+    resource_types = client.get_resource_types(plan.model_id)
+    resource_schemas = {rt.name: rt.schema for rt in resource_types}
+    typer.echo(f"  Fetched {len(resource_schemas)} resource schemas")
+
     typer.echo("Converting to upload format...")
-    result = build_simulation_upload(simulated_activities, resources)
+    result = build_simulation_upload(simulated_activities, resources, resource_schemas)
 
     acts = result["spans"]["simulatedActivities"]
     real_profiles = result["profiles"]["realProfiles"]
@@ -266,7 +273,7 @@ def simulate(
     end_time = arrow.utcnow()
     res = client.get_simulation_results(sim_dataset_id)
     total_sim_time = end_time - start_time
-    typer.echo(f"Simulation completed in " + str(total_sim_time))
+    typer.echo("Simulation completed in " + str(total_sim_time))
 
     if output:
         with open(output, "w") as out_file:
@@ -364,7 +371,7 @@ def clean():
     for activity_plan in resp:
         client.delete_plan(activity_plan.id)
 
-    typer.echo(f"All activity plans have been deleted")
+    typer.echo("All activity plans have been deleted")
 
 @collaborators_app.command("list")
 def list_collaborators(
@@ -396,7 +403,7 @@ def add_collaborator(
     if user in client.list_plan_collaborators(plan_id):
         typer.echo(f"Successfully added collaborator: {user}")
     else:
-        typer.echo(f"Failed to add collaborator")
+        typer.echo("Failed to add collaborator")
 
 
 @collaborators_app.command("delete")

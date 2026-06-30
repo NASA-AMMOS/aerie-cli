@@ -3,6 +3,7 @@ import pytest
 from aerie_cli.utils.simulation_convert import (
     _normalize_duration,
     _classify,
+    _schema_for,
     _real_segments,
     _discrete_segments,
     convert_activities,
@@ -103,6 +104,37 @@ def test_classify_all_null_defaults_string():
 
 def test_classify_empty_defaults_string():
     assert _classify([]) == "string"
+
+
+def test_classify_uses_schema_over_value():
+    # value looks like a float, but schema says boolean
+    assert _classify([{"x": 0, "y": 1.0}], schema={"type": "boolean"}) == "boolean"
+
+
+def test_classify_int_from_schema():
+    assert _classify([{"x": 0, "y": 42}], schema={"type": "int"}) == "int"
+
+
+def test_classify_struct_from_schema():
+    assert _classify([{"x": 0, "y": {"a": 1}}], schema={"type": "struct", "items": {}}) == "struct"
+
+
+# --------------------------------------------------------------------------- #
+# _schema_for
+# --------------------------------------------------------------------------- #
+
+def test_schema_for_returns_model_schema_verbatim():
+    model_schema = {"type": "variant", "variants": [{"key": "A", "label": "A"}]}
+    assert _schema_for("variant", "A", schema=model_schema) == model_schema
+
+
+def test_schema_for_int_fallback():
+    assert _schema_for("int", 42) == {"type": "int"}
+
+
+def test_schema_for_struct_fallback_to_string():
+    # No model schema provided; struct falls back to string
+    assert _schema_for("struct", {"a": 1}) == {"type": "string"}
 
 
 # --------------------------------------------------------------------------- #
@@ -315,6 +347,43 @@ def test_convert_resources_real_profile():
     assert real[0]["segments"][0]["dynamics"]["rate"] == pytest.approx(0.0)
 
 
+def test_convert_resources_int_schema_treated_as_real_profile():
+    resources = {"resourceSamples": {"count": [{"x": 0, "y": 5}, {"x": 3_600_000_000, "y": 5}]}}
+    schemas = {"count": {"type": "int"}}
+    real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
+    assert len(real) == 1
+    assert real[0]["schema"] == {"type": "int"}
+
+
+def test_convert_resources_struct_schema_is_discrete():
+    struct_schema = {"type": "struct", "items": {"x": {"type": "real"}, "y": {"type": "real"}}}
+    resources = {"resourceSamples": {"pos": [{"x": 0, "y": {"x": 1.0, "y": 2.0}}]}}
+    schemas = {"pos": struct_schema}
+    real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
+    assert len(real) == 0
+    assert len(discrete) == 1
+    assert discrete[0]["schema"] == struct_schema
+
+
+def test_convert_resources_variant_schema_is_discrete():
+    variant_schema = {"type": "variant", "variants": [{"key": "A", "label": "A"}, {"key": "B", "label": "B"}]}
+    resources = {"resourceSamples": {"mode": [{"x": 0, "y": "A"}]}}
+    schemas = {"mode": variant_schema}
+    real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
+    assert discrete[0]["schema"] == variant_schema
+
+
+def test_convert_resources_uses_model_schema_over_value_sniffing():
+    # Value looks like a float (would be classified as real without schema)
+    # but model says it's a string
+    resources = {"resourceSamples": {"tricky": [{"x": 0, "y": 1.0}]}}
+    schemas = {"tricky": {"type": "string"}}
+    real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
+    assert len(real) == 0
+    assert len(discrete) == 1
+    assert discrete[0]["schema"] == {"type": "string"}
+
+
 def test_convert_resources_discrete_profile():
     real, discrete = convert_resources(RESOURCES_DISCRETE, SIM_END_1HR)
     assert len(real) == 0
@@ -416,3 +485,15 @@ def test_build_simulation_upload_timestamps_are_doy():
     doy_pattern = r"^\d{4}-\d{3}T\d{2}:\d{2}:\d{2}\.\d{6}$"
     assert re.match(doy_pattern, result["simulationStartTime"])
     assert re.match(doy_pattern, result["simulationEndTime"])
+
+
+def test_build_simulation_upload_with_resource_schemas():
+    schemas = {
+        "temperature": {"type": "real"},
+        "mode": {"type": "variant", "variants": [{"key": "SAFE", "label": "SAFE"}, {"key": "NOMINAL", "label": "NOMINAL"}]},
+    }
+    result = build_simulation_upload([ACTIVITY_A], RESOURCES_MIXED, resource_schemas=schemas)
+    disc = result["profiles"]["discreteProfiles"]
+    mode_profile = next(p for p in disc if p["name"] == "mode")
+    assert mode_profile["schema"]["type"] == "variant"
+    assert "variants" in mode_profile["schema"]
