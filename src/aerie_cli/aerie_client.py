@@ -576,6 +576,61 @@ class AerieClient:
         resp = self.aerie_host.post_to_graphql(query, sim_dataset_id=sim_dataset_id)
         return resp.get("arguments") or {}
 
+    def get_simulation_events(self, sim_dataset_id: int) -> dict:
+        """Download simulation topics and events for a dataset.
+
+        Args:
+            sim_dataset_id (int): Simulation Dataset ID
+
+        Returns:
+            dict: {"topics": [...], "events": [...]} where topics have
+                  topic_index/name/value_schema and events have
+                  real_time/transaction_index/causal_time/value/topic_index/span_id
+        """
+        query = """
+        query GetSimEvents($sim_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $sim_dataset_id) {
+                dataset {
+                    topics(order_by: { topic_index: asc }) {
+                        topic_index
+                        name
+                        value_schema
+                    }
+                    events: topics(order_by: { topic_index: asc }) {
+                        topic_index
+                        events(order_by: [{ real_time: asc }, { transaction_index: asc }, { causal_time: asc }]) {
+                            real_time
+                            transaction_index
+                            causal_time
+                            value
+                            span_id
+                        }
+                    }
+                }
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, sim_dataset_id=sim_dataset_id)
+        dataset = resp.get("dataset", {})
+
+        topics = dataset.get("topics", [])
+
+        # Flatten nested topic->events into a flat event list with topic_index
+        flat_events = []
+        for topic_entry in dataset.get("events", []):
+            topic_index = topic_entry["topic_index"]
+            for event in topic_entry.get("events", []):
+                flat_events.append({
+                    "real_time": event["real_time"],
+                    "transaction_index": event["transaction_index"],
+                    "causal_time": event["causal_time"],
+                    "value": event["value"],
+                    "topic_index": topic_index,
+                    "span_id": event.get("span_id"),
+                })
+
+        return {"topics": topics, "events": flat_events}
+
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
         sim_result_query = """

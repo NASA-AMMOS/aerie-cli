@@ -20,6 +20,8 @@ Key format facts (verified against the parser source):
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
+from aerie_cli.utils.serialization import postgres_interval_to_microseconds
+
 
 # --------------------------------------------------------------------------- #
 # Time helpers
@@ -298,9 +300,59 @@ def infer_window(activities: list, resources: dict) -> tuple:
 # Top-level conversion
 # --------------------------------------------------------------------------- #
 
+def _convert_topics(topics_data: list) -> dict:
+    """
+    Convert GraphQL topic rows into the SimulationResultsWriter format.
+
+    Input:  [{"topic_index": 0, "name": "Foo", "value_schema": {...}}, ...]
+    Output: {"Foo": {"schema": {...}}, ...}
+    """
+    result = {}
+    for t in topics_data:
+        result[t["name"]] = {"schema": t["value_schema"]}
+    return result
+
+
+def _convert_events(events_data: list, topics_data: list, start_dt: datetime) -> list:
+    """
+    Convert flat GraphQL event rows into the SimulationResultsWriter format.
+
+    Each event becomes:
+        {"causalTime": str, "realTime": DOY-str, "transactionIndex": int,
+         "value": ..., "topic": str, "spanId": int|null}
+
+    The DB stores real_time as an interval offset from plan start; we
+    convert it to an absolute DOY timestamp matching the writer format.
+    """
+    # Build topic_index -> name lookup
+    topic_name_by_index = {t["topic_index"]: t["name"] for t in topics_data}
+
+    result = []
+    for ev in events_data:
+        real_time_us = postgres_interval_to_microseconds(ev["real_time"])
+        real_time_dt = start_dt + timedelta(microseconds=real_time_us)
+
+        entry = {
+            "causalTime": ev["causal_time"],
+            "realTime": dt_to_doy(real_time_dt),
+            "transactionIndex": ev["transaction_index"],
+            "value": ev["value"],
+            "topic": topic_name_by_index.get(ev["topic_index"], ""),
+        }
+        span_id = ev.get("span_id")
+        if span_id is not None:
+            entry["spanId"] = span_id
+        else:
+            entry["spanId"] = None
+
+        result.append(entry)
+    return result
+
+
 def build_simulation_upload(
     activities: list, resources: dict, resource_schemas: dict = None,
-    profile_types: dict = None, simulation_arguments: dict = None
+    profile_types: dict = None, simulation_arguments: dict = None,
+    simulation_events: dict = None
 ) -> dict:
     """
     Convert aerie-cli simulation and resource downloads to the PlanDev
@@ -320,6 +372,8 @@ def build_simulation_upload(
         simulation_arguments:  optional dict of simulation configuration arguments
                                (from simulation_dataset.arguments). Preserved so the
                                uploaded dataset retains the original sim config.
+        simulation_events:     optional dict returned by AerieClient.get_simulation_events()
+                               containing {"topics": [...], "events": [...]}.
 
     Returns:
         dict ready to be serialized as JSON and uploaded via uploadSimulationDataset.
@@ -347,5 +401,11 @@ def build_simulation_upload(
 
     if simulation_arguments:
         result["simulationArguments"] = simulation_arguments
+
+    if simulation_events:
+        topics_data = simulation_events.get("topics", [])
+        events_data = simulation_events.get("events", [])
+        result["topics"] = _convert_topics(topics_data)
+        result["events"] = _convert_events(events_data, topics_data, start_dt)
 
     return result

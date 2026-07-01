@@ -201,10 +201,17 @@ def download_simulation_full_results(
     sim_config = client.get_simulation_dataset_arguments(sim_id)
     typer.echo(f"  Fetched {len(sim_config)} configuration arguments")
 
+    typer.echo("Downloading simulation events...")
+    sim_events = client.get_simulation_events(sim_id)
+    n_topics = len(sim_events.get("topics", []))
+    n_events = len(sim_events.get("events", []))
+    typer.echo(f"  Downloaded {n_topics} topics and {n_events} events")
+
     typer.echo("Converting to upload format...")
     result = build_simulation_upload(
         simulated_activities, resources, resource_schemas, profile_types,
         simulation_arguments=sim_config,
+        simulation_events=sim_events,
     )
 
     acts = result["spans"]["simulatedActivities"]
@@ -220,6 +227,7 @@ def download_simulation_full_results(
     typer.echo(f"Activities       : {len(acts)} ({n_parents} with parents)")
     typer.echo(f"Real profiles    : {len(real_profiles)} ({n_real_seg} segments)")
     typer.echo(f"Discrete profiles: {len(disc_profiles)} ({n_disc_seg} segments)")
+    typer.echo(f"Events           : {n_events} ({n_topics} topics)")
     typer.echo(f"Wrote full simulation results to {output}")
 
 
