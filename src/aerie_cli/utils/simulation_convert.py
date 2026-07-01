@@ -169,27 +169,26 @@ def _real_segments(samples: list) -> list:
     """
     Reverse aerie-cli's real-profile flattening.
 
-    The CLI wrote each original segment {initial, rate} as two points:
-        (seg_start, initial) and (seg_end, initial + rate * dt_seconds),
-    deduplicating a start point when it equals the previous end point. So each
-    consecutive pair of points with x1 > x0 is one segment; recover
-        extent  = x1 - x0
-        initial = y0
-        rate    = (y1 - y0) / ((x1 - x0) / 1e6)     # per SECOND
-    Pairs sharing the same x (discontinuities) are skipped as boundaries.
+    Each original segment was emitted as two points (start, end).  Pairs at
+    even indices (0-1, 2-3, …) are within-segment pairs and produce one
+    segment each.  Pairs at odd indices (1-2, 3-4, …) are boundary markers
+    and are skipped.
     """
     segs = []
-    for i in range(len(samples) - 1):
+    i = 0
+    while i + 1 < len(samples):
         x0, y0 = samples[i]["x"], samples[i]["y"]
         x1, y1 = samples[i + 1]["x"], samples[i + 1]["y"]
-        if x1 <= x0:
-            continue
         extent_us = x1 - x0
-        rate = (y1 - y0) / (extent_us / 1_000_000)
+        if extent_us > 0:
+            rate = (y1 - y0) / (extent_us / 1_000_000)
+        else:
+            rate = 0.0
         segs.append({
             "extent": micros_to_extent(extent_us),
             "dynamics": {"initial": float(y0), "rate": float(rate)},
         })
+        i += 2  # skip to next segment (skip boundary marker)
     return segs
 
 
@@ -197,25 +196,18 @@ def _discrete_segments(samples: list, sim_end_us: int) -> list:
     """
     Reverse aerie-cli's discrete-profile flattening into value-held segments.
 
-    A value holds from its x until the x where it next changes. Collapse the point
-    list into runs of constant value; each run becomes one segment whose extent
-    reaches the start of the next run (or the simulation end for the final run).
-    Lists are compared by value, so vector resources collapse correctly.
+    Each original segment was emitted as two points (start, end).  Pairs at
+    even indices (0-1, 2-3, …) are within-segment pairs and produce one
+    segment each.  Pairs at odd indices are boundary markers and are skipped.
     """
-    changes = []  # list[(x, value)]
-    for p in samples:
-        x, y = p["x"], p["y"]
-        if changes and changes[-1][1] == y:
-            continue  # value unchanged - no new boundary
-        changes.append((x, y))
-
     segs = []
-    for i, (x, val) in enumerate(changes):
-        end = changes[i + 1][0] if i + 1 < len(changes) else sim_end_us
-        extent_us = end - x
-        if extent_us <= 0:
-            continue
-        segs.append({"extent": micros_to_extent(extent_us), "dynamics": val})
+    i = 0
+    while i + 1 < len(samples):
+        x0, y0 = samples[i]["x"], samples[i]["y"]
+        x1 = samples[i + 1]["x"]
+        extent_us = x1 - x0
+        segs.append({"extent": micros_to_extent(extent_us), "dynamics": y0})
+        i += 2  # skip to next segment (skip boundary marker)
     return segs
 
 

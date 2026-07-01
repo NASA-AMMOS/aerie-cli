@@ -159,17 +159,33 @@ def test_real_segments_with_rate():
     assert segs[0]["dynamics"]["rate"] == pytest.approx(1.0)
 
 
-def test_real_segments_skips_discontinuity_markers():
-    # Samples with x1 == x0 (discontinuity) should be skipped
+def test_real_segments_boundary_markers_skipped():
+    # Two segments with a boundary marker pair between them (stride-2 skips it)
     samples = [
         {"x": 0, "y": 1.0},
         {"x": 1_000_000, "y": 2.0},
-        {"x": 1_000_000, "y": 5.0},   # same x as previous → discontinuity marker
+        {"x": 1_000_000, "y": 5.0},   # boundary marker (start of next seg)
         {"x": 2_000_000, "y": 5.0},
     ]
     segs = _real_segments(samples)
-    # Pair (0,1.0)→(1e6,2.0) and pair (1e6,5.0)→(2e6,5.0); the (1e6,2.0)→(1e6,5.0) pair is skipped
     assert len(segs) == 2
+    assert segs[0]["dynamics"]["initial"] == pytest.approx(1.0)
+    assert segs[1]["dynamics"]["initial"] == pytest.approx(5.0)
+
+
+def test_real_segments_zero_extent_last_segment():
+    # Last segment starts at plan end → zero extent
+    samples = [
+        {"x": 0, "y": 10.0},
+        {"x": 1_000_000, "y": 20.0},
+        {"x": 1_000_000, "y": 30.0},  # boundary marker
+        {"x": 1_000_000, "y": 30.0},  # zero-extent segment
+    ]
+    segs = _real_segments(samples)
+    assert len(segs) == 2
+    assert segs[1]["extent"] == "00:00:00.000000"
+    assert segs[1]["dynamics"]["initial"] == pytest.approx(30.0)
+    assert segs[1]["dynamics"]["rate"] == pytest.approx(0.0)
 
 
 def test_real_segments_empty():
@@ -188,7 +204,8 @@ SIM_END_US = 10_000_000  # 10 seconds
 
 
 def test_discrete_segments_single_constant():
-    samples = [{"x": 0, "y": "SAFE"}]
+    # One segment: start and end points
+    samples = [{"x": 0, "y": "SAFE"}, {"x": 10_000_000, "y": "SAFE"}]
     segs = _discrete_segments(samples, SIM_END_US)
     assert len(segs) == 1
     assert segs[0]["dynamics"] == "SAFE"
@@ -196,7 +213,11 @@ def test_discrete_segments_single_constant():
 
 
 def test_discrete_segments_two_values():
-    samples = [{"x": 0, "y": "SAFE"}, {"x": 5_000_000, "y": "NOMINAL"}]
+    # Two segments: each with start+end pair, sharing a boundary at x=5e6
+    samples = [
+        {"x": 0, "y": "SAFE"}, {"x": 5_000_000, "y": "SAFE"},
+        {"x": 5_000_000, "y": "NOMINAL"}, {"x": 10_000_000, "y": "NOMINAL"},
+    ]
     segs = _discrete_segments(samples, SIM_END_US)
     assert len(segs) == 2
     assert segs[0]["dynamics"] == "SAFE"
@@ -205,20 +226,28 @@ def test_discrete_segments_two_values():
     assert segs[1]["extent"] == "00:00:05.000000"
 
 
-def test_discrete_segments_deduplicates_repeats():
-    # Repeated value emitted twice shouldn't create two segments
+def test_discrete_segments_preserves_same_value_boundaries():
+    # Two adjacent segments with the same value are preserved as separate segments
     samples = [
-        {"x": 0, "y": "SAFE"},
-        {"x": 2_000_000, "y": "SAFE"},   # same value → no new boundary
-        {"x": 5_000_000, "y": "NOMINAL"},
+        {"x": 0, "y": "SAFE"}, {"x": 2_000_000, "y": "SAFE"},
+        {"x": 2_000_000, "y": "SAFE"}, {"x": 5_000_000, "y": "SAFE"},
+        {"x": 5_000_000, "y": "NOMINAL"}, {"x": 10_000_000, "y": "NOMINAL"},
     ]
     segs = _discrete_segments(samples, SIM_END_US)
-    assert len(segs) == 2
-    assert segs[0]["extent"] == "00:00:05.000000"  # holds until NOMINAL
+    assert len(segs) == 3
+    assert segs[0]["dynamics"] == "SAFE"
+    assert segs[0]["extent"] == "00:00:02.000000"
+    assert segs[1]["dynamics"] == "SAFE"
+    assert segs[1]["extent"] == "00:00:03.000000"
+    assert segs[2]["dynamics"] == "NOMINAL"
+    assert segs[2]["extent"] == "00:00:05.000000"
 
 
 def test_discrete_segments_boolean():
-    samples = [{"x": 0, "y": False}, {"x": 4_000_000, "y": True}]
+    samples = [
+        {"x": 0, "y": False}, {"x": 4_000_000, "y": False},
+        {"x": 4_000_000, "y": True}, {"x": 10_000_000, "y": True},
+    ]
     segs = _discrete_segments(samples, SIM_END_US)
     assert segs[0]["dynamics"] is False
     assert segs[1]["dynamics"] is True
@@ -226,7 +255,7 @@ def test_discrete_segments_boolean():
 
 def test_discrete_segments_vector():
     v = [1.0, 2.0, 3.0]
-    samples = [{"x": 0, "y": v}]
+    samples = [{"x": 0, "y": v}, {"x": 10_000_000, "y": v}]
     segs = _discrete_segments(samples, SIM_END_US)
     assert segs[0]["dynamics"] == v
 
@@ -315,8 +344,8 @@ RESOURCES_REAL = {
 RESOURCES_DISCRETE = {
     "resourceSamples": {
         "mode": [
-            {"x": 0, "y": "SAFE"},
-            {"x": 1_800_000_000, "y": "NOMINAL"},
+            {"x": 0, "y": "SAFE"}, {"x": 1_800_000_000, "y": "SAFE"},
+            {"x": 1_800_000_000, "y": "NOMINAL"}, {"x": 3_600_000_000, "y": "NOMINAL"},
         ]
     }
 }
@@ -328,8 +357,8 @@ RESOURCES_MIXED = {
             {"x": 3_600_000_000, "y": 20.0},
         ],
         "mode": [
-            {"x": 0, "y": "SAFE"},
-            {"x": 1_800_000_000, "y": "NOMINAL"},
+            {"x": 0, "y": "SAFE"}, {"x": 1_800_000_000, "y": "SAFE"},
+            {"x": 1_800_000_000, "y": "NOMINAL"}, {"x": 3_600_000_000, "y": "NOMINAL"},
         ],
     }
 }
@@ -357,7 +386,7 @@ def test_convert_resources_int_schema_treated_as_real_profile():
 
 def test_convert_resources_struct_schema_is_discrete():
     struct_schema = {"type": "struct", "items": {"x": {"type": "real"}, "y": {"type": "real"}}}
-    resources = {"resourceSamples": {"pos": [{"x": 0, "y": {"x": 1.0, "y": 2.0}}]}}
+    resources = {"resourceSamples": {"pos": [{"x": 0, "y": {"x": 1.0, "y": 2.0}}, {"x": 3_600_000_000, "y": {"x": 1.0, "y": 2.0}}]}}
     schemas = {"pos": struct_schema}
     real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
     assert len(real) == 0
@@ -367,7 +396,7 @@ def test_convert_resources_struct_schema_is_discrete():
 
 def test_convert_resources_variant_schema_is_discrete():
     variant_schema = {"type": "variant", "variants": [{"key": "A", "label": "A"}, {"key": "B", "label": "B"}]}
-    resources = {"resourceSamples": {"mode": [{"x": 0, "y": "A"}]}}
+    resources = {"resourceSamples": {"mode": [{"x": 0, "y": "A"}, {"x": 3_600_000_000, "y": "A"}]}}
     schemas = {"mode": variant_schema}
     real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
     assert discrete[0]["schema"] == variant_schema
@@ -376,7 +405,7 @@ def test_convert_resources_variant_schema_is_discrete():
 def test_convert_resources_uses_model_schema_over_value_sniffing():
     # Value looks like a float (would be classified as real without schema)
     # but model says it's a string
-    resources = {"resourceSamples": {"tricky": [{"x": 0, "y": 1.0}]}}
+    resources = {"resourceSamples": {"tricky": [{"x": 0, "y": 1.0}, {"x": 3_600_000_000, "y": 1.0}]}}
     schemas = {"tricky": {"type": "string"}}
     real, discrete = convert_resources(resources, SIM_END_1HR, schemas)
     assert len(real) == 0
@@ -399,8 +428,8 @@ def test_convert_resources_sorted_by_name():
         "resourceSamples": {
             "z_real": [{"x": 0, "y": 1.0}, {"x": 1_000_000, "y": 2.0}],
             "a_real": [{"x": 0, "y": 5.0}, {"x": 1_000_000, "y": 5.0}],
-            "z_str": [{"x": 0, "y": "B"}],
-            "a_str": [{"x": 0, "y": "A"}],
+            "z_str": [{"x": 0, "y": "B"}, {"x": 1_000_000, "y": "B"}],
+            "a_str": [{"x": 0, "y": "A"}, {"x": 1_000_000, "y": "A"}],
         }
     }
     real, discrete = convert_resources(resources, SIM_END_1HR)

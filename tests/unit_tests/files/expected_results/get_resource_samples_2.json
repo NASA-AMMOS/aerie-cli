@@ -26,5 +26,8 @@
                 "y": "OFF"
             }
         ]
+    },
+    "profileTypes": {
+        "hardwareState": "discrete"
     }
 }
