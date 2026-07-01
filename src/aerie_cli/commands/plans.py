@@ -185,7 +185,7 @@ def download_simulation_full_results(
     typer.echo(f"  Downloaded {len(simulated_activities)} activities")
 
     typer.echo(f"Downloading resource timelines for dataset {sim_id}...")
-    resources = client.get_resource_samples(sim_id)
+    resources = client.get_resource_samples(sim_id, deduplicate=False)
     n_resources = len(resources.get("resourceSamples", {}))
     profile_types = resources.get("profileTypes", {})
     typer.echo(f"  Downloaded {n_resources} resource profiles")

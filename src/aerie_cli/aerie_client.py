@@ -413,7 +413,7 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None, deduplicate: bool=True):
         """Pull resource samples from a simulation dataset, optionally filtering for specific states
 
         Each resource's values are returned in a list of points {x: <time>, y: <value>}.
@@ -521,32 +521,60 @@ class AerieClient:
                 # Discrete profiles don't have rates
                 if profile_type == 'discrete':
 
-                    # Emit start and end points for every segment so that
-                    # segment boundaries are preserved through the roundtrip.
-                    values.append({
+                    # Define points at the start and end of this profile segment
+                    start_value = {
                         "x": segment_start_time,
                         "y": dynamics,
-                    })
-                    values.append({
+                    }
+                    end_value = {
                         "x": segment_end_time,
                         "y": dynamics,
-                    })
+                    }
+
+                    if deduplicate:
+                        # Check if the previous point is identical to this one
+                        if len(values) and (values[-1] == start_value):
+
+                            # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
+                            values.pop()
+                            values.append(end_value)
+
+                        else:
+
+                            # If the value has changed, add points at the boundaries of this segment
+                            values.append(start_value)
+                            values.append(end_value)
+                    else:
+                        values.append(start_value)
+                        values.append(end_value)
 
                 # Real profiles can have rates over time
                 elif profile_type == 'real':
 
-                    # Emit start and end points for every segment so that
-                    # segment boundaries are preserved through the roundtrip.
-                    values.append({
+                    start_value = {
                         "x": segment_start_time,
                         "y": dynamics["initial"],
-                    })
-                    values.append({
+                    }
+
+                    end_value = {
                         "x": segment_end_time,
                         "y": dynamics["initial"]
                         + dynamics["rate"]
                         * ((segment_end_time - segment_start_time) / 1e6),
-                    })
+                    }
+
+                    if deduplicate:
+                        # If the last value is not identical to this segment's start, then add the start
+                        if (len(values) and values[-1] != start_value) or (
+                            len(values) == 0
+                        ):
+                            values.append(start_value)
+
+                        # Add a value at the end of this segment
+                        values.append(end_value)
+                    else:
+                        values.append(start_value)
+                        values.append(end_value)
 
                 else:
                     raise ValueError(f"Unknown resource profile type: {profile_type}")
