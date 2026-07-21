@@ -17,6 +17,7 @@ Key format facts (verified against the parser source):
   * Durations / extents are strings  HH:MM:SS.ssssss
 """
 
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
@@ -95,15 +96,29 @@ def convert_activities(activities: list) -> tuple:
 
 def _normalize_duration(dur: str) -> str:
     """
-    aerie-cli emits durations like '00:00:00', '00:00:01', '00:00:16.05703'.
-    Duration.fromString expects HH:MM:SS with optional fractional seconds. Pad
-    the fractional part to 6 digits and ensure one is present.
+    aerie-cli emits Postgres-interval durations which may include a day
+    component, e.g. '9 days 21:55:18.272000' or '1 day 02:00:00'.
+    Duration.fromString on the upload side only accepts HH:MM:SS.ssssss
+    (hours unbounded), so we fold the days into the hours component and
+    pad the fractional-seconds part to 6 digits.
     """
-    if "." in dur:
-        head, frac = dur.split(".", 1)
+    m = re.match(r"(?:(\d+)\s+days?\s+)?(.+)", dur)
+    days = int(m.group(1)) if m.group(1) else 0
+    time_part = m.group(2)
+
+    if "." in time_part:
+        head, frac = time_part.split(".", 1)
         frac = (frac + "000000")[:6]
-        return f"{head}.{frac}"
-    return f"{dur}.000000"
+        time_part = f"{head}.{frac}"
+    else:
+        time_part = f"{time_part}.000000"
+
+    if days:
+        parts = time_part.split(":", 1)
+        hours = int(parts[0]) + days * 24
+        time_part = f"{hours:02d}:{parts[1]}"
+
+    return time_part
 
 
 # --------------------------------------------------------------------------- #

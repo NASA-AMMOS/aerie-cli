@@ -74,6 +74,18 @@ def test_normalize_duration_truncates_excess():
     assert _normalize_duration("00:00:01.1234567") == "00:00:01.123456"
 
 
+def test_normalize_duration_days_folded_into_hours():
+    assert _normalize_duration("9 days 21:55:18.272000") == "237:55:18.272000"
+
+
+def test_normalize_duration_single_day():
+    assert _normalize_duration("1 day 02:00:00") == "26:00:00.000000"
+
+
+def test_normalize_duration_days_no_fractional():
+    assert _normalize_duration("3 days 00:00:00") == "72:00:00.000000"
+
+
 # --------------------------------------------------------------------------- #
 # Resource classification
 # --------------------------------------------------------------------------- #
