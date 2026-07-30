@@ -181,6 +181,29 @@ def test_get_resource_samples():
     assert res == expected
 
 
+def test_get_profile_types():
+
+    # CASE 1: Get all states
+    aerie_host = MockAerieHost('get_profile_types_1')
+    client = AerieClient(aerie_host)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_profile_types_1.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_profile_types(1)
+    assert res == expected
+
+    # CASE 2: Get only specific states
+    aerie_host = MockAerieHost('get_profile_types_2')
+    client = AerieClient(aerie_host)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_profile_types_2.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_profile_types(1, ["hardwareState"])
+    assert res == expected
+
+
 def test_get_activity_plan_by_id():
     aerie_host = MockAerieHost("get_activity_plan_by_id")
     client = AerieClient(aerie_host)

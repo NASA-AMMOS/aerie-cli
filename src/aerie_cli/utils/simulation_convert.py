@@ -1,0 +1,426 @@
+"""
+Convert aerie-cli simulation downloads to the SimulationResultsWriter JSON format
+accepted by PlanDev's uploadSimulationDataset endpoint.
+
+Inputs:
+  - activities : list returned by AerieClient.get_simulation_results()
+  - resources  : dict returned by AerieClient.get_resource_samples()
+
+Key format facts (verified against the parser source):
+  * Activity `arguments` and `attributes` are RAW serialized values (no {type,value} wrapper).
+      - a string is just "MARS", a number is 16057033, an optional is {"value":..,"present":..}
+        exactly as aerie-cli already emits it.
+  * Real profile segment dynamics = {"initial": <float>, "rate": <float per SECOND>}.
+  * Discrete profile segment dynamics = the RAW value ("NONE", false, [x,y,z], ...).
+  * `schema` types accepted: real, int, boolean, string, duration, path, series, struct, variant.
+  * Timestamps are DOY strings  YYYY-DDDThh:mm:ss.ssssss
+  * Durations / extents are strings  HH:MM:SS.ssssss
+"""
+
+import re
+from datetime import datetime, timezone, timedelta
+from typing import Any
+
+from aerie_cli.utils.serialization import postgres_interval_to_microseconds
+
+
+# --------------------------------------------------------------------------- #
+# Time helpers
+# --------------------------------------------------------------------------- #
+
+def _parse_iso(iso_str: str) -> datetime:
+    """Parse an ISO-8601 timestamp (as emitted by aerie-cli) to an aware datetime."""
+    dt = datetime.fromisoformat(iso_str)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def iso_to_doy(iso_str: str) -> str:
+    """ISO-8601 -> DOY string 'YYYY-DDDThh:mm:ss.ssssss'."""
+    return dt_to_doy(_parse_iso(iso_str))
+
+
+def dt_to_doy(dt: datetime) -> str:
+    doy = dt.timetuple().tm_yday
+    return (f"{dt.year:04d}-{doy:03d}T"
+            f"{dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}.{dt.microsecond:06d}")
+
+
+def micros_to_extent(us: int) -> str:
+    """Microseconds -> 'HH:MM:SS.ssssss'. Hours are NOT capped at 24."""
+    if us < 0:
+        raise ValueError(f"Negative extent ({us} us); samples out of order or past sim end.")
+    total_seconds, micros = divmod(us, 1_000_000)
+    hours, rem = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{micros:06d}"
+
+
+# --------------------------------------------------------------------------- #
+# Activities
+# --------------------------------------------------------------------------- #
+
+def convert_activities(activities: list) -> tuple:
+    """
+    aerie-cli activity records -> SimulationResultsWriter `simulatedActivities`.
+
+    childIds are derived from parent_id back-references so decomposed activities
+    keep their hierarchy.
+    """
+    children: dict = {}
+    for a in activities:
+        pid = a.get("parent_id")
+        if pid is not None:
+            children.setdefault(pid, []).append(a["id"])
+
+    simulated = []
+    for a in activities:
+        attrs = a.get("attributes") or {}
+        simulated.append({
+            "id": a["id"],
+            "type": a["activity_type_name"],
+            "directiveId": a.get("directive_id"),
+            "parentId": a.get("parent_id"),
+            "childIds": sorted(children.get(a["id"], [])),
+            "startTime": iso_to_doy(a["start_time"]),
+            "duration": _normalize_duration(a["duration"]),
+            # Raw serialized values - NO {type,value} wrapping.
+            "arguments": attrs.get("arguments", {}),
+            "attributes": attrs.get("computedAttributes", {}),
+        })
+
+    # No notion of "unfinished" survives the CLI download, so this is always empty.
+    return simulated, []
+
+
+def _normalize_duration(dur: str) -> str:
+    """
+    aerie-cli emits Postgres-interval durations which may include a day
+    component, e.g. '9 days 21:55:18.272000' or '1 day 02:00:00'.
+    Duration.fromString on the upload side only accepts HH:MM:SS.ssssss
+    (hours unbounded), so we fold the days into the hours component and
+    pad the fractional-seconds part to 6 digits.
+    """
+    m = re.match(r"(?:(\d+)\s+days?\s+)?(.+)", dur)
+    days = int(m.group(1)) if m.group(1) else 0
+    time_part = m.group(2)
+
+    if "." in time_part:
+        head, frac = time_part.split(".", 1)
+        frac = (frac + "000000")[:6]
+        time_part = f"{head}.{frac}"
+    else:
+        time_part = f"{time_part}.000000"
+
+    if days:
+        parts = time_part.split(":", 1)
+        hours = int(parts[0]) + days * 24
+        time_part = f"{hours:02d}:{parts[1]}"
+
+    return time_part
+
+
+# --------------------------------------------------------------------------- #
+# Resources
+# --------------------------------------------------------------------------- #
+
+def _classify(samples: list, schema: dict = None) -> str:
+    """Return one of: 'real', 'int', 'string', 'boolean', 'series', 'struct', 'variant', 'duration', 'path'.
+
+    When a model schema is provided it is used directly; value-sniffing is the fallback.
+    """
+    if schema:
+        return schema.get("type", "string")
+    for p in samples:
+        y = p.get("y")
+        if y is None:
+            continue
+        if isinstance(y, bool):
+            return "boolean"
+        if isinstance(y, (int, float)):
+            return "real"
+        if isinstance(y, str):
+            return "string"
+        if isinstance(y, list):
+            return "series"
+        if isinstance(y, dict):
+            return "struct"
+    return "string"  # all-null / empty: harmless default
+
+
+# Schema types that map to real profiles (linear interpolation dynamics).
+_REAL_PROFILE_TYPES = {"real", "int"}
+
+
+def _schema_for(kind: str, sample_value: Any, schema: dict = None) -> dict:
+    """Return the profile schema dict.
+
+    Uses the model-provided schema when available; falls back to value-sniffing.
+    """
+    if schema is not None:
+        return schema
+    if kind in _REAL_PROFILE_TYPES:
+        return {"type": kind}
+    if kind == "string":
+        return {"type": "string"}
+    if kind == "boolean":
+        return {"type": "boolean"}
+    if kind == "series":
+        item = "real"
+        if isinstance(sample_value, list) and sample_value:
+            v0 = sample_value[0]
+            if isinstance(v0, bool):
+                item = "boolean"
+            elif isinstance(v0, str):
+                item = "string"
+            elif isinstance(v0, (int, float)):
+                item = "real"
+        return {"type": "series", "items": {"type": item}}
+    # struct, variant, duration, path — return the full model schema if available,
+    # otherwise a best-effort string fallback.
+    return {"type": "string"}
+
+
+def _real_segments(samples: list) -> list:
+    """
+    Reverse aerie-cli's real-profile flattening.
+
+    Each original segment was emitted as two points (start, end).  Pairs at
+    even indices (0-1, 2-3, …) are within-segment pairs and produce one
+    segment each.  Pairs at odd indices (1-2, 3-4, …) are boundary markers
+    and are skipped.
+    """
+    segs = []
+    i = 0
+    while i + 1 < len(samples):
+        x0, y0 = samples[i]["x"], samples[i]["y"]
+        x1, y1 = samples[i + 1]["x"], samples[i + 1]["y"]
+        extent_us = x1 - x0
+        if extent_us > 0:
+            rate = (y1 - y0) / (extent_us / 1_000_000)
+        else:
+            rate = 0.0
+        segs.append({
+            "extent": micros_to_extent(extent_us),
+            "dynamics": {"initial": float(y0), "rate": float(rate)},
+        })
+        i += 2  # skip to next segment (skip boundary marker)
+    return segs
+
+
+def _discrete_segments(samples: list, sim_end_us: int) -> list:
+    """
+    Reverse aerie-cli's discrete-profile flattening into value-held segments.
+
+    Each original segment was emitted as two points (start, end).  Pairs at
+    even indices (0-1, 2-3, …) are within-segment pairs and produce one
+    segment each.  Pairs at odd indices are boundary markers and are skipped.
+    """
+    segs = []
+    i = 0
+    while i + 1 < len(samples):
+        x0, y0 = samples[i]["x"], samples[i]["y"]
+        x1 = samples[i + 1]["x"]
+        extent_us = x1 - x0
+        segs.append({"extent": micros_to_extent(extent_us), "dynamics": y0})
+        i += 2  # skip to next segment (skip boundary marker)
+    return segs
+
+
+def convert_resources(
+    resources: dict, sim_end_us: int, resource_schemas: dict = None,
+    profile_types: dict = None
+) -> tuple:
+    """
+    aerie-cli resourceSamples -> (realProfiles, discreteProfiles).
+
+    Real profiles carry {initial, rate} dynamics; everything else (string,
+    boolean, series/vector, struct, variant, …) is a discrete profile whose
+    dynamics is the raw value.
+
+    Args:
+        resources:        dict from AerieClient.get_resource_samples()
+        sim_end_us:       simulation duration in microseconds
+        resource_schemas: optional dict mapping resource name -> schema dict
+                          (from AerieClient.get_resource_types()). When provided,
+                          schemas come from the model rather than value-sniffing.
+        profile_types:    optional dict mapping resource name -> "real" or "discrete"
+                          (from the database profile type). When provided, this is
+                          the authoritative source for real-vs-discrete classification.
+    """
+    real_profiles, discrete_profiles = [], []
+    resource_samples = resources.get("resourceSamples", {})
+    schemas = resource_schemas or {}
+    db_types = profile_types or {}
+
+    for name in sorted(resource_samples):
+        samples = resource_samples[name]
+        if not samples:
+            continue
+        schema = schemas.get(name)
+        kind = _classify(samples, schema)
+        first_val = next((p["y"] for p in samples if p.get("y") is not None), None)
+
+        # Use the DB profile type when available; it is authoritative.
+        # The resource schema describes the *value* type (e.g. "real" for a
+        # floating-point number) but the profile may still be stored as
+        # discrete in the database.
+        db_type = db_types.get(name)
+        is_real_profile = (db_type == "real") if db_type else (kind in _REAL_PROFILE_TYPES)
+
+        if is_real_profile:
+            real_profiles.append({
+                "name": name,
+                "schema": _schema_for(kind, first_val, schema),
+                "segments": _real_segments(samples),
+            })
+        else:
+            discrete_profiles.append({
+                "name": name,
+                "schema": _schema_for(kind, first_val, schema),
+                "segments": _discrete_segments(samples, sim_end_us),
+            })
+
+    return real_profiles, discrete_profiles
+
+
+# --------------------------------------------------------------------------- #
+# Simulation window
+# --------------------------------------------------------------------------- #
+
+def infer_window(activities: list, resources: dict) -> tuple:
+    """
+    Start = earliest activity start_time.
+    End   = start + max resource sample offset (resources span the full sim;
+            activities may end earlier). Falls back to latest activity end_time.
+    """
+    if not activities:
+        raise ValueError("No activities; cannot infer simulation window.")
+    start_dt = min(_parse_iso(a["start_time"]) for a in activities)
+
+    max_offset_us = 0
+    for samples in resources.get("resourceSamples", {}).values():
+        if samples:
+            max_offset_us = max(max_offset_us, max(p["x"] for p in samples))
+
+    if max_offset_us == 0:
+        end_dt = max(_parse_iso(a["end_time"]) for a in activities)
+    else:
+        end_dt = start_dt + timedelta(microseconds=max_offset_us)
+    return start_dt, end_dt
+
+
+# --------------------------------------------------------------------------- #
+# Top-level conversion
+# --------------------------------------------------------------------------- #
+
+def _convert_topics(topics_data: list) -> dict:
+    """
+    Convert GraphQL topic rows into the SimulationResultsWriter format.
+
+    Input:  [{"topic_index": 0, "name": "Foo", "value_schema": {...}}, ...]
+    Output: {"Foo": {"schema": {...}}, ...}
+    """
+    result = {}
+    for t in topics_data:
+        result[t["name"]] = {"schema": t["value_schema"]}
+    return result
+
+
+def _convert_events(events_data: list, topics_data: list, start_dt: datetime) -> list:
+    """
+    Convert flat GraphQL event rows into the SimulationResultsWriter format.
+
+    Each event becomes:
+        {"causalTime": str, "realTime": DOY-str, "transactionIndex": int,
+         "value": ..., "topic": str, "spanId": int|null}
+
+    The DB stores real_time as an interval offset from plan start; we
+    convert it to an absolute DOY timestamp matching the writer format.
+    """
+    # Build topic_index -> name lookup
+    topic_name_by_index = {t["topic_index"]: t["name"] for t in topics_data}
+
+    result = []
+    for ev in events_data:
+        real_time_us = postgres_interval_to_microseconds(ev["real_time"])
+        real_time_dt = start_dt + timedelta(microseconds=real_time_us)
+
+        entry = {
+            "causalTime": ev["causal_time"],
+            "realTime": dt_to_doy(real_time_dt),
+            "transactionIndex": ev["transaction_index"],
+            "value": ev["value"],
+            "topic": topic_name_by_index.get(ev["topic_index"], ""),
+        }
+        span_id = ev.get("span_id")
+        if span_id is not None:
+            entry["spanId"] = span_id
+        else:
+            entry["spanId"] = None
+
+        result.append(entry)
+    return result
+
+
+def build_simulation_upload(
+    activities: list, resources: dict, resource_schemas: dict = None,
+    profile_types: dict = None, simulation_arguments: dict = None,
+    simulation_events: dict = None
+) -> dict:
+    """
+    Convert aerie-cli simulation and resource downloads to the PlanDev
+    SimulationResultsWriter upload format.
+
+    Args:
+        activities:            list returned by AerieClient.get_simulation_results()
+        resources:             dict returned by AerieClient.get_resource_samples()
+        resource_schemas:      optional dict mapping resource name -> schema dict,
+                               built from AerieClient.get_resource_types(). When
+                               provided, resource types (real vs int vs struct etc.)
+                               are taken from the model rather than inferred from
+                               sample values.
+        profile_types:         optional dict mapping resource name -> "real" or "discrete"
+                               (from the database profile type). Authoritative source
+                               for real-vs-discrete classification.
+        simulation_arguments:  optional dict of simulation configuration arguments
+                               (from simulation_dataset.arguments). Preserved so the
+                               uploaded dataset retains the original sim config.
+        simulation_events:     optional dict returned by AerieClient.get_simulation_events()
+                               containing {"topics": [...], "events": [...]}.
+
+    Returns:
+        dict ready to be serialized as JSON and uploaded via uploadSimulationDataset.
+    """
+    start_dt, end_dt = infer_window(activities, resources)
+    sim_end_us = int((end_dt - start_dt).total_seconds() * 1_000_000)
+
+    simulated_activities, unfinished = convert_activities(activities)
+    real_profiles, discrete_profiles = convert_resources(
+        resources, sim_end_us, resource_schemas, profile_types
+    )
+
+    result = {
+        "simulationStartTime": dt_to_doy(start_dt),
+        "simulationEndTime": dt_to_doy(end_dt),
+        "profiles": {
+            "realProfiles": real_profiles,
+            "discreteProfiles": discrete_profiles,
+        },
+        "spans": {
+            "simulatedActivities": simulated_activities,
+            "unfinishedActivities": unfinished,
+        },
+    }
+
+    if simulation_arguments:
+        result["simulationArguments"] = simulation_arguments
+
+    if simulation_events:
+        topics_data = simulation_events.get("topics", [])
+        events_data = simulation_events.get("events", [])
+        result["topics"] = _convert_topics(topics_data)
+        result["events"] = _convert_events(events_data, topics_data, start_dt)
+
+    return result

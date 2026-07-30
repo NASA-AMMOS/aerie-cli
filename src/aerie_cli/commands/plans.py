@@ -10,6 +10,7 @@ from rich.table import Table
 from aerie_cli.commands.command_context import CommandContext
 from aerie_cli.schemas.client import ActivityPlanCreate
 from aerie_cli.utils.prompts import select_from_list
+from aerie_cli.utils.simulation_convert import build_simulation_upload
 
 plans_app = typer.Typer()
 collaborators_app = typer.Typer()
@@ -161,6 +162,79 @@ def download_resources(
 
 
 @plans_app.command()
+def download_simulation_full_results(
+    sim_id: int = typer.Option(
+        ..., '--sim-id', '-s',
+        help="Simulation Dataset ID", prompt=True),
+    output: str = typer.Option(
+        ..., '--output', '-o',
+        help="The output file destination", prompt=True),
+):
+    """
+    Download simulated activities and resource timelines for a simulation dataset,
+    convert them to the PlanDev SimulationResultsWriter upload format, and save
+    the result to a JSON file.
+
+    Internally runs the equivalent of download-simulation and download-resources,
+    then converts the combined data into the uploadSimulationDataset JSON format.
+    """
+    client = CommandContext.get_client()
+
+    typer.echo(f"Downloading simulated activities for dataset {sim_id}...")
+    simulated_activities = client.get_simulation_results(sim_id)
+    typer.echo(f"  Downloaded {len(simulated_activities)} activities")
+
+    typer.echo(f"Downloading resource timelines for dataset {sim_id}...")
+    resources = client.get_resource_samples(sim_id, deduplicate=False)
+    n_resources = len(resources.get("resourceSamples", {}))
+    typer.echo(f"  Downloaded {n_resources} resource profiles")
+
+    typer.echo("Fetching profile types...")
+    profile_types = client.get_profile_types(sim_id)
+    typer.echo(f"  Fetched {len(profile_types)} profile types")
+
+    typer.echo("Fetching resource schemas from mission model...")
+    plan_id = client.get_plan_id_by_sim_id(sim_id)
+    plan = client.get_activity_plan_by_id(plan_id)
+    resource_types = client.get_resource_types(plan.model_id)
+    resource_schemas = {rt.name: rt.schema for rt in resource_types}
+    typer.echo(f"  Fetched {len(resource_schemas)} resource schemas")
+
+    typer.echo("Fetching simulation configuration arguments...")
+    sim_config = client.get_simulation_dataset_arguments(sim_id)
+    typer.echo(f"  Fetched {len(sim_config)} configuration arguments")
+
+    typer.echo("Downloading simulation events...")
+    sim_events = client.get_simulation_events(sim_id)
+    n_topics = len(sim_events.get("topics", []))
+    n_events = len(sim_events.get("events", []))
+    typer.echo(f"  Downloaded {n_topics} topics and {n_events} events")
+
+    typer.echo("Converting to upload format...")
+    result = build_simulation_upload(
+        simulated_activities, resources, resource_schemas, profile_types,
+        simulation_arguments=sim_config,
+        simulation_events=sim_events,
+    )
+
+    acts = result["spans"]["simulatedActivities"]
+    real_profiles = result["profiles"]["realProfiles"]
+    disc_profiles = result["profiles"]["discreteProfiles"]
+    n_parents = sum(1 for a in acts if a["parentId"] is not None)
+    n_real_seg = sum(len(p["segments"]) for p in real_profiles)
+    n_disc_seg = sum(len(p["segments"]) for p in disc_profiles)
+
+    with open(output, "w") as out_file:
+        out_file.write(json.dumps(result, indent=2))
+
+    typer.echo(f"Activities       : {len(acts)} ({n_parents} with parents)")
+    typer.echo(f"Real profiles    : {len(real_profiles)} ({n_real_seg} segments)")
+    typer.echo(f"Discrete profiles: {len(disc_profiles)} ({n_disc_seg} segments)")
+    typer.echo(f"Events           : {n_events} ({n_topics} topics)")
+    typer.echo(f"Wrote full simulation results to {output}")
+
+
+@plans_app.command()
 def upload(
     input: str = typer.Option(
         ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
@@ -218,7 +292,7 @@ def simulate(
     end_time = arrow.utcnow()
     res = client.get_simulation_results(sim_dataset_id)
     total_sim_time = end_time - start_time
-    typer.echo(f"Simulation completed in " + str(total_sim_time))
+    typer.echo("Simulation completed in " + str(total_sim_time))
 
     if output:
         with open(output, "w") as out_file:
@@ -316,7 +390,7 @@ def clean():
     for activity_plan in resp:
         client.delete_plan(activity_plan.id)
 
-    typer.echo(f"All activity plans have been deleted")
+    typer.echo("All activity plans have been deleted")
 
 @collaborators_app.command("list")
 def list_collaborators(
@@ -348,7 +422,7 @@ def add_collaborator(
     if user in client.list_plan_collaborators(plan_id):
         typer.echo(f"Successfully added collaborator: {user}")
     else:
-        typer.echo(f"Failed to add collaborator")
+        typer.echo("Failed to add collaborator")
 
 
 @collaborators_app.command("delete")

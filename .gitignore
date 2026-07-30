@@ -14,3 +14,5 @@ args.json
 tests/integration_tests/artifacts
 venv/
 .idea/
+config.json
+out/

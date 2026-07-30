@@ -237,7 +237,6 @@ class AerieClient:
             plan=api_plan_create.to_dict(),
         )
         plan_id = plan_resp["id"]
-        plan_revision = plan_resp["revision"]
 
         #add plan tags if exists from plan_to_create
         for tag in plan_to_create.tags:
@@ -414,7 +413,7 @@ class AerieClient:
         api_resource_timeline = ApiResourceSampleResults.from_dict(samples)
         return api_resource_timeline
 
-    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None):
+    def get_resource_samples(self, simulation_dataset_id: int, state_names: List=None, deduplicate: bool=True):
         """Pull resource samples from a simulation dataset, optionally filtering for specific states
 
         Each resource's values are returned in a list of points {x: <time>, y: <value>}.
@@ -425,13 +424,27 @@ class AerieClient:
         that a linear interpolation between samples will always return a correct value. Two points at the same 
         timestamp indicate a discontinuity.
 
+        `deduplicate` was added to support `plans download-simulation-full-results`, which
+        round-trips a simulation dataset back into an uploadable form. It defaults to True,
+        preserving the original behavior of collapsing points at segment boundaries when the
+        value is unchanged. That collapsing is correct for plotting, but it merges adjacent
+        segments and loses one segment per continuous boundary, so the round-trip path passes
+        False to keep segment counts intact.
+
+        Callers that need to distinguish real profiles from discrete ones should use
+        get_profile_types(), which reports the type recorded in the database. The samples
+        returned here are ambiguous on that point: a real profile whose values never change is
+        indistinguishable from a discrete one.
+
         Args:
             simulation_dataset_id (int)
             state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+            deduplicate (bool, optional): Collapse redundant points at segment boundaries where the
+                value is unchanged. Defaults to True. Pass False to preserve exact segment counts.
 
         Returns:
             Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
-        """        
+        """
 
         # checks to see if user inputted specific states. If so, use this query.
         if state_names:
@@ -530,16 +543,22 @@ class AerieClient:
                         "y": dynamics,
                     }
 
-                    # Check if the previous point is identical to this one
-                    if len(values) and (values[-1] == start_value):
+                    if deduplicate:
+                        # Check if the previous point is identical to this one
+                        if len(values) and (values[-1] == start_value):
 
-                        # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
-                        values.pop()
-                        values.append(end_value)
+                            # If the resource value hasn't changed, remove the previous point and extend out to the end of this profile segment
+                            values.pop()
+                            values.append(end_value)
 
+                        else:
+
+                            # If the value has changed, add points at the boundaries of this segment
+                            values.append(start_value)
+                            values.append(end_value)
                     else:
-
-                        # If the value has changed, add points at the boundaries of this segment
+                        # Emit both boundary points unconditionally so each segment survives the
+                        # round trip as its own segment. See the docstring note on `deduplicate`.
                         values.append(start_value)
                         values.append(end_value)
 
@@ -551,21 +570,27 @@ class AerieClient:
                         "y": dynamics["initial"],
                     }
 
-                    # If the last value is not identical to this segment's start, then add the start
-                    if (len(values) and values[-1] != start_value) or (
-                        len(values) == 0
-                    ):
-                        values.append(start_value)
+                    end_value = {
+                        "x": segment_end_time,
+                        "y": dynamics["initial"]
+                        + dynamics["rate"]
+                        * ((segment_end_time - segment_start_time) / 1e6),
+                    }
 
-                    # Add a value at the end of this segment
-                    values.append(
-                        {
-                            "x": segment_end_time,
-                            "y": dynamics["initial"]
-                            + dynamics["rate"]
-                            * ((segment_end_time - segment_start_time) / 1e6),
-                        }
-                    )
+                    if deduplicate:
+                        # If the last value is not identical to this segment's start, then add the start
+                        if (len(values) and values[-1] != start_value) or (
+                            len(values) == 0
+                        ):
+                            values.append(start_value)
+
+                        # Add a value at the end of this segment
+                        values.append(end_value)
+                    else:
+                        # Emit both boundary points unconditionally so each segment survives the
+                        # round trip as its own segment. See the docstring note on `deduplicate`.
+                        values.append(start_value)
+                        values.append(end_value)
 
                 else:
                     raise ValueError(f"Unknown resource profile type: {profile_type}")
@@ -574,6 +599,140 @@ class AerieClient:
         return {
             "resourceSamples": resources
         }
+
+    def get_profile_types(self, simulation_dataset_id: int, state_names: List=None) -> Dict[str, str]:
+        """Get the profile type recorded for each resource in a simulation dataset.
+
+        Resources are stored as either "real" profiles, which vary linearly between segments, or
+        "discrete" profiles, which hold a value until the next segment. This distinction cannot be
+        recovered from the sample points returned by get_resource_samples(): a real profile whose
+        values never change looks identical to a discrete one. Callers that need to reproduce the
+        original profile structure, such as `plans download-simulation-full-results`, should use
+        this method rather than inferring the type from samples.
+
+        Args:
+            simulation_dataset_id (int)
+            state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+
+        Returns:
+            Dict[str, str]: Mapping of resource name to profile type, either "real" or "discrete".
+        """
+
+        if state_names:
+            profile_type_query = """
+            query GetProfileTypes($simulation_dataset_id: Int!, $state_names: [String!]) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles(where: { name: { _in: $state_names } }) {
+                            name
+                            type
+                        }
+                    }
+                }
+            }
+            """
+            resp = self.aerie_host.post_to_graphql(
+                profile_type_query,
+                simulation_dataset_id=simulation_dataset_id,
+                state_names=state_names,
+            )
+
+        else:
+            profile_type_query = """
+            query GetProfileTypes($simulation_dataset_id: Int!) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles {
+                            name
+                            type
+                        }
+                    }
+                }
+            }
+            """
+            resp = self.aerie_host.post_to_graphql(
+                profile_type_query, simulation_dataset_id=simulation_dataset_id
+            )
+
+        profiles = resp["dataset"]["profiles"]
+        return {
+            profile["name"]: profile["type"]["type"]
+            for profile in sorted(profiles, key=lambda _: _["name"])
+        }
+
+    def get_simulation_dataset_arguments(self, sim_dataset_id: int) -> dict:
+        """Get the simulation configuration arguments snapshot for a dataset.
+
+        Args:
+            sim_dataset_id (int): Simulation Dataset ID
+
+        Returns:
+            dict: Simulation configuration arguments (e.g. {"batteryCapacity": 30})
+        """
+        query = """
+        query GetSimDatasetArgs($sim_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $sim_dataset_id) {
+                arguments
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, sim_dataset_id=sim_dataset_id)
+        return resp.get("arguments") or {}
+
+    def get_simulation_events(self, sim_dataset_id: int) -> dict:
+        """Download simulation topics and events for a dataset.
+
+        Args:
+            sim_dataset_id (int): Simulation Dataset ID
+
+        Returns:
+            dict: {"topics": [...], "events": [...]} where topics have
+                  topic_index/name/value_schema and events have
+                  real_time/transaction_index/causal_time/value/topic_index/span_id
+        """
+        query = """
+        query GetSimEvents($sim_dataset_id: Int!) {
+            simulation_dataset_by_pk(id: $sim_dataset_id) {
+                dataset {
+                    topics(order_by: { topic_index: asc }) {
+                        topic_index
+                        name
+                        value_schema
+                    }
+                    events: topics(order_by: { topic_index: asc }) {
+                        topic_index
+                        events(order_by: [{ real_time: asc }, { transaction_index: asc }, { causal_time: asc }]) {
+                            real_time
+                            transaction_index
+                            causal_time
+                            value
+                            span_id
+                        }
+                    }
+                }
+            }
+        }
+        """
+        resp = self.aerie_host.post_to_graphql(query, sim_dataset_id=sim_dataset_id)
+        dataset = resp.get("dataset", {})
+
+        topics = dataset.get("topics", [])
+
+        # Flatten nested topic->events into a flat event list with topic_index
+        flat_events = []
+        for topic_entry in dataset.get("events", []):
+            topic_index = topic_entry["topic_index"]
+            for event in topic_entry.get("events", []):
+                flat_events.append({
+                    "real_time": event["real_time"],
+                    "transaction_index": event["transaction_index"],
+                    "causal_time": event["causal_time"],
+                    "value": event["value"],
+                    "topic_index": topic_index,
+                    "span_id": event.get("span_id"),
+                })
+
+        return {"topics": topics, "events": flat_events}
 
     def get_simulation_results(self, sim_dataset_id: int) -> str:
 
@@ -1837,7 +1996,7 @@ class AerieClient:
         }
         """
 
-        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+        self.aerie_host.post_to_graphql(
             delete_scheduling_goals_from_all_specs_query, 
             id_list=goal_id_list
         )
@@ -1955,7 +2114,7 @@ class AerieClient:
         }
         """
 
-        resp_for_deleting_from_specs = self.aerie_host.post_to_graphql(
+        self.aerie_host.post_to_graphql(
             delete_constraint_from_all_specs_query, 
             id=id
         )
@@ -1972,19 +2131,6 @@ class AerieClient:
         return resp["id"]
     
     def update_constraint(self, id, definition):
-        old_update_constraint_query = """
-        mutation UpdateConstraint($constarint_id: Int!, $constraint: constraint_definition_set_input!) {
-            update_constraint_definition_by_pk(
-                pk_columns: { constarint_id: $constraint_id }, _set: $constraint
-            ) {
-                constarint_id
-                definition
-                author
-                created_at
-            }
-        }
-        """
-
         update_constraint_query = """
         mutation UpdateConstraint($constarint_id: Int!, $definition: String!) {
             update_constraint_definition_many(
@@ -2239,4 +2385,4 @@ class AerieClient:
         )
 
         if resp is None:
-            raise RuntimeError(f"Failed to delete plan collaborator")
+            raise RuntimeError("Failed to delete plan collaborator")
