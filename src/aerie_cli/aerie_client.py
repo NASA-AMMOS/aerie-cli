@@ -424,13 +424,32 @@ class AerieClient:
         that a linear interpolation between samples will always return a correct value. Two points at the same 
         timestamp indicate a discontinuity.
 
+        This method was extended to support `plans download-simulation-full-results`, which
+        round-trips a simulation dataset back into an uploadable form. Both extensions exist
+        because that path has different requirements than the plotting/export callers this
+        method was originally written for. Both are opt-in so existing callers are unaffected:
+
+        1. `deduplicate` (default True) preserves the original behavior of collapsing points at
+           segment boundaries when the value is unchanged. That collapsing is correct for
+           plotting, but it merges adjacent segments and loses one segment per continuous
+           boundary, so the round-trip path passes False to keep segment counts intact.
+
+        2. "profileTypes" is returned alongside "resourceSamples" so callers can tell real
+           profiles from discrete ones. The samples alone are ambiguous -- a real profile whose
+           values never change is indistinguishable from a discrete one -- which caused profiles
+           to be misclassified on re-upload. Callers that don't need it can ignore the key.
+
         Args:
             simulation_dataset_id (int)
             state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+            deduplicate (bool, optional): Collapse redundant points at segment boundaries where the
+                value is unchanged. Defaults to True. Pass False to preserve exact segment counts.
 
         Returns:
-            Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
-        """        
+            Dict: Object with keys "resourceSamples," a dictionary of resource sample series keyed
+                by resource name, and "profileTypes," a mapping of resource name to profile type
+                ("real" or "discrete").
+        """
 
         # checks to see if user inputted specific states. If so, use this query.
         if state_names:
@@ -490,6 +509,9 @@ class AerieClient:
 
         # Parse profile segments into resource timelines
         resources = {}
+
+        # Recorded per profile because the sample points alone don't preserve this distinction.
+        # See the note on "profileTypes" in the docstring.
         profile_types = {}
         for profile in sorted(profiles, key=lambda _: _["name"]):
             name = profile["name"]
@@ -545,6 +567,8 @@ class AerieClient:
                             values.append(start_value)
                             values.append(end_value)
                     else:
+                        # Emit both boundary points unconditionally so each segment survives the
+                        # round trip as its own segment. See the docstring note on `deduplicate`.
                         values.append(start_value)
                         values.append(end_value)
 
@@ -573,6 +597,8 @@ class AerieClient:
                         # Add a value at the end of this segment
                         values.append(end_value)
                     else:
+                        # Emit both boundary points unconditionally so each segment survives the
+                        # round trip as its own segment. See the docstring note on `deduplicate`.
                         values.append(start_value)
                         values.append(end_value)
 
