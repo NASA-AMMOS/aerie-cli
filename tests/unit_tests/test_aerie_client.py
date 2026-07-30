@@ -168,7 +168,7 @@ def test_get_resource_samples():
         expected = json.load(fid)
 
     res = client.get_resource_samples(1)
-    assert res == expected
+    assert res["resourceSamples"] == expected["resourceSamples"]
 
     # CASE 2: Get only speicifc states
     aerie_host = MockAerieHost('get_resource_samples_2')
@@ -178,7 +178,30 @@ def test_get_resource_samples():
         expected = json.load(fid)
 
     res = client.get_resource_samples(1, ["hardwareState"])
-    assert res == expected
+    assert res["resourceSamples"] == expected["resourceSamples"]
+
+
+def test_get_resource_samples_profile_types():
+
+    # CASE 1: Get all states
+    aerie_host = MockAerieHost('get_resource_samples_1')
+    client = AerieClient(aerie_host)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_profile_types_1.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1)
+    assert res["profileTypes"] == expected
+
+    # CASE 2: Get only specific states
+    aerie_host = MockAerieHost('get_resource_samples_2')
+    client = AerieClient(aerie_host)
+
+    with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_profile_types_2.json'), 'r') as fid:
+        expected = json.load(fid)
+
+    res = client.get_resource_samples(1, ["hardwareState"])
+    assert res["profileTypes"] == expected
 
 
 def test_get_activity_plan_by_id():
