@@ -187,8 +187,11 @@ def download_simulation_full_results(
     typer.echo(f"Downloading resource timelines for dataset {sim_id}...")
     resources = client.get_resource_samples(sim_id, deduplicate=False)
     n_resources = len(resources.get("resourceSamples", {}))
-    profile_types = resources.get("profileTypes", {})
     typer.echo(f"  Downloaded {n_resources} resource profiles")
+
+    typer.echo("Fetching profile types...")
+    profile_types = client.get_profile_types(sim_id)
+    typer.echo(f"  Fetched {len(profile_types)} profile types")
 
     typer.echo("Fetching resource schemas from mission model...")
     plan_id = client.get_plan_id_by_sim_id(sim_id)

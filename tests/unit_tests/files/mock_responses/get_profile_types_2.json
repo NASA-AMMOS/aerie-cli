@@ -1,0 +1,38 @@
+[
+    {
+        "request": {
+            "query": "query GetProfileTypes($simulation_dataset_id: Int!, $state_names: [String!]) { simulation_dataset_by_pk(id: $simulation_dataset_id) { dataset { profiles(where: { name: { _in: $state_names } }) { name type } } } }",
+            "variables": {
+                "simulation_dataset_id": 1,
+                "state_names": [
+                    "hardwareState"
+                ]
+            }
+        },
+        "response": {
+            "dataset": {
+                "profiles": [
+                    {
+                        "name": "hardwareState",
+                        "type": {
+                            "type": "discrete",
+                            "schema": {
+                                "type": "variant",
+                                "variants": [
+                                    {
+                                        "key": "OFF",
+                                        "label": "OFF"
+                                    },
+                                    {
+                                        "key": "ON",
+                                        "label": "ON"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]

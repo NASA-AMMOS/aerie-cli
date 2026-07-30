@@ -424,20 +424,17 @@ class AerieClient:
         that a linear interpolation between samples will always return a correct value. Two points at the same 
         timestamp indicate a discontinuity.
 
-        This method was extended to support `plans download-simulation-full-results`, which
-        round-trips a simulation dataset back into an uploadable form. Both extensions exist
-        because that path has different requirements than the plotting/export callers this
-        method was originally written for. Both are opt-in so existing callers are unaffected:
+        `deduplicate` was added to support `plans download-simulation-full-results`, which
+        round-trips a simulation dataset back into an uploadable form. It defaults to True,
+        preserving the original behavior of collapsing points at segment boundaries when the
+        value is unchanged. That collapsing is correct for plotting, but it merges adjacent
+        segments and loses one segment per continuous boundary, so the round-trip path passes
+        False to keep segment counts intact.
 
-        1. `deduplicate` (default True) preserves the original behavior of collapsing points at
-           segment boundaries when the value is unchanged. That collapsing is correct for
-           plotting, but it merges adjacent segments and loses one segment per continuous
-           boundary, so the round-trip path passes False to keep segment counts intact.
-
-        2. "profileTypes" is returned alongside "resourceSamples" so callers can tell real
-           profiles from discrete ones. The samples alone are ambiguous -- a real profile whose
-           values never change is indistinguishable from a discrete one -- which caused profiles
-           to be misclassified on re-upload. Callers that don't need it can ignore the key.
+        Callers that need to distinguish real profiles from discrete ones should use
+        get_profile_types(), which reports the type recorded in the database. The samples
+        returned here are ambiguous on that point: a real profile whose values never change is
+        indistinguishable from a discrete one.
 
         Args:
             simulation_dataset_id (int)
@@ -446,9 +443,7 @@ class AerieClient:
                 value is unchanged. Defaults to True. Pass False to preserve exact segment counts.
 
         Returns:
-            Dict: Object with keys "resourceSamples," a dictionary of resource sample series keyed
-                by resource name, and "profileTypes," a mapping of resource name to profile type
-                ("real" or "discrete").
+            Dict: Object with key "resourceSamples," the value of which is a dictionary of resource sample series keyed by resource name.
         """
 
         # checks to see if user inputted specific states. If so, use this query.
@@ -509,15 +504,10 @@ class AerieClient:
 
         # Parse profile segments into resource timelines
         resources = {}
-
-        # Recorded per profile because the sample points alone don't preserve this distinction.
-        # See the note on "profileTypes" in the docstring.
-        profile_types = {}
         for profile in sorted(profiles, key=lambda _: _["name"]):
             name = profile["name"]
             profile_segments = profile["profile_segments"]
             profile_type = profile["type"]["type"]
-            profile_types[name] = profile_type
             values = []
 
             for i in range(len(profile_segments)):
@@ -607,8 +597,67 @@ class AerieClient:
 
             resources[name] = values
         return {
-            "resourceSamples": resources,
-            "profileTypes": profile_types
+            "resourceSamples": resources
+        }
+
+    def get_profile_types(self, simulation_dataset_id: int, state_names: List=None) -> Dict[str, str]:
+        """Get the profile type recorded for each resource in a simulation dataset.
+
+        Resources are stored as either "real" profiles, which vary linearly between segments, or
+        "discrete" profiles, which hold a value until the next segment. This distinction cannot be
+        recovered from the sample points returned by get_resource_samples(): a real profile whose
+        values never change looks identical to a discrete one. Callers that need to reproduce the
+        original profile structure, such as `plans download-simulation-full-results`, should use
+        this method rather than inferring the type from samples.
+
+        Args:
+            simulation_dataset_id (int)
+            state_names (List, optional): List of state/resource names to pull. Defaults to None (all).
+
+        Returns:
+            Dict[str, str]: Mapping of resource name to profile type, either "real" or "discrete".
+        """
+
+        if state_names:
+            profile_type_query = """
+            query GetProfileTypes($simulation_dataset_id: Int!, $state_names: [String!]) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles(where: { name: { _in: $state_names } }) {
+                            name
+                            type
+                        }
+                    }
+                }
+            }
+            """
+            resp = self.aerie_host.post_to_graphql(
+                profile_type_query,
+                simulation_dataset_id=simulation_dataset_id,
+                state_names=state_names,
+            )
+
+        else:
+            profile_type_query = """
+            query GetProfileTypes($simulation_dataset_id: Int!) {
+                simulation_dataset_by_pk(id: $simulation_dataset_id) {
+                    dataset {
+                        profiles {
+                            name
+                            type
+                        }
+                    }
+                }
+            }
+            """
+            resp = self.aerie_host.post_to_graphql(
+                profile_type_query, simulation_dataset_id=simulation_dataset_id
+            )
+
+        profiles = resp["dataset"]["profiles"]
+        return {
+            profile["name"]: profile["type"]["type"]
+            for profile in sorted(profiles, key=lambda _: _["name"])
         }
 
     def get_simulation_dataset_arguments(self, sim_dataset_id: int) -> dict:
