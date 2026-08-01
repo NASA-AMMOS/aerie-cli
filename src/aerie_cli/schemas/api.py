@@ -67,7 +67,7 @@ class ActivityBase(ApiSerialize):
         converter = convert_to_time_delta
     )
     metadata: Optional[Dict[str, str]] = field(factory=lambda: {}, kw_only=True)
-    name: Optional[str] = field(factory=lambda: "", kw_only=True)
+    name: Optional[str] = field(factory=lambda: None, kw_only=True)
     arguments: Optional[Dict[str, Any]] = field(
         factory=lambda: [], kw_only=True
     )
