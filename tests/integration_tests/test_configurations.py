@@ -225,7 +225,7 @@ def test_configurations_list():
         f"{result.stdout}"\
         f"{result.stderr}"
     assert (
-        "Aerie Host Configurations"
+        "PlanDev Host Configurations"
         in result.stdout
     )
 # We're activating at the end to ensure that localhost is still active

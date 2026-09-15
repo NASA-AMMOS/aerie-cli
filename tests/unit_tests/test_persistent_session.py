@@ -11,7 +11,7 @@ from plandev_cli.persistent import PersistentSessionManager
 
 class MockPlanDevHost(PlanDevHost):
     """
-    Mock Aerie Host Session for testing session persistence.
+    Mock PlanDev Host Session for testing session persistence.
     """
 
     def __init__(self, ping_success: bool = True, name: str = "Test") -> None:
@@ -54,7 +54,7 @@ def test_get_session_expired(persistent_path: Path):
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - persistent.SESSION_TIMEOUT - \
         datetime.timedelta(seconds=1)
     old_fn = old_time.strftime(
-        persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        persistent.SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
         pickle.dump(old_session, fid)
 
@@ -72,7 +72,7 @@ def test_get_session_broken(persistent_path: Path):
     old_session = MockPlanDevHost(False)
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
-        persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        persistent.SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
         pickle.dump(old_session, fid)
 
@@ -91,7 +91,7 @@ def test_get_session(persistent_path: Path):
     old_session = MockPlanDevHost()
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
-        persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        persistent.SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
         pickle.dump(old_session, fid)
 
@@ -111,7 +111,7 @@ def test_get_session_multiple(persistent_path: Path):
         old_session = MockPlanDevHost()
         old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(minutes=i)
         old_fn = old_time.strftime(
-            persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+            persistent.SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
         with open(persistent_path.joinpath(old_fn), 'wb') as fid:
             pickle.dump(old_session, fid)
 
@@ -150,7 +150,7 @@ def test_set_session(persistent_path: Path):
     assert len(list(persistent_path.iterdir())) == 1
 
 
-def test_set_session(persistent_path: Path):
+def test_overwrite_session(persistent_path: Path):
     """
     Test setting a single session that passes the ping test while another
     active session is set.
@@ -184,7 +184,7 @@ def test_unset_session_startup_persistent(persistent_path: Path):
     old_session = MockPlanDevHost(name="Old Session")
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
-        persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        persistent.SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
     with open(persistent_path.joinpath(old_fn), 'wb') as fid:
         pickle.dump(old_session, fid)
 

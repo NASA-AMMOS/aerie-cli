@@ -43,7 +43,7 @@ def bulk_deploy(
     time_tag: bool = typer.Option(False, help="Append time tags to create unique expansion rule/set names")
 ):
     """
-    Bulk deploy command expansion rules and sets to an Aerie instance according to a JSON configuration file.
+    Bulk deploy command expansion rules and sets to an PlanDev instance according to a JSON configuration file.
 
     The configuration file contains a list of rules and a list of sets:
 
@@ -356,7 +356,7 @@ def download_sequence(
     )
 ):
     """
-    Download a SeqJson file from an Aerie sequence
+    Download a SeqJson file from an PlanDev sequence
     """
     if not output_fn.endswith('.json'):
         output_fn == '.json'

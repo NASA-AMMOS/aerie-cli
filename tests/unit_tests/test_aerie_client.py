@@ -26,13 +26,13 @@ def _preprocess_query(q) -> str:
 
 class MockPlanDevHost(PlanDevHost):
     """
-    Mock Aerie host listens for test queries and returns a mocked response.
+    Mock PlanDev host listens for test queries and returns a mocked response.
 
     Responses are stored in ./files/mock_responses. Each JSON file should 
     contain a list of entries, each with two objects called "request" and 
     "response". The former should be the JSON data for a GraphQL query. The 
     response should be the JSON expected to be returned by 
-    `AerieHost.post_to_graphql()`.
+    `PlanDevHost.post_to_graphql()`.
 
     [
         {
@@ -73,8 +73,8 @@ class MockPlanDevHost(PlanDevHost):
 
 
 def test_list_all_activity_plans():
-    aerie_host = MockPlanDevHost('list_all_activity_plans')
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost('list_all_activity_plans')
+    client = PlanDevClient(plandev_host)
 
     expected = json.loads("""
     [
@@ -119,8 +119,8 @@ def test_list_all_activity_plans():
 
 
 def test_create_activity():
-    aerie_host = MockPlanDevHost('create_activity')
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost('create_activity')
+    client = PlanDevClient(plandev_host)
 
     activity = Activity.from_dict(
         {
@@ -141,8 +141,8 @@ def test_create_activity():
 
 
 def test_update_activity():
-    aerie_host = MockPlanDevHost("update_activity")
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost("update_activity")
+    client = PlanDevClient(plandev_host)
 
     activity = Activity.from_dict(
         {
@@ -161,8 +161,8 @@ def test_update_activity():
 def test_get_resource_samples():
 
     # CASE 1: Get all states
-    aerie_host = MockPlanDevHost('get_resource_samples_1')
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost('get_resource_samples_1')
+    client = PlanDevClient(plandev_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_1.json'), 'r') as fid:
         expected = json.load(fid)
@@ -171,8 +171,8 @@ def test_get_resource_samples():
     assert res == expected
 
     # CASE 2: Get only speicifc states
-    aerie_host = MockPlanDevHost('get_resource_samples_2')
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost('get_resource_samples_2')
+    client = PlanDevClient(plandev_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_2.json'), 'r') as fid:
         expected = json.load(fid)
@@ -182,8 +182,8 @@ def test_get_resource_samples():
 
 
 def test_get_activity_plan_by_id():
-    aerie_host = MockPlanDevHost("get_activity_plan_by_id")
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost("get_activity_plan_by_id")
+    client = PlanDevClient(plandev_host)
 
     with open(
         EXPECTED_RESULTS_DIRECTORY.joinpath("get_activity_plan_by_id.json"), "r"
@@ -196,8 +196,8 @@ def test_get_activity_plan_by_id():
 
 @pytest.mark.parametrize(["case_name"], [("create_activity_plan_1",), ("create_activity_plan_2",)])
 def test_create_activity_plan(case_name: str):
-    aerie_host = MockPlanDevHost(case_name)
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost(case_name)
+    client = PlanDevClient(plandev_host)
 
     with open(INPUTS_DIRECTORY.joinpath(f"{case_name}.json"), "r") as fid:
         input_plan = ActivityPlanCreate.from_plan_read(ActivityPlanRead.from_json(fid.read()))
@@ -209,8 +209,8 @@ def test_create_activity_plan(case_name: str):
 
 
 def test_get_resource_types():
-    aerie_host = MockPlanDevHost("get_resource_types")
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost("get_resource_types")
+    client = PlanDevClient(plandev_host)
 
     expected = [
         ResourceType("/imager/dataRate", {"type": "real"}),
@@ -258,8 +258,8 @@ def test_get_resource_types():
     assert res == expected
 
 def test_upload_directive_metadata():
-    aerie_host = MockPlanDevHost("upload_directive_metadata_schemas")
-    client = PlanDevClient(aerie_host)
+    plandev_host = MockPlanDevHost("upload_directive_metadata_schemas")
+    client = PlanDevClient(plandev_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('upload_directive_metadata_schemas.json'), 'r') as fid:
         expected = json.load(fid)

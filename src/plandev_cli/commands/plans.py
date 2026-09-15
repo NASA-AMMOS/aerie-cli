@@ -163,7 +163,7 @@ def download_resources(
 @plans_app.command()
 def upload(
     input: str = typer.Option(
-        ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
+        ..., "--input", "-i", help="The input file from which to create an PlanDev plan", prompt=True
     ),
     model_id: int = typer.Option(
         ..., "--model-id", "-m", help="The mission model ID to associate with the plan", prompt=True

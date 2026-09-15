@@ -1,1 +1,1 @@
-"""aerie-cli."""
+"""plandev-cli."""

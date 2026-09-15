@@ -1,5 +1,5 @@
 """
-API dataclasses emulate the structure of data for exchange with the Aerie GraphQL API.
+API dataclasses emulate the structure of data for exchange with the PlanDev GraphQL API.
 
 "create" dataclasses model data for upload and "read" dataclasses model data for download.
 """
@@ -59,7 +59,7 @@ class ApiEffectiveActivityArguments(ApiSerialize):
 class ActivityBase(ApiSerialize):
     """Base dataclass for an activity directive
 
-    Fields match GraphQL field names in Aerie.
+    Fields match GraphQL field names in PlanDev.
     """
 
     type: str
