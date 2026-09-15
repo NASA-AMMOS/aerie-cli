@@ -1,6 +1,6 @@
 import os
 
-from aerie_cli.__main__ import app
+from plandev_cli.__main__ import app
 import pytest
 
 from .conftest import\
@@ -9,8 +9,8 @@ from .conftest import\
     GATEWAY_URL,\
     USERNAME,\
     RUNNER
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, NoActiveSessionError
-from aerie_cli.utils.sessions import start_session_from_configuration
+from plandev_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, NoActiveSessionError
+from plandev_cli.utils.sessions import start_session_from_configuration
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

@@ -1,5 +1,5 @@
-from aerie_cli.aerie_host import AerieHostConfiguration
-from aerie_cli.persistent import PersistentConfigurationManager
+from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.persistent import PersistentConfigurationManager
 
 import json
 

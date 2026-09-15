@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import List
 
-from aerie_cli.schemas.client import DictionaryType
-from aerie_cli.schemas.client import DictionaryMetadata
-from aerie_cli.schemas.client import Parcel
+from plandev_cli.schemas.client import DictionaryType
+from plandev_cli.schemas.client import DictionaryMetadata
+from plandev_cli.schemas.client import Parcel
 
 from .conftest import client
 

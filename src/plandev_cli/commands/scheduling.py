@@ -2,7 +2,7 @@ import typer
 from pathlib import Path
 from typing import Optional
 
-from aerie_cli.commands.command_context import CommandContext
+from plandev_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 

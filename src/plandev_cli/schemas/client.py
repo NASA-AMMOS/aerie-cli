@@ -17,19 +17,19 @@ from arrow import Arrow
 import json
 from attrs import asdict
 
-from aerie_cli.utils.serialization import parse_timedelta_str
-from aerie_cli.schemas.api import ApiActivityCreate
-from aerie_cli.schemas.api import ApiActivityUpdate
-from aerie_cli.schemas.api import ApiActivityPlanCreate
-from aerie_cli.schemas.api import ApiActivityPlanRead
-from aerie_cli.schemas.api import ApiActivityRead
-from aerie_cli.schemas.api import ApiAsSimulatedActivity
-from aerie_cli.schemas.api import ApiResourceSampleResults
-from aerie_cli.schemas.api import ApiSimulatedResourceSample
-from aerie_cli.schemas.api import ApiSimulationResults
-from aerie_cli.schemas.api import ActivityBase
-from aerie_cli.schemas.api import ApiParcelRead
-from aerie_cli.schemas.api import ApiParcelCreate
+from plandev_cli.utils.serialization import parse_timedelta_str
+from plandev_cli.schemas.api import ApiActivityCreate
+from plandev_cli.schemas.api import ApiActivityUpdate
+from plandev_cli.schemas.api import ApiActivityPlanCreate
+from plandev_cli.schemas.api import ApiActivityPlanRead
+from plandev_cli.schemas.api import ApiActivityRead
+from plandev_cli.schemas.api import ApiAsSimulatedActivity
+from plandev_cli.schemas.api import ApiResourceSampleResults
+from plandev_cli.schemas.api import ApiSimulatedResourceSample
+from plandev_cli.schemas.api import ApiSimulationResults
+from plandev_cli.schemas.api import ActivityBase
+from plandev_cli.schemas.api import ApiParcelRead
+from plandev_cli.schemas.api import ApiParcelCreate
 
 def parse_timedelta_str_converter(t) -> timedelta:
     if isinstance(t, str):

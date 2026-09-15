@@ -3,10 +3,10 @@ import pickle
 import datetime
 from pathlib import Path
 
-from aerie_cli import persistent
+from plandev_cli import persistent
 
-from aerie_cli.aerie_host import AerieHost
-from aerie_cli.persistent import PersistentSessionManager
+from plandev_cli.aerie_host import AerieHost
+from plandev_cli.persistent import PersistentSessionManager
 
 
 class MockAerieHost(AerieHost):

@@ -1,7 +1,7 @@
 import typer
-from aerie_cli.aerie_client import AerieClient
-from aerie_cli.utils.sessions import get_active_session_client, start_session_from_configuration
-from aerie_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.aerie_client import AerieClient
+from plandev_cli.utils.sessions import get_active_session_client, start_session_from_configuration
+from plandev_cli.aerie_host import AerieHostConfiguration
 
 app = typer.Typer()
 

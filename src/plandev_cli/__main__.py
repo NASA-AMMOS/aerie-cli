@@ -4,9 +4,9 @@ import sys
 from rich.console import Console
 
 
-from aerie_cli.app import app
-from aerie_cli.persistent import NoActiveSessionError
-from aerie_cli.__version__ import __version__
+from plandev_cli.app import app
+from plandev_cli.persistent import NoActiveSessionError
+from plandev_cli.__version__ import __version__
 
 
 def main():

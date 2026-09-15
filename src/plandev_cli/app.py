@@ -5,26 +5,26 @@
 import typer
 from typing import Optional
 
-from aerie_cli.commands import models
-from aerie_cli.commands import plans
-from aerie_cli.commands import configurations
-from aerie_cli.commands import expansion
-from aerie_cli.commands import constraints
-from aerie_cli.commands import scheduling
-from aerie_cli.commands import metadata
+from plandev_cli.commands import models
+from plandev_cli.commands import plans
+from plandev_cli.commands import configurations
+from plandev_cli.commands import expansion
+from plandev_cli.commands import constraints
+from plandev_cli.commands import scheduling
+from plandev_cli.commands import metadata
 
-from aerie_cli.commands.command_context import CommandContext
-from aerie_cli.__version__ import __version__
-from aerie_cli.persistent import (
+from plandev_cli.commands.command_context import CommandContext
+from plandev_cli.__version__ import __version__
+from plandev_cli.persistent import (
     PersistentConfigurationManager,
     PersistentSessionManager,
 )
-from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.utils.sessions import (
+from plandev_cli.utils.prompts import select_from_list
+from plandev_cli.utils.sessions import (
     start_session_from_configuration,
     get_active_session_client,
 )
-from aerie_cli.utils.configurations import find_configuration
+from plandev_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
 app.add_typer(plans.plans_app, name="plans")

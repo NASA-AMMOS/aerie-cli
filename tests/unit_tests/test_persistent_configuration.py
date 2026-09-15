@@ -2,9 +2,9 @@ import pytest
 import json
 from pathlib import Path
 
-from aerie_cli.aerie_host import AerieHostConfiguration
-from aerie_cli import persistent
-from aerie_cli.persistent import PersistentConfigurationManager
+from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli import persistent
+from plandev_cli.persistent import PersistentConfigurationManager
 
 
 @pytest.fixture(autouse=True)

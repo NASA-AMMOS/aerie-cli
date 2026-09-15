@@ -1,6 +1,6 @@
-# Aerie-CLI
+# PlanDev-CLI
 
-Aerie-CLI provides a command-line interface and user-extendable Python API for interacting with an instance of PlanDev.
+PlanDev-CLI provides a command-line interface and user-extendable Python API for interacting with an instance of PlanDev.
 
 > Note: this project is an informal CLI and is _not_ maintained by the MPSA PlanDev team.
 
@@ -97,7 +97,7 @@ You can view the configurations you've loaded with the `configurations list` com
 
 ```sh
 ➜  aerie-cli configurations list
-Configuration file location: /Users/<username>/Library/Application Support/aerie_cli/config.json
+Configuration file location: /Users/<username>/Library/Application Support/plandev_cli/config.json
 
                                          PlanDev Host Configurations
 ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┓
@@ -246,14 +246,14 @@ Instead of using the CLI for interactive use cases, the underlying classes and m
 
 The key constructs are:
 
-- `aerie_cli.aerie_host.AerieHost`: An abstraction for a PlanDev Host, including methods for authentication and issuing requests to the PlanDev API.
-- `aerie_cli.aerie_client.AerieClient`: A class containing common requests and reusable logic to interact with data in PlanDev. 
+- `plandev_cli.aerie_host.AerieHost`: An abstraction for a PlanDev Host, including methods for authentication and issuing requests to the PlanDev API.
+- `plandev_cli.aerie_client.AerieClient`: A class containing common requests and reusable logic to interact with data in PlanDev. 
 
 The following example defines an `AerieHost` using the necessary URLs, authenticates with a command-line prompt for the user's password, and issues a simple request using one of the built-in requests.
 
 ```py
-from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHost
+from plandev_cli.aerie_client import AerieClient
+from plandev_cli.aerie_host import AerieHost
 
 from getpass import getpass
 
@@ -319,7 +319,7 @@ print(plan_id)
 If your application will be run by a user who may also be using the CLI, you may reduce the amount of code required to configure an PlanDev host and instead just use the active session. Aerie-CLI provides a utility to retrieve an `AerieClient` instance from the active CLI session:
 
 ```py
-from aerie_cli.utils.sessions import get_active_session_client
+from plandev_cli.utils.sessions import get_active_session_client
 
 # client is an instance of `AerieClient`
 client = get_active_session_client()

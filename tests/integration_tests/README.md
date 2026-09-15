@@ -27,7 +27,7 @@ python3 -m pytest .
 Integration tests are automatically run by CI against all supported Aerie versions. Update as follows with the supported set of Aerie versions:
 
 1. Integration tests require a JAR for the Banananation model for each tested Aerie version. [Download official artifacts from Github](https://github.com/NASA-AMMOS/aerie/packages/1171106/versions) and add to `tests/integration_tests/files/models`, named as `banananation-X.X.X.jar` (substituting the correct version number). Remove outdated JAR files.
-2. Update the `COMPATIBLE_AERIE_VERSIONS` array in [`aerie_host.py`](../../src/aerie_cli/aerie_host.py).
+2. Update the `COMPATIBLE_AERIE_VERSIONS` array in [`aerie_host.py`](../../src/plandev_cli/aerie_host.py).
 3. Update the [`.env`](../../.env) file `DOCKER_TAG` value to the latest compatible version. This sets the default value for a local Aerie deployment.
 4. Update [`docker-compose-test.yml`](../../docker-compose-test.yml) as necessary to match the supported Aerie versions. The [aerie-ui compose file](https://github.com/NASA-AMMOS/aerie-ui/blob/develop/docker-compose-test.yml) can be a helpful reference to identify changes.
 

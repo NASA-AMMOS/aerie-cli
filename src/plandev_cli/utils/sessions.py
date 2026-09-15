@@ -3,9 +3,9 @@ from typing import Dict
 import typer
 from copy import deepcopy
 
-from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration, ExternalAuthConfiguration, AerieJWT
-from aerie_cli.aerie_client import AerieClient
-from aerie_cli.persistent import PersistentSessionManager
+from plandev_cli.aerie_host import AerieHost, AerieHostConfiguration, ExternalAuthConfiguration, AerieJWT
+from plandev_cli.aerie_client import AerieClient
+from plandev_cli.persistent import PersistentSessionManager
 
 def get_active_session_client():
     """Instantiate AerieClient with the active host session

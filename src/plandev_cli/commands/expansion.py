@@ -9,9 +9,9 @@ import arrow
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.commands.command_context import CommandContext
-from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
+from plandev_cli.commands.command_context import CommandContext
+from plandev_cli.utils.prompts import select_from_list
+from plandev_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
 
 app = typer.Typer()
 sequences_app = typer.Typer()

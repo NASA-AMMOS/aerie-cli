@@ -5,7 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.commands.command_context import CommandContext
+from plandev_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 

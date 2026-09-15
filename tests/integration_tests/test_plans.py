@@ -3,8 +3,8 @@ import pytest
 
 from pathlib import Path
 
-from aerie_cli.__main__ import app
-from aerie_cli.commands import plans
+from plandev_cli.__main__ import app
+from plandev_cli.commands import plans
 
 from .conftest import client, DOWNLOADED_FILE_NAME, ADDITIONAL_USERS, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH, RUNNER
 

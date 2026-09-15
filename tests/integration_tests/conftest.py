@@ -8,14 +8,14 @@ import inspect
 
 from typer.testing import CliRunner
 
-from aerie_cli.aerie_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
-from aerie_cli.commands.configurations import (
+from plandev_cli.aerie_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
+from plandev_cli.commands.configurations import (
     delete_all_persistent_files,
     upload_configurations,
 )
-from aerie_cli.app import deactivate_session
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager
-from aerie_cli.utils.sessions import (
+from plandev_cli.app import deactivate_session
+from plandev_cli.persistent import PersistentConfigurationManager, PersistentSessionManager
+from plandev_cli.utils.sessions import (
     get_active_session_client,
     start_session_from_configuration,
 )

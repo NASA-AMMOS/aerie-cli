@@ -19,8 +19,8 @@ from attrs import Attribute
 import arrow
 from arrow import Arrow
 
-from aerie_cli.utils.serialization import postgres_interval_to_timedelta
-from aerie_cli.utils.serialization import timedelta_to_postgres_interval
+from plandev_cli.utils.serialization import postgres_interval_to_timedelta
+from plandev_cli.utils.serialization import timedelta_to_postgres_interval
 
 import json
 

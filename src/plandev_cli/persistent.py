@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from appdirs import AppDirs
 
-from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
+from plandev_cli.aerie_host import AerieHost, AerieHostConfiguration
 
 # TODO add app version s.t. changes to configuration formats can be managed
 APP_DIRS = AppDirs('aerie_cli')

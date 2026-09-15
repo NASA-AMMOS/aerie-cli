@@ -2,7 +2,7 @@ from typing import Dict
 import pytest
 import requests
 
-from aerie_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
+from plandev_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
 
 
 class MockJWT:

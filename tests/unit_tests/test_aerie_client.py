@@ -5,13 +5,13 @@ import re
 
 import pytest
 
-from aerie_cli.aerie_client import AerieClient
-from aerie_cli.aerie_host import AerieHost
-from aerie_cli.schemas.client import Activity
-from aerie_cli.schemas.api import ApiActivityPlanRead
-from aerie_cli.schemas.client import ActivityPlanRead
-from aerie_cli.schemas.client import ActivityPlanCreate
-from aerie_cli.schemas.client import ResourceType
+from plandev_cli.aerie_client import AerieClient
+from plandev_cli.aerie_host import AerieHost
+from plandev_cli.schemas.client import Activity
+from plandev_cli.schemas.api import ApiActivityPlanRead
+from plandev_cli.schemas.client import ActivityPlanRead
+from plandev_cli.schemas.client import ActivityPlanCreate
+from plandev_cli.schemas.client import ResourceType
 
 BLANK_LINE_REGEX = r"^\s*$"
 EXPECTED_RESULTS_DIRECTORY = Path(__file__).parent.joinpath("files", "expected_results")
