@@ -2,7 +2,7 @@ from typing import Dict
 import pytest
 import requests
 
-from plandev_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
+from plandev_cli.plandev_host import PlanDevHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
 
 
 class MockJWT:
@@ -33,10 +33,10 @@ class MockSession:
         return self.mock_response
 
 
-def get_mock_aerie_host(json: Dict = None, text: str = None, ok: bool = True) -> AerieHost:
+def get_mock_aerie_host(json: Dict = None, text: str = None, ok: bool = True) -> PlanDevHost:
     mock_response = MockResponse(json, text, ok)
     mock_session = MockSession(mock_response)
-    return AerieHost("", "", mock_session)
+    return PlanDevHost("", "", mock_session)
 
 
 def test_check_aerie_version():
@@ -47,7 +47,7 @@ def test_check_aerie_version():
 
 
 def test_authenticate_invalid_version(capsys, monkeypatch):
-    ah = AerieHost("", "")
+    ah = PlanDevHost("", "")
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
@@ -58,7 +58,7 @@ def test_authenticate_invalid_version(capsys, monkeypatch):
 
     monkeypatch.setattr(requests.Session, "get", mock_get)
     monkeypatch.setattr(requests.Session, "post", mock_post)
-    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(PlanDevHost, "check_auth", mock_check_auth)
     monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
 
     with pytest.raises(RuntimeError) as e:
@@ -68,7 +68,7 @@ def test_authenticate_invalid_version(capsys, monkeypatch):
 
 
 def test_authenticate_invalid_version_force(capsys, monkeypatch):
-    ah = AerieHost("", "")
+    ah = PlanDevHost("", "")
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
@@ -79,7 +79,7 @@ def test_authenticate_invalid_version_force(capsys, monkeypatch):
 
     monkeypatch.setattr(requests.Session, "get", mock_get)
     monkeypatch.setattr(requests.Session, "post", mock_post)
-    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(PlanDevHost, "check_auth", mock_check_auth)
     monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
 
     ah.authenticate("", force=True)

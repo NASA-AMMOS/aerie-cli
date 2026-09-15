@@ -1,7 +1,7 @@
 import typer
-from plandev_cli.aerie_client import AerieClient
+from plandev_cli.plandev_client import PlanDevClient
 from plandev_cli.utils.sessions import get_active_session_client, start_session_from_configuration
-from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.plandev_host import AerieHostConfiguration
 
 app = typer.Typer()
 
@@ -13,7 +13,7 @@ class CommandContext:
         raise NotImplementedError
 
     @classmethod
-    def get_client(cls) -> AerieClient:
+    def get_client(cls) -> PlanDevClient:
         """Get the AerieClient for any command's execution.
         If an alternate configuration has been specified, this method will attempt to find the persistent configuration or load a file with that name. If no alternate configuration is specified, then the active session is used.
         Returns:
@@ -24,7 +24,7 @@ class CommandContext:
         client = None
         if cls.alternate_configuration != None and client == None:
             session = start_session_from_configuration(cls.alternate_configuration)
-            client = AerieClient(session)
+            client = PlanDevClient(session)
 
         if client == None:
             # no configuration specified in CLI, so the active session will be used instead

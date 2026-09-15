@@ -8,7 +8,7 @@ import inspect
 
 from typer.testing import CliRunner
 
-from plandev_cli.aerie_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
+from plandev_cli.plandev_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
 from plandev_cli.commands.configurations import (
     delete_all_persistent_files,
     upload_configurations,

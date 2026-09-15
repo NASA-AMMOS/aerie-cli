@@ -9,7 +9,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.plandev_host import AerieHostConfiguration
 from plandev_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
 from plandev_cli.utils.prompts import select_from_list
 

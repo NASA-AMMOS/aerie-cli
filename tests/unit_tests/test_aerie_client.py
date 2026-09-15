@@ -5,8 +5,8 @@ import re
 
 import pytest
 
-from plandev_cli.aerie_client import AerieClient
-from plandev_cli.aerie_host import AerieHost
+from plandev_cli.plandev_client import PlanDevClient
+from plandev_cli.plandev_host import PlanDevHost
 from plandev_cli.schemas.client import Activity
 from plandev_cli.schemas.api import ApiActivityPlanRead
 from plandev_cli.schemas.client import ActivityPlanRead
@@ -24,7 +24,7 @@ def _preprocess_query(q) -> str:
     return ' '.join(lines)
 
 
-class MockAerieHost(AerieHost):
+class MockPlanDevHost(PlanDevHost):
     """
     Mock Aerie host listens for test queries and returns a mocked response.
 
@@ -73,8 +73,8 @@ class MockAerieHost(AerieHost):
 
 
 def test_list_all_activity_plans():
-    aerie_host = MockAerieHost('list_all_activity_plans')
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost('list_all_activity_plans')
+    client = PlanDevClient(aerie_host)
 
     expected = json.loads("""
     [
@@ -119,8 +119,8 @@ def test_list_all_activity_plans():
 
 
 def test_create_activity():
-    aerie_host = MockAerieHost('create_activity')
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost('create_activity')
+    client = PlanDevClient(aerie_host)
 
     activity = Activity.from_dict(
         {
@@ -141,8 +141,8 @@ def test_create_activity():
 
 
 def test_update_activity():
-    aerie_host = MockAerieHost("update_activity")
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost("update_activity")
+    client = PlanDevClient(aerie_host)
 
     activity = Activity.from_dict(
         {
@@ -161,8 +161,8 @@ def test_update_activity():
 def test_get_resource_samples():
 
     # CASE 1: Get all states
-    aerie_host = MockAerieHost('get_resource_samples_1')
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost('get_resource_samples_1')
+    client = PlanDevClient(aerie_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_1.json'), 'r') as fid:
         expected = json.load(fid)
@@ -171,8 +171,8 @@ def test_get_resource_samples():
     assert res == expected
 
     # CASE 2: Get only speicifc states
-    aerie_host = MockAerieHost('get_resource_samples_2')
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost('get_resource_samples_2')
+    client = PlanDevClient(aerie_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('get_resource_samples_2.json'), 'r') as fid:
         expected = json.load(fid)
@@ -182,8 +182,8 @@ def test_get_resource_samples():
 
 
 def test_get_activity_plan_by_id():
-    aerie_host = MockAerieHost("get_activity_plan_by_id")
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost("get_activity_plan_by_id")
+    client = PlanDevClient(aerie_host)
 
     with open(
         EXPECTED_RESULTS_DIRECTORY.joinpath("get_activity_plan_by_id.json"), "r"
@@ -196,8 +196,8 @@ def test_get_activity_plan_by_id():
 
 @pytest.mark.parametrize(["case_name"], [("create_activity_plan_1",), ("create_activity_plan_2",)])
 def test_create_activity_plan(case_name: str):
-    aerie_host = MockAerieHost(case_name)
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost(case_name)
+    client = PlanDevClient(aerie_host)
 
     with open(INPUTS_DIRECTORY.joinpath(f"{case_name}.json"), "r") as fid:
         input_plan = ActivityPlanCreate.from_plan_read(ActivityPlanRead.from_json(fid.read()))
@@ -209,8 +209,8 @@ def test_create_activity_plan(case_name: str):
 
 
 def test_get_resource_types():
-    aerie_host = MockAerieHost("get_resource_types")
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost("get_resource_types")
+    client = PlanDevClient(aerie_host)
 
     expected = [
         ResourceType("/imager/dataRate", {"type": "real"}),
@@ -258,8 +258,8 @@ def test_get_resource_types():
     assert res == expected
 
 def test_upload_directive_metadata():
-    aerie_host = MockAerieHost("upload_directive_metadata_schemas")
-    client = AerieClient(aerie_host)
+    aerie_host = MockPlanDevHost("upload_directive_metadata_schemas")
+    client = PlanDevClient(aerie_host)
 
     with open(EXPECTED_RESULTS_DIRECTORY.joinpath('upload_directive_metadata_schemas.json'), 'r') as fid:
         expected = json.load(fid)

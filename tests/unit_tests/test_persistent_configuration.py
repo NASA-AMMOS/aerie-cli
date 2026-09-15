@@ -2,7 +2,7 @@ import pytest
 import json
 from pathlib import Path
 
-from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.plandev_host import AerieHostConfiguration
 from plandev_cli import persistent
 from plandev_cli.persistent import PersistentConfigurationManager
 

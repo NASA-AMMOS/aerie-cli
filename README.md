@@ -252,8 +252,8 @@ The key constructs are:
 The following example defines an `AerieHost` using the necessary URLs, authenticates with a command-line prompt for the user's password, and issues a simple request using one of the built-in requests.
 
 ```py
-from plandev_cli.aerie_client import AerieClient
-from plandev_cli.aerie_host import AerieHost
+from plandev_cli.plandev_client import PlanDevClient
+from plandev_cli.plandev_host import PlanDevHost
 
 from getpass import getpass
 
@@ -266,11 +266,11 @@ USERNAME = "myusername"
 PASSWORD = getpass(prompt='Password: ')
 
 # Define the host and provide user credentials
-aerie_host = AerieHost(GRAPHQL_URL, GATEWAY_URL)
+aerie_host = PlanDevHost(GRAPHQL_URL, GATEWAY_URL)
 aerie_host.authenticate(USERNAME, PASSWORD)
 
 # AerieClient takes in a host and returns an object to issue requests to that host
-client = AerieClient(aerie_host)
+client = PlanDevClient(aerie_host)
 
 # Simple example of a request to get an activity plan using the plan ID
 plan = client.get_activity_plan_by_id(42)

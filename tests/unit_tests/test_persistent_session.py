@@ -5,11 +5,11 @@ from pathlib import Path
 
 from plandev_cli import persistent
 
-from plandev_cli.aerie_host import AerieHost
+from plandev_cli.plandev_host import PlanDevHost
 from plandev_cli.persistent import PersistentSessionManager
 
 
-class MockAerieHost(AerieHost):
+class MockPlanDevHost(PlanDevHost):
     """
     Mock Aerie Host Session for testing session persistence.
     """
@@ -50,7 +50,7 @@ def test_get_session_expired(persistent_path: Path):
     """
 
     # Create a mock old session with an "expired" session
-    old_session = MockAerieHost()
+    old_session = MockPlanDevHost()
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - persistent.SESSION_TIMEOUT - \
         datetime.timedelta(seconds=1)
     old_fn = old_time.strftime(
@@ -69,7 +69,7 @@ def test_get_session_broken(persistent_path: Path):
     """
 
     # Create a mock old session which fails the ping test
-    old_session = MockAerieHost(False)
+    old_session = MockPlanDevHost(False)
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
@@ -88,7 +88,7 @@ def test_get_session(persistent_path: Path):
     """
 
     # Create a mock good session
-    old_session = MockAerieHost()
+    old_session = MockPlanDevHost()
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
@@ -97,7 +97,7 @@ def test_get_session(persistent_path: Path):
 
     # Expect this to pass
     s = PersistentSessionManager.get_active_session()
-    assert isinstance(s, AerieHost)
+    assert isinstance(s, PlanDevHost)
 
 
 def test_get_session_multiple(persistent_path: Path):
@@ -108,7 +108,7 @@ def test_get_session_multiple(persistent_path: Path):
 
     # Create a mock good session
     for i in range(2):
-        old_session = MockAerieHost()
+        old_session = MockPlanDevHost()
         old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(minutes=i)
         old_fn = old_time.strftime(
             persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
@@ -117,7 +117,7 @@ def test_get_session_multiple(persistent_path: Path):
 
     # Expect this to pass
     s = PersistentSessionManager.get_active_session()
-    assert isinstance(s, AerieHost)
+    assert isinstance(s, PlanDevHost)
 
     # Check that the directory has been cleaned up
     assert len(list(persistent_path.iterdir())) == 1
@@ -127,7 +127,7 @@ def test_set_session_broken(persistent_path: Path):
     """
     Test setting a single session that fails ping test
     """
-    session = MockAerieHost(False)
+    session = MockPlanDevHost(False)
 
     # Method should return false because it doesn't set the session
     assert PersistentSessionManager.set_active_session(session) == False
@@ -141,7 +141,7 @@ def test_set_session(persistent_path: Path):
     Test setting a single session that passes the ping test. There isn't 
     an active session.
     """
-    session = MockAerieHost()
+    session = MockPlanDevHost()
 
     # Method should return true
     assert PersistentSessionManager.set_active_session(session) == True
@@ -155,8 +155,8 @@ def test_set_session(persistent_path: Path):
     Test setting a single session that passes the ping test while another
     active session is set.
     """
-    session_1 = MockAerieHost()
-    session_2 = MockAerieHost()
+    session_1 = MockPlanDevHost()
+    session_2 = MockPlanDevHost()
 
     PersistentSessionManager.set_active_session(session_1)
 
@@ -181,7 +181,7 @@ def test_unset_session_startup_persistent(persistent_path: Path):
     """
 
     # Create a mock good session
-    old_session = MockAerieHost(name="Old Session")
+    old_session = MockPlanDevHost(name="Old Session")
     old_time = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     old_fn = old_time.strftime(
         persistent.SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
@@ -195,7 +195,7 @@ def test_unset_session_active(persistent_path: Path):
     """
     Test unsetting a session that was set during this runtime.
     """
-    old_session = MockAerieHost(name="Old Session")
+    old_session = MockPlanDevHost(name="Old Session")
     PersistentSessionManager.set_active_session(old_session)
 
     assert PersistentSessionManager.unset_active_session() == "Old Session"

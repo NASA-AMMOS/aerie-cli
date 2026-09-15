@@ -71,7 +71,7 @@ class AerieJWT:
         self.encoded_jwt = encoded_jwt
 
 
-class AerieHost:
+class PlanDevHost:
     """
     Abstracted interface for the Hasura and Aerie Gateway APIs of an Aerie instance.
 

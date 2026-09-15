@@ -1,4 +1,4 @@
-from plandev_cli.aerie_host import AerieHostConfiguration
+from plandev_cli.plandev_host import AerieHostConfiguration
 from plandev_cli.persistent import PersistentConfigurationManager
 
 import json

@@ -26,20 +26,20 @@ from .schemas.client import ExpansionRule
 from .schemas.client import ExpansionSet
 from .schemas.client import ResourceType
 from .utils.serialization import postgres_interval_to_microseconds
-from .aerie_host import AerieHost
+from .plandev_host import PlanDevHost
 
 
-class AerieClient:
+class PlanDevClient:
     """Client-side behavior for aerie-cli
 
     Class encapsulates logic to query and send files to a given Aerie host.
     """
 
-    def __init__(self, aerie_host: AerieHost):
+    def __init__(self, aerie_host: PlanDevHost):
         """Instantiate a client with an authenticated host session
 
         Args:
-            aerie_host (AerieHost): Aerie host information, including authentication if necessary
+            aerie_host (PlanDevHost): Aerie host information, including authentication if necessary
         """
         self.aerie_host = aerie_host
 
