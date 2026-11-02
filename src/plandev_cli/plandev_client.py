@@ -1080,7 +1080,7 @@ class PlanDevClient:
             }
         }
         """
-        data = self.aerie_host.post_to_graphql(
+        data = self.plandev_host.post_to_graphql(
             change_boundary_mutation,
             plan_id=plan_id,
             new_start=sim_start,
@@ -1097,7 +1097,7 @@ class PlanDevClient:
             }
         }
         """
-        data = self.aerie_host.post_to_graphql(
+        data = self.plandev_host.post_to_graphql(
             get_boundary_mutation,
             plan_id=plan_id
         )
