@@ -341,6 +341,18 @@ class ActivityInstanceCommand(ClientSerialize):
 
 
 @define
+class SequenceTemplate(ClientSerialize):
+    id: int
+    activity_type: str
+    language: str
+    authoring_mission_model_id: int
+    parcel_id: int
+    owner:str
+    templateDefinition:str
+    name: str
+
+
+@define
 class ExpansionRun(ClientSerialize):
     id: int
     expansion_set_id: int

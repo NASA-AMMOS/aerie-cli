@@ -15,11 +15,9 @@ from plandev_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguratio
 
 app = typer.Typer()
 sequences_app = typer.Typer()
-runs_app = typer.Typer()
-sets_app = typer.Typer()
+templates_app = typer.Typer()
 app.add_typer(sequences_app, name='sequences', help='Commands for sequences')
-app.add_typer(runs_app, name='runs', help='Commands for expansion runs')
-app.add_typer(sets_app, name='sets', help='Commands for expansion sets')
+app.add_typer(templates_app, name='templates', help='Commands for sequence templates')
 
 # === Bulk Deploy Command ===
 
@@ -435,8 +433,17 @@ def get_expansion_set(
     Console().print(table)
 
 
-@sets_app.command('create')
-def create_expansion_set(
+"""
+query getModelLogs($modelId: Int!) {
+  sequence_template {
+    template_definition
+  }
+}
+"""
+
+
+@templates_app.command('create')
+def create_sequencing_template(
     model_id: int = typer.Option(
         ..., '--model-id', '-m', prompt='Mission Model ID',
         help='Mission Model ID'
@@ -446,17 +453,18 @@ def create_expansion_set(
         help='Parcel ID'
     ),
     name: str = typer.Option(
-        ..., "--name", "-n", prompt="Expansion set name",
-        help="Expansion set name"
+        ..., "--name", "-n", prompt="Sequence template name",
+        help="Sequence template name"
     ),
-    activity_types: List[str] = typer.Option(
-        None, '--activity-types', '-a',
-        help='Activity types to be included in the set'
+    activity_type: str = typer.Option(
+        ..., '--activity-type', '-a',
+        help='Activity type'
     ),
-    rule_ids: List[int] = typer.Option(
-        None, '--rule-ids', '-r',
-        help='Expansion rules to be included in the set'
-    )
+    language: str = typer.Option(
+        ..., '--language', '-l', prompt="Sequence template language",
+            help="The language the sequence template is written in. (Must be one of: STOL, SeqN, Text)"
+    ),
+    template_definition: str
 ):
     """
     Create an expansion set

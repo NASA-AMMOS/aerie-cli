@@ -8,17 +8,6 @@ from base64 import b64decode
 from attrs import define, field
 
 COMPATIBLE_PLANDEV_VERSIONS = [
-    "3.6.0",
-    "3.7.0",
-    "3.7.1",
-    "3.8.0",
-    "3.8.1",
-    "4.0.0",
-    "4.1.0",
-    "4.1.1",
-    "4.2.0",
-    "4.2.1",
-    "4.3.0",
     "4.4.0"
 ]
 
