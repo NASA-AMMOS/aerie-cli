@@ -8,7 +8,7 @@ from typing import Optional
 from plandev_cli.commands import models
 from plandev_cli.commands import plans
 from plandev_cli.commands import configurations
-from plandev_cli.commands import expansion
+# from plandev_cli.commands import expansion
 from plandev_cli.commands import constraints
 from plandev_cli.commands import scheduling
 from plandev_cli.commands import metadata
@@ -30,7 +30,8 @@ app = typer.Typer()
 app.add_typer(plans.plans_app, name="plans")
 app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
-app.add_typer(expansion.app, name="expansion")
+# expansion is temporarily unsupported by plandev-cli, until support for template expansion is added
+# app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
 app.add_typer(metadata.app, name="metadata")

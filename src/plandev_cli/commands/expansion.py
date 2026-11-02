@@ -13,6 +13,12 @@ from plandev_cli.commands.command_context import CommandContext
 from plandev_cli.utils.prompts import select_from_list
 from plandev_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
 
+# !!! TODO !!!
+# expansion is temporarily unsupported (& this file is not imported).
+# the code below implements the old method of command expansion using the EDSL API.
+# starting with plandev 4.4.0, this was deprecated and replaced by sequence template expansion,
+# which this code must be updated to support.
+
 app = typer.Typer()
 sequences_app = typer.Typer()
 templates_app = typer.Typer()
