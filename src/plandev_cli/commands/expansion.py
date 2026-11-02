@@ -124,7 +124,7 @@ def bulk_deploy(
 # === Commands for expansion runs ===
 
 
-@runs_app.command('create')
+# @runs_app.command('create')
 def expand_simulation(
     simulation_dataset_id: str = typer.Option(
         ..., '--sim-id', '-s', prompt='Simulation Dataset ID',
@@ -146,7 +146,7 @@ def expand_simulation(
     print(f"Expansion Run ID: {expansion_run_id}")
 
 
-@runs_app.command('list')
+# @runs_app.command('list')
 def list_expansion_runs(
     plan_id: str = typer.Option(
         None, '--plan-id', '-p',
@@ -370,7 +370,7 @@ def download_sequence(
 # === Commands for expansion sets ===
 
 
-@sets_app.command('list')
+# @sets_app.command('list')
 def list_expansion_sets():
     """
     List all expansion sets
@@ -400,7 +400,7 @@ def list_expansion_sets():
     Console().print(table)
 
 
-@sets_app.command('get')
+# @sets_app.command('get')
 def get_expansion_set(
     expansion_set_id: str = typer.Option(
         ..., '--expansion-set', '-e', prompt='Expansion Set ID',
@@ -464,7 +464,10 @@ def create_sequencing_template(
         ..., '--language', '-l', prompt="Sequence template language",
             help="The language the sequence template is written in. (Must be one of: STOL, SeqN, Text)"
     ),
-    template_definition: str
+    template_definition: str = typer.Option(
+        ..., '--definition', '-t', prompt="Sequence template definition",
+            help="The definition of the sequence template to use, as a string in the Handlebars language. See docs at https://nasa-ammos.github.io/plandev-docs/command-expansion/introduction/"
+    )
 ):
     """
     Create an expansion set
