@@ -227,8 +227,6 @@ services:
     image: "${REPOSITORY_DOCKER_URL}/plandev-hasura:${DOCKER_TAG}"
     ports: ["8080:8080"]
     restart: always
-    volumes:
-      - ./hasura/metadata:/hasura-metadata
     networks:
       - plandev_net
   postgres:
@@ -254,7 +252,6 @@ services:
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres-init-db:/docker-entrypoint-initdb.d
     networks:
       - plandev_net
 
