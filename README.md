@@ -404,7 +404,7 @@ Run the unit tests using `pytest` from the `tests/unit_tests` directory:
 
 ```
 cd tests
-python3 -m pytest .
+python3 -m pytest tests/unit_tests
 ```
 
 #### Integration Tests
