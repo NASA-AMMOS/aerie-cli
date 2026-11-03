@@ -1,4 +1,4 @@
-"""Aerie object (de)serialization utilities
+"""PlanDev object (de)serialization utilities
 
 Postgres interval parsing modified from Django implementation:
 https://github.com/django/django/blob/0dd29209091280ccf34e07c9468746c396b7778e/django/utils/dateparse.py#L52-L64

@@ -9,17 +9,21 @@ import arrow
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.commands.command_context import CommandContext
-from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
+from plandev_cli.commands.command_context import CommandContext
+from plandev_cli.utils.prompts import select_from_list
+from plandev_cli.schemas.client import ExpansionRun, ExpansionDeployConfiguration
+
+# !!! TODO !!!
+# expansion is temporarily unsupported (& this file is not imported).
+# the code below implements the old method of command expansion using the EDSL API.
+# starting with plandev 4.4.0, this was deprecated and replaced by sequence template expansion,
+# which this code must be updated to support.
 
 app = typer.Typer()
 sequences_app = typer.Typer()
-runs_app = typer.Typer()
-sets_app = typer.Typer()
+templates_app = typer.Typer()
 app.add_typer(sequences_app, name='sequences', help='Commands for sequences')
-app.add_typer(runs_app, name='runs', help='Commands for expansion runs')
-app.add_typer(sets_app, name='sets', help='Commands for expansion sets')
+app.add_typer(templates_app, name='templates', help='Commands for sequence templates')
 
 # === Bulk Deploy Command ===
 
@@ -43,7 +47,7 @@ def bulk_deploy(
     time_tag: bool = typer.Option(False, help="Append time tags to create unique expansion rule/set names")
 ):
     """
-    Bulk deploy command expansion rules and sets to an Aerie instance according to a JSON configuration file.
+    Bulk deploy command expansion rules and sets to an PlanDev instance according to a JSON configuration file.
 
     The configuration file contains a list of rules and a list of sets:
 
@@ -126,7 +130,7 @@ def bulk_deploy(
 # === Commands for expansion runs ===
 
 
-@runs_app.command('create')
+# @runs_app.command('create')
 def expand_simulation(
     simulation_dataset_id: str = typer.Option(
         ..., '--sim-id', '-s', prompt='Simulation Dataset ID',
@@ -148,7 +152,7 @@ def expand_simulation(
     print(f"Expansion Run ID: {expansion_run_id}")
 
 
-@runs_app.command('list')
+# @runs_app.command('list')
 def list_expansion_runs(
     plan_id: str = typer.Option(
         None, '--plan-id', '-p',
@@ -356,7 +360,7 @@ def download_sequence(
     )
 ):
     """
-    Download a SeqJson file from an Aerie sequence
+    Download a SeqJson file from an PlanDev sequence
     """
     if not output_fn.endswith('.json'):
         output_fn == '.json'
@@ -372,7 +376,7 @@ def download_sequence(
 # === Commands for expansion sets ===
 
 
-@sets_app.command('list')
+# @sets_app.command('list')
 def list_expansion_sets():
     """
     List all expansion sets
@@ -402,7 +406,7 @@ def list_expansion_sets():
     Console().print(table)
 
 
-@sets_app.command('get')
+# @sets_app.command('get')
 def get_expansion_set(
     expansion_set_id: str = typer.Option(
         ..., '--expansion-set', '-e', prompt='Expansion Set ID',
@@ -435,8 +439,17 @@ def get_expansion_set(
     Console().print(table)
 
 
-@sets_app.command('create')
-def create_expansion_set(
+"""
+query getModelLogs($modelId: Int!) {
+  sequence_template {
+    template_definition
+  }
+}
+"""
+
+
+@templates_app.command('create')
+def create_sequencing_template(
     model_id: int = typer.Option(
         ..., '--model-id', '-m', prompt='Mission Model ID',
         help='Mission Model ID'
@@ -446,16 +459,20 @@ def create_expansion_set(
         help='Parcel ID'
     ),
     name: str = typer.Option(
-        ..., "--name", "-n", prompt="Expansion set name",
-        help="Expansion set name"
+        ..., "--name", "-n", prompt="Sequence template name",
+        help="Sequence template name"
     ),
-    activity_types: List[str] = typer.Option(
-        None, '--activity-types', '-a',
-        help='Activity types to be included in the set'
+    activity_type: str = typer.Option(
+        ..., '--activity-type', '-a',
+        help='Activity type'
     ),
-    rule_ids: List[int] = typer.Option(
-        None, '--rule-ids', '-r',
-        help='Expansion rules to be included in the set'
+    language: str = typer.Option(
+        ..., '--language', '-l', prompt="Sequence template language",
+            help="The language the sequence template is written in. (Must be one of: STOL, SeqN, Text)"
+    ),
+    template_definition: str = typer.Option(
+        ..., '--definition', '-t', prompt="Sequence template definition",
+            help="The definition of the sequence template to use, as a string in the Handlebars language. See docs at https://nasa-ammos.github.io/plandev-docs/command-expansion/introduction/"
     )
 ):
     """

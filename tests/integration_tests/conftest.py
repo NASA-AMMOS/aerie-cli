@@ -8,14 +8,14 @@ import inspect
 
 from typer.testing import CliRunner
 
-from aerie_cli.aerie_host import AerieHostConfiguration, COMPATIBLE_AERIE_VERSIONS
-from aerie_cli.commands.configurations import (
+from plandev_cli.plandev_host import PlanDevHostConfiguration, COMPATIBLE_PLANDEV_VERSIONS
+from plandev_cli.commands.configurations import (
     delete_all_persistent_files,
     upload_configurations,
 )
-from aerie_cli.app import deactivate_session
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager
-from aerie_cli.utils.sessions import (
+from plandev_cli.app import deactivate_session
+from plandev_cli.persistent import PersistentConfigurationManager, PersistentSessionManager
+from plandev_cli.utils.sessions import (
     get_active_session_client,
     start_session_from_configuration,
 )
@@ -29,12 +29,12 @@ GRAPHQL_URL = "http://localhost:8080/v1/graphql"
 GATEWAY_URL = "http://localhost:9000"
 USERNAME = "a"
 PASSWORD = "a"
-ANONYMOUS_LOCALHOST_CONF = AerieHostConfiguration("localhost", GRAPHQL_URL, GATEWAY_URL)
+ANONYMOUS_LOCALHOST_CONF = PlanDevHostConfiguration("localhost", GRAPHQL_URL, GATEWAY_URL)
 
-# Additional usernames to register with Aerie
+# Additional usernames to register with PlanDev
 ADDITIONAL_USERS = ["user1", "user2", "user3"]
 
-# This should only ever be set to the admin secret for a local instance of aerie
+# This should only ever be set to the admin secret for a local instance of PlanDev
 HASURA_ADMIN_SECRET = os.environ.get("HASURA_GRAPHQL_ADMIN_SECRET")
 
 # Test constants
@@ -45,7 +45,7 @@ ARTIFACTS_PATH = os.path.join(TEST_DIR, "artifacts")
 CONFIGURATIONS_PATH = os.path.join(FILES_PATH, "configuration")
 CONFIGURATION_PATH = os.path.join(CONFIGURATIONS_PATH, "localhost_config.json")
 MODELS_PATH = os.path.join(FILES_PATH, "models")
-MODEL_VERSION = os.environ.get("AERIE_VERSION", sorted(COMPATIBLE_AERIE_VERSIONS)[-1]) # Default to latest compatible version
+MODEL_VERSION = os.environ.get("PLANDEV_VERSION", sorted(COMPATIBLE_PLANDEV_VERSIONS)[-1]) # Default to latest compatible version
 MODEL_JAR = os.path.join(MODELS_PATH, f"banananation-{MODEL_VERSION}.jar")
 MODEL_NAME = "banananation"
 
@@ -76,9 +76,9 @@ upload_configurations(CONFIGURATION_PATH)
 
 # Login as the main username, set role, and store session as persistent
 localhost_conf = PersistentConfigurationManager.get_configuration_by_name("localhost")
-aerie_host = start_session_from_configuration(localhost_conf, USERNAME, PASSWORD)
-aerie_host.change_role("aerie_admin")
-PersistentSessionManager.set_active_session(aerie_host)
+plandev_host = start_session_from_configuration(localhost_conf, USERNAME, PASSWORD)
+plandev_host.change_role("aerie_admin")
+PersistentSessionManager.set_active_session(plandev_host)
 
 client = None
 try:
@@ -86,5 +86,5 @@ try:
 except:
     raise RuntimeError("Configuration is not active!")
 assert (
-    client.aerie_host.gateway_url == GATEWAY_URL
-), "Aerie instances are mismatched. Ensure test URLs are the same."
+        client.plandev_host.gateway_url == GATEWAY_URL
+), "PlanDev instances are mismatched. Ensure test URLs are the same."

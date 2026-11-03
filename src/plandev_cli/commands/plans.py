@@ -7,9 +7,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.commands.command_context import CommandContext
-from aerie_cli.schemas.client import ActivityPlanCreate
-from aerie_cli.utils.prompts import select_from_list
+from plandev_cli.commands.command_context import CommandContext
+from plandev_cli.schemas.client import ActivityPlanCreate
+from plandev_cli.utils.prompts import select_from_list
 
 plans_app = typer.Typer()
 collaborators_app = typer.Typer()
@@ -163,7 +163,7 @@ def download_resources(
 @plans_app.command()
 def upload(
     input: str = typer.Option(
-        ..., "--input", "-i", help="The input file from which to create an Aerie plan", prompt=True
+        ..., "--input", "-i", help="The input file from which to create an PlanDev plan", prompt=True
     ),
     model_id: int = typer.Option(
         ..., "--model-id", "-m", help="The mission model ID to associate with the plan", prompt=True
@@ -198,7 +198,18 @@ def duplicate(
     duplicated_plan_id = client.create_activity_plan(plan.model_id, plan_to_duplicate)
     typer.echo(f"Duplicate activity plan created with ID: {duplicated_plan_id}")
 
+@plans_app.command()
+def update_bounds(
+    id: int = typer.Option(..., '-i', help="Plan ID", prompt=True),
+    simulation_start: str = typer.Option(..., '-st', help="Simulation Start Time", prompt=True),
+    simulation_end: str = typer.Option(..., '-et', help="Simulation End Time", prompt=True),
+):
+    """ Change Simulation Boundaries"""
+    client = CommandContext.get_client()
+    client.update_simulation_boundary(id, simulation_start, simulation_end)
+    typer.echo(f"Simulation bounds changed to {simulation_start} : {simulation_end}")
 
+    
 @plans_app.command()
 def simulate(
     id: int = typer.Option(..., help="Plan ID", prompt=True),

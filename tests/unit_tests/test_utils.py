@@ -3,10 +3,10 @@ from datetime import timedelta
 
 import pytest
 
-from aerie_cli.utils.serialization import postgres_interval_to_microseconds
-from aerie_cli.utils.serialization import postgres_interval_to_timedelta
-from aerie_cli.utils.serialization import timedelta_to_postgres_interval
-from aerie_cli.utils.serialization import parse_timedelta_str
+from plandev_cli.utils.serialization import postgres_interval_to_microseconds
+from plandev_cli.utils.serialization import postgres_interval_to_timedelta
+from plandev_cli.utils.serialization import timedelta_to_postgres_interval
+from plandev_cli.utils.serialization import parse_timedelta_str
 
 
 @define

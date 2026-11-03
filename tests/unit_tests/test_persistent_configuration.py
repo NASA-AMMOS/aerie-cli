@@ -2,9 +2,9 @@ import pytest
 import json
 from pathlib import Path
 
-from aerie_cli.aerie_host import AerieHostConfiguration
-from aerie_cli import persistent
-from aerie_cli.persistent import PersistentConfigurationManager
+from plandev_cli.plandev_host import PlanDevHostConfiguration
+from plandev_cli import persistent
+from plandev_cli.persistent import PersistentConfigurationManager
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +21,11 @@ def persistent_path(tmp_path: Path):
     # Set configuration manager to initial state
     PersistentConfigurationManager._configurations = None
     PersistentConfigurationManager._initialized = False
+
+    persistent.LEGACY_CONFIGURATION_FILE_PATH = tmp_path.joinpath(
+        "legacy", "config.json"
+    )
+    persistent.SESSION_FILE_DIRECTORY = persistent.CONFIGURATION_FILE_DIRECTORY
 
 
 def test_read_configurations_none():
@@ -48,11 +53,11 @@ def test_read_configurations_multiple():
     Read configurations when there are several defined
     """
     stored_configurations = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
-        AerieHostConfiguration("e", "http://e.com", "http://e.com", None),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("e", "http://e.com", "http://e.com", None),
     ]
 
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
@@ -70,18 +75,18 @@ def test_empty_username():
     """
 
     configurations_to_write = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com", "abcd"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", None),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com", "abcd"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", None),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com"),
     ]
 
     # Expect the same as if a None type was passed
     expected = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com", "abcd"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", None),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com", "abcd"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", None),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com"),
     ]
 
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
@@ -98,7 +103,7 @@ def test_write_configurations_none():
     Write configurations when the file doesn't yet exist
     """
     configuration_to_write = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com")
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com")
     ]
     PersistentConfigurationManager._configurations = configuration_to_write
     PersistentConfigurationManager.write_configurations()
@@ -111,14 +116,14 @@ def test_write_configurations():
     Write configurations by overwriting the existing file
     """
 
-    old_configuration = [AerieHostConfiguration("a", "http://a.com", "http://a.com")]
+    old_configuration = [PlanDevHostConfiguration("a", "http://a.com", "http://a.com")]
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
     with open(persistent.CONFIGURATION_FILE_PATH, "w") as fid:
         json.dump([s.to_dict() for s in old_configuration], fid)
 
     configuration_to_write = [
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com"),
     ]
 
     PersistentConfigurationManager._configurations = configuration_to_write
@@ -132,14 +137,14 @@ def test_delete_configuration_broken():
     Try to delete a configuration that doesn't exist
     """
     PersistentConfigurationManager._configurations = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration(
             "c",
             "http://c.com",
             "abcd",
         ),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration(
             "d",
             "http://d.com",
             "http://d.com",
@@ -158,15 +163,15 @@ def test_delete_configuration_valid():
 
     # Define and store configuration before deleting 'b'
     configurations_before = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration(
             "c",
             "http://c.com",
             "http://c.com",
             "abcd",
         ),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration(
             "d",
             "http://d.com",
             "http://d.com",
@@ -179,14 +184,14 @@ def test_delete_configuration_valid():
         json.dump([s.to_dict() for s in configurations_before], fid)
 
     configurations_after = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration(
             "c",
             "http://c.com",
             "http://c.com",
             "abcd",
         ),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration(
             "d",
             "http://d.com",
             "http://d.com",
@@ -206,15 +211,15 @@ def test_update_configuration_broken():
     Try to update a configuration that doesn't exist
     """
     PersistentConfigurationManager._configurations = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration(
             "c",
             "http://c.com",
             "http://c.com",
             "abcd",
         ),
-        AerieHostConfiguration(
+        PlanDevHostConfiguration(
             "d",
             "http://d.com",
             "http://d.com",
@@ -222,7 +227,7 @@ def test_update_configuration_broken():
         ),
     ]
 
-    bad_update_config = AerieHostConfiguration("e", "http://e.com", "http://e.com")
+    bad_update_config = PlanDevHostConfiguration("e", "http://e.com", "http://e.com")
 
     with pytest.raises(ValueError):
         PersistentConfigurationManager.update_configuration(bad_update_config)
@@ -235,24 +240,24 @@ def test_update_configuration():
 
     # Define and store configuration before updating 'c'
     configurations_before = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
     ]
     PersistentConfigurationManager._configurations = configurations_before
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
     with open(persistent.CONFIGURATION_FILE_PATH, "w") as fid:
         json.dump([s.to_dict() for s in configurations_before], fid)
 
-    config_to_update = AerieHostConfiguration("c", "https://c.co", "https://c.co")
+    config_to_update = PlanDevHostConfiguration("c", "https://c.co", "https://c.co")
 
     # Preserve order
     configurations_after = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "https://c.co", "https://c.co"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "https://c.co", "https://c.co"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
     ]
 
     PersistentConfigurationManager.update_configuration(config_to_update)
@@ -269,17 +274,17 @@ def test_create_configuration_broken():
 
     # Define and store configuration before trying to create a new configuration
     configurations_before = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
     ]
     PersistentConfigurationManager._configurations = configurations_before
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
     with open(persistent.CONFIGURATION_FILE_PATH, "w") as fid:
         json.dump([s.to_dict() for s in configurations_before], fid)
 
-    config_to_create = AerieHostConfiguration("c", "https://c.co", "https://c.co")
+    config_to_create = PlanDevHostConfiguration("c", "https://c.co", "https://c.co")
 
     with pytest.raises(ValueError):
         PersistentConfigurationManager.create_configuration(config_to_create)
@@ -292,25 +297,25 @@ def test_create_configuration_valid():
 
     # Define and store configuration before trying to create a new configuration
     configurations_before = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
     ]
     PersistentConfigurationManager._configurations = configurations_before
     persistent.CONFIGURATION_FILE_DIRECTORY.mkdir()
     with open(persistent.CONFIGURATION_FILE_PATH, "w") as fid:
         json.dump([s.to_dict() for s in configurations_before], fid)
 
-    config_to_create = AerieHostConfiguration("e", "https://e.co", "https://e.co")
+    config_to_create = PlanDevHostConfiguration("e", "https://e.co", "https://e.co")
 
     # Preserve order
     configurations_after = [
-        AerieHostConfiguration("a", "http://a.com", "http://a.com"),
-        AerieHostConfiguration("b", "http://b.com", "http://b.com"),
-        AerieHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
-        AerieHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
-        AerieHostConfiguration("e", "https://e.co", "https://e.co"),
+        PlanDevHostConfiguration("a", "http://a.com", "http://a.com"),
+        PlanDevHostConfiguration("b", "http://b.com", "http://b.com"),
+        PlanDevHostConfiguration("c", "http://c.com", "http://c.com", "abcd"),
+        PlanDevHostConfiguration("d", "http://d.com", "http://d.com", "abcd"),
+        PlanDevHostConfiguration("e", "https://e.co", "https://e.co"),
     ]
 
     PersistentConfigurationManager.create_configuration(config_to_create)
@@ -318,3 +323,51 @@ def test_create_configuration_valid():
     assert PersistentConfigurationManager._configurations == configurations_after
     with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
         assert [s.to_dict() for s in configurations_after] == json.load(fid)
+
+
+def test_read_configurations_migrates_legacy():
+    legacy_configurations = [{
+        "name": "legacy",
+        "graphql_url": "http://localhost:8080/v1/graphql",
+        "gateway_url": "http://localhost:9000",
+        "username": "tester",
+        "external_auth": {
+            "auth_url": "https://example.test/login",
+            "static_post_vars": {"username": "tester"},
+            "secret_post_vars": ["password"],
+        },
+    }]
+    legacy_path = persistent.LEGACY_CONFIGURATION_FILE_PATH
+    legacy_path.parent.mkdir()
+    with open(legacy_path, "w") as fid:
+        json.dump(legacy_configurations, fid)
+    original_contents = legacy_path.read_bytes()
+
+    configurations = PersistentConfigurationManager.get_configurations()
+
+    assert [c.to_dict() for c in configurations] == legacy_configurations
+    with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
+        assert json.load(fid) == legacy_configurations
+    assert legacy_path.read_bytes() == original_contents
+
+
+def test_clean_does_not_reimport_legacy_configurations():
+    legacy_configuration = PlanDevHostConfiguration(
+        "legacy", "http://localhost:8080/v1/graphql", "http://localhost:9000"
+    )
+    legacy_path = persistent.LEGACY_CONFIGURATION_FILE_PATH
+    legacy_path.parent.mkdir()
+    with open(legacy_path, "w") as fid:
+        json.dump([legacy_configuration.to_dict()], fid)
+
+    assert PersistentConfigurationManager.get_configurations() == [legacy_configuration]
+
+    persistent.delete_all_persistent_files()
+    # Force a fresh read, as in a new CLI process.
+    PersistentConfigurationManager.reset()
+
+    assert PersistentConfigurationManager.get_configurations() == []
+    with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
+        assert json.load(fid) == []
+    with open(legacy_path, "r") as fid:
+        assert json.load(fid) == [legacy_configuration.to_dict()]

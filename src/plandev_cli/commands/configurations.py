@@ -1,6 +1,6 @@
 """configurations.py
 
-Commands related to persistent storage of Aerie host configurations.
+Commands related to persistent storage of PlanDev host configurations.
 """
 
 import typer
@@ -9,9 +9,9 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.aerie_host import AerieHostConfiguration
-from aerie_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
-from aerie_cli.utils.prompts import select_from_list
+from plandev_cli.plandev_host import PlanDevHostConfiguration
+from plandev_cli.persistent import PersistentConfigurationManager, PersistentSessionManager, delete_all_persistent_files, NoActiveSessionError, CONFIGURATION_FILE_PATH
+from plandev_cli.utils.prompts import select_from_list
 
 app = typer.Typer()
 
@@ -23,20 +23,20 @@ def create_configuration(
     graphql_url: str = typer.Option(
         ..., prompt='GraphQL URL', help='URL of GraphQL API endpoint', metavar='GRAPHQL_URL'),
     gateway_url: str = typer.Option(
-        ..., prompt='Gateway URL', help='URL of Aerie Gateway', metavar='GATEWAY_URL'),
+        ..., prompt='Gateway URL', help='URL of PlanDev Gateway', metavar='GATEWAY_URL'),
     username: str = typer.Option(
         None, help='Username for authentication', metavar='USERNAME'
     )
 ):
     """
-    Define a configuration for an Aerie host
+    Define a configuration for an PlanDev host
     """
     if typer.confirm('Specify username'):
         username = typer.prompt('Username')
     else:
         username = None
 
-    conf = AerieHostConfiguration(
+    conf = PlanDevHostConfiguration(
         name, graphql_url, gateway_url, username)
     PersistentConfigurationManager.create_configuration(conf)
 
@@ -59,10 +59,10 @@ def upload_configurations(
         configurations = json.load(fid)
 
     if isinstance(configurations, list):
-        configurations = [AerieHostConfiguration.from_dict(
+        configurations = [PlanDevHostConfiguration.from_dict(
             c) for c in configurations]
     else:
-        configurations = [AerieHostConfiguration.from_dict(configurations)]
+        configurations = [PlanDevHostConfiguration.from_dict(configurations)]
 
     new_confs = []
     updated_confs = []
@@ -88,7 +88,7 @@ def upload_configurations(
 @app.command('list')
 def list_configurations():
     """
-    List available Aerie host configurations
+    List available PlanDev host configurations
     """
 
     # Get the name of the active session configuration, if any
@@ -101,11 +101,11 @@ def list_configurations():
     typer.echo(f"Configuration file location: {CONFIGURATION_FILE_PATH}")
     typer.echo()
 
-    table = Table(title='Aerie Host Configurations',
+    table = Table(title='PlanDev Host Configurations',
                   caption='Active configuration in red')
     table.add_column('Host Name', no_wrap=True)
     table.add_column('GraphQL API URL', no_wrap=True)
-    table.add_column('Aerie Gateway URL', no_wrap=True)
+    table.add_column('PlanDev Gateway URL', no_wrap=True)
     table.add_column('Username', no_wrap=True)
     for c in PersistentConfigurationManager.get_configurations():
         if c.name == active_config:
@@ -129,7 +129,7 @@ def delete_configuration(
         None, '--name', '-n', help='Name for this configuration', metavar='NAME', show_default=False)
 ):
     """
-    Delete an Aerie host configuration
+    Delete an PlanDev host configuration
     """
     names = [c.name for c in PersistentConfigurationManager.get_configurations()]
     if not name:
@@ -151,11 +151,11 @@ def delete_all_files(
         False, help='Disable interactive prompt')
 ):
     """
-    Remove all persistent aerie-cli files
+    Remove all persistent plandev-cli files
     """
     # Please don't flame me for this double negative, it had to be done
     if not not_interactive:
-        if not typer.confirm("Delete all persistent files associated with aerie-cli?"):
+        if not typer.confirm("Delete all persistent files associated with plandev-cli?"):
             return
 
     delete_all_persistent_files()

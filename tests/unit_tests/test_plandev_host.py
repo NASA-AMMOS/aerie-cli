@@ -2,7 +2,7 @@ from typing import Dict
 import pytest
 import requests
 
-from aerie_cli.aerie_host import AerieHost, COMPATIBLE_AERIE_VERSIONS, AerieJWT
+from plandev_cli.plandev_host import PlanDevHost, COMPATIBLE_PLANDEV_VERSIONS, PlanDevJWT
 
 
 class MockJWT:
@@ -33,21 +33,21 @@ class MockSession:
         return self.mock_response
 
 
-def get_mock_aerie_host(json: Dict = None, text: str = None, ok: bool = True) -> AerieHost:
+def get_mock_plandev_host(json: Dict = None, text: str = None, ok: bool = True) -> PlanDevHost:
     mock_response = MockResponse(json, text, ok)
     mock_session = MockSession(mock_response)
-    return AerieHost("", "", mock_session)
+    return PlanDevHost("", "", mock_session)
 
 
-def test_check_aerie_version():
-    aerie_host = get_mock_aerie_host(
-        json={"version": COMPATIBLE_AERIE_VERSIONS[0]})
+def test_check_plandev_version():
+    plandev_host = get_mock_plandev_host(
+        json={"version": COMPATIBLE_PLANDEV_VERSIONS[0]})
 
-    aerie_host.check_aerie_version()
+    plandev_host.check_plandev_version()
 
 
 def test_authenticate_invalid_version(capsys, monkeypatch):
-    ah = AerieHost("", "")
+    ah = PlanDevHost("", "")
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
@@ -58,17 +58,17 @@ def test_authenticate_invalid_version(capsys, monkeypatch):
 
     monkeypatch.setattr(requests.Session, "get", mock_get)
     monkeypatch.setattr(requests.Session, "post", mock_post)
-    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
-    monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
+    monkeypatch.setattr(PlanDevHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(PlanDevJWT, "__init__", MockJWT.__init__)
 
     with pytest.raises(RuntimeError) as e:
         ah.authenticate("")
 
-    assert "Incompatible Aerie version: 1.0.0" in str(e.value)
+    assert "Incompatible PlanDev version: 1.0.0" in str(e.value)
 
 
 def test_authenticate_invalid_version_force(capsys, monkeypatch):
-    ah = AerieHost("", "")
+    ah = PlanDevHost("", "")
 
     def mock_get(*_, **__):
         return MockResponse({"version": "1.0.0"})
@@ -79,28 +79,28 @@ def test_authenticate_invalid_version_force(capsys, monkeypatch):
 
     monkeypatch.setattr(requests.Session, "get", mock_get)
     monkeypatch.setattr(requests.Session, "post", mock_post)
-    monkeypatch.setattr(AerieHost, "check_auth", mock_check_auth)
-    monkeypatch.setattr(AerieJWT, "__init__", MockJWT.__init__)
+    monkeypatch.setattr(PlanDevHost, "check_auth", mock_check_auth)
+    monkeypatch.setattr(PlanDevJWT, "__init__", MockJWT.__init__)
 
     ah.authenticate("", force=True)
 
-    assert capsys.readouterr().out == "Warning: Incompatible Aerie version: 1.0.0\n"
+    assert capsys.readouterr().out == "Warning: Incompatible PlanDev version: 1.0.0\n"
 
 
 def test_no_version_endpoint():
-    aerie_host = get_mock_aerie_host(text="blah Aerie Gateway blah", ok=True)
+    plandev_host = get_mock_plandev_host(text="blah PlanDev Gateway blah", ok=True)
 
     with pytest.raises(RuntimeError) as e:
-        aerie_host.check_aerie_version()
+        plandev_host.check_plandev_version()
 
-    assert "Incompatible Aerie version: host version unknown" in str(e.value)
+    assert "Incompatible PlanDev version: host version unknown" in str(e.value)
 
 
 def test_version_broken_gateway():
-    aerie_host = get_mock_aerie_host(
+    plandev_host = get_mock_plandev_host(
         text="502 Bad Gateway or something", ok=True)
 
     with pytest.raises(RuntimeError) as e:
-        aerie_host.check_aerie_version()
+        plandev_host.check_plandev_version()
 
-    assert "Bad response from Aerie Gateway" in str(e.value)
+    assert "Bad response from PlanDev Gateway" in str(e.value)

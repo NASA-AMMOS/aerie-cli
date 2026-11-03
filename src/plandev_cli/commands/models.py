@@ -5,7 +5,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from aerie_cli.commands.command_context import CommandContext
+from plandev_cli.commands.command_context import CommandContext
 
 app = typer.Typer()
 
@@ -16,7 +16,7 @@ def upload(
         ...,
         "--mission-model-path",
         "-i",
-        help="The input file from which to create an Aerie model",
+        help="The input file from which to create a PlanDev model",
         prompt=True,
     ),
     model_name: str = typer.Option(
@@ -26,7 +26,7 @@ def upload(
         "",
         "--version",
         "-v",
-        help="Mission model verison",
+        help="Mission model version",
         show_default=True,
         prompt=True,
     ),
@@ -38,14 +38,14 @@ def upload(
     ),
 ):
     """Upload a single mission model from a .jar file."""
-    # Determine Aerie UI model version
+    # Determine PlanDev UI model version
     if time_tag_version:
         version = arrow.utcnow().isoformat()
 
-    # Initialize Aerie client
+    # Initialize PlanDev client
     client = CommandContext.get_client()
 
-    # Upload mission model file to Aerie server
+    # Upload mission model file to PlanDev server
     model_id = client.upload_mission_model(
         mission_model_path=mission_model_path,
         project_name=model_name,

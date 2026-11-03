@@ -1,6 +1,6 @@
 import os
 
-from aerie_cli.__main__ import app
+from plandev_cli.__main__ import app
 
 from .conftest import RUNNER
 

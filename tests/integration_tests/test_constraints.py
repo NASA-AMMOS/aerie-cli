@@ -1,7 +1,7 @@
 from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, RUNNER
-from aerie_cli.__main__ import app
+from plandev_cli.__main__ import app
 
-from aerie_cli.schemas.client import ActivityPlanCreate
+from plandev_cli.schemas.client import ActivityPlanCreate
 
 import os
 import pytest

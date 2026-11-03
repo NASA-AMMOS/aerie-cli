@@ -2,14 +2,12 @@ name: Test
 
 on:
   pull_request:
-  push:
-    tags:
-      - v*
   workflow_dispatch:
+  workflow_call:
 
 env:
-  AERIE_USERNAME: "${{secrets.AERIE_USERNAME}}"
-  AERIE_PASSWORD: "${{secrets.AERIE_PASSWORD}}"
+  PLANDEV_USERNAME: "${{secrets.PLANDEV_USERNAME}}"
+  PLANDEV_PASSWORD: "${{secrets.PLANDEV_PASSWORD}}"
   HASURA_GRAPHQL_ADMIN_SECRET: "${{secrets.HASURA_GRAPHQL_ADMIN_SECRET}}"
   HASURA_GRAPHQL_JWT_SECRET: "${{secrets.HASURA_GRAPHQL_JWT_SECRET}}"
   POSTGRES_USER: "${{secrets.POSTGRES_USER}}"
@@ -66,7 +64,7 @@ jobs:
       - name: extract versions
         id: versions
         run: |
-          versions=$(python3 -c "from aerie_cli.aerie_host import COMPATIBLE_AERIE_VERSIONS; import json; print(json.dumps(COMPATIBLE_AERIE_VERSIONS))")
+          versions=$(python3 -c "from plandev_cli.plandev_host import COMPATIBLE_PLANDEV_VERSIONS; import json; print(json.dumps(COMPATIBLE_PLANDEV_VERSIONS))")
           echo "versions=$versions" >> "$GITHUB_OUTPUT"
   integration-test:
     timeout-minutes: 20
@@ -76,7 +74,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11"]
-        aerie-version: ${{ fromJson(needs.prepare.outputs.versions) }}
+        plandev-version: ${{ fromJson(needs.prepare.outputs.versions) }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -88,9 +86,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install .
-      - name: Set up instance of PlanDev ${{ matrix.aerie-version }}
+      - name: Set up instance of PlanDev ${{ matrix.plandev-version }}
         env:
-          DOCKER_TAG: v${{ matrix.aerie-version }} # Prefix 'v' used in PlanDev Docker image tags
+          DOCKER_TAG: v${{ matrix.plandev-version }} # Prefix 'v' used in PlanDev Docker image tags
         run: |
           docker compose -f docker-compose-test.yml up -d
           docker images
@@ -100,7 +98,7 @@ jobs:
         shell: bash
       - name: Run integration tests
         env:
-          AERIE_VERSION: ${{ matrix.aerie-version }}
+          PLANDEV_VERSION: ${{ matrix.plandev-version }}
         run: |
           cd tests
           pytest integration_tests

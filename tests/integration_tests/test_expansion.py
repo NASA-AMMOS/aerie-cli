@@ -4,11 +4,18 @@ import arrow
 
 from pathlib import Path
 
-from aerie_cli.__main__ import app
-from aerie_cli.schemas.client import ActivityPlanCreate
-from aerie_cli.schemas.client import Parcel
+from plandev_cli.__main__ import app
+from plandev_cli.schemas.client import ActivityPlanCreate
+from plandev_cli.schemas.client import Parcel
 
 from .conftest import client, MODEL_JAR, MODEL_NAME, MODEL_VERSION, ARTIFACTS_PATH, RUNNER
+
+pytestmark = pytest.mark.skip(
+    reason=(
+        "Legacy EDSL expansion is no longer supported. "
+        "CLI support for template-based expansion is planned for a future version."
+    )
+)
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

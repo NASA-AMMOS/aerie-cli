@@ -7,20 +7,11 @@ from base64 import b64decode
 
 from attrs import define, field
 
-COMPATIBLE_AERIE_VERSIONS = [
-    "3.6.0",
-    "3.7.0",
-    "3.7.1",
-    "3.8.0",
-    "3.8.1",
-    "4.0.0",
-    "4.1.0",
-    "4.1.1",
-    "4.2.0",
-    "4.2.1"
+COMPATIBLE_PLANDEV_VERSIONS = [
+    "4.4.0"
 ]
 
-class AerieHostVersionError(RuntimeError):
+class PlanDevHostVersionError(RuntimeError):
     pass
 
 
@@ -34,20 +25,20 @@ def process_gateway_response(resp: requests.Response) -> dict:
         dict: Contents of response JSON
     """
     if not resp.ok:
-        raise RuntimeError("Bad response from Aerie Gateway")
+        raise RuntimeError("Bad response from PlanDev Gateway")
 
     try:
         resp_json = resp.json()
     except requests.exceptions.JSONDecodeError:
-        raise RuntimeError("Bad response from Aerie Gateway")
+        raise RuntimeError("Bad response from PlanDev Gateway")
 
     if "success" in resp_json.keys() and not resp_json["success"]:
-        raise RuntimeError(f"Aerie Gateway request was not successful")
+        raise RuntimeError(f"PlanDev Gateway request was not successful")
 
     return resp_json
 
 
-class AerieJWT:
+class PlanDevJWT:
     def __init__(self, encoded_jwt: str) -> None:
         jwt_components = encoded_jwt.split(".")
         if not len(jwt_components) == 3:
@@ -71,9 +62,9 @@ class AerieJWT:
         self.encoded_jwt = encoded_jwt
 
 
-class AerieHost:
+class PlanDevHost:
     """
-    Abstracted interface for the Hasura and Aerie Gateway APIs of an Aerie instance.
+    Abstracted interface for the Hasura and PlanDev Gateway APIs of an PlanDev instance.
 
     An instance stores the necessary URLs and authenticates using header or
     cookie information stored in the `requests.Session` object, if necessary.
@@ -89,8 +80,8 @@ class AerieHost:
         """
 
         Args:
-            graphql_url (str): Route to Aerie host's GraphQL API
-            gateway_url (str): Route to Aerie Gateway
+            graphql_url (str): Route to PlanDev host's GraphQL API
+            gateway_url (str): Route to PlanDev Gateway
             session (requests.Session, optional): Session with headers/cookies for external authentication
             configuration_name (str, optional): Name of configuration for this session
         """
@@ -98,11 +89,11 @@ class AerieHost:
         self.graphql_url = graphql_url
         self.gateway_url = gateway_url
         self.configuration_name = configuration_name
-        self.aerie_jwt = None
+        self.plandev_jwt = None
         self.active_role = None
 
     def post_to_graphql(self, query: str, **kwargs) -> Dict:
-        """Issue a post request to the Aerie instance GraphQL API
+        """Issue a post request to the PlanDev instance GraphQL API
 
         Args:
             query (str): GraphQL query text
@@ -150,7 +141,7 @@ class AerieHost:
             if "password" in kwargs:
 
                 # Remove password
-                pw_sub_str = "<Password removed in aerie-cli error handling>"
+                pw_sub_str = "<Password removed in plandev-cli error handling>"
                 e.replace(kwargs["password"], pw_sub_str)
                 kwargs = deepcopy(kwargs)
                 kwargs["password"] = pw_sub_str
@@ -182,7 +173,7 @@ class AerieHost:
                 )
 
     def post_to_gateway_files(self, file_name: str, file_contents: bytes) -> Dict:
-        """Issue a post request to upload a file via the Aerie gateway
+        """Issue a post request to upload a file via the PlanDev gateway
 
         Args:
             file_name (str): Name of the file being uploaded
@@ -207,21 +198,21 @@ class AerieHost:
             raise RuntimeError(f"Error uploading file: {file_name}")
 
     def change_role(self, new_role: str) -> None:
-        """Change role for Aerie interaction
+        """Change role for PlanDev interaction
 
         Args:
             new_role (str): String name of new role.
         """
 
-        if new_role not in self.aerie_jwt.allowed_roles:
+        if new_role not in self.plandev_jwt.allowed_roles:
             raise ValueError(
-                f"Cannot set role {new_role}. Must be one of: {', '.join(self.aerie_jwt.allowed_roles)}"
+                f"Cannot set role {new_role}. Must be one of: {', '.join(self.plandev_jwt.allowed_roles)}"
             )
 
         self.active_role = new_role
 
     def check_auth(self) -> bool:
-        """Checks if session is correctly authenticated with Aerie host
+        """Checks if session is correctly authenticated with PlanDev host
         
         Looks for errors received after pinging GATEWAY_URL/auth/session.
         Also returns False if the session has not yet been authenticated (no JWT).
@@ -229,7 +220,7 @@ class AerieHost:
         Returns:
             bool: True if there were no errors in a ping against GATEWAY_URL/auth/session, False otherwise
         """
-        if self.aerie_jwt is None:
+        if self.plandev_jwt is None:
             return False
 
         try:
@@ -244,16 +235,16 @@ class AerieHost:
             return False
 
     def get_auth_headers(self):
-        if self.aerie_jwt is None:
+        if self.plandev_jwt is None:
             return {}
 
         return {
-            "Authorization": f"Bearer {self.aerie_jwt.encoded_jwt}",
+            "Authorization": f"Bearer {self.plandev_jwt.encoded_jwt}",
             "x-hasura-role": self.active_role,
         }
 
     def is_auth_enabled(self) -> bool:
-        """Check if authentication is enabled on an Aerie host
+        """Check if authentication is enabled on an PlanDev host
 
         Returns:
             bool: False if authentication is disabled, otherwise True
@@ -279,8 +270,8 @@ class AerieHost:
     def authenticate(self, username: str, password: str = None, force: bool = False):
 
         try:
-            self.check_aerie_version()
-        except AerieHostVersionError as e:
+            self.check_plandev_version()
+        except PlanDevHostVersionError as e:
             if force:
                 print("Warning: " + e.args[0])
             else:
@@ -296,14 +287,14 @@ class AerieHost:
         except RuntimeError:
             raise RuntimeError("Failed to authenticate")
 
-        self.aerie_jwt = AerieJWT(resp_json["token"])
-        self.active_role = self.aerie_jwt.default_role
+        self.plandev_jwt = PlanDevJWT(resp_json["token"])
+        self.active_role = self.plandev_jwt.default_role
 
         if not self.check_auth():
             raise RuntimeError(f"Failed to open session")
 
-    def check_aerie_version(self) -> None:
-        """Assert that the Aerie host is a compatible version
+    def check_plandev_version(self) -> None:
+        """Assert that the PlanDev host is a compatible version
 
         Raises a `RuntimeError` if the host appears to be incompatible.
         """
@@ -315,19 +306,19 @@ class AerieHost:
             host_version = resp_json["version"]
         except (RuntimeError, KeyError):
             # If the Gateway responded, the route doesn't exist
-            if resp.text and "Aerie Gateway" in resp.text:
-                raise AerieHostVersionError("Incompatible Aerie version: host version unknown")
+            if resp.text and "PlanDev Gateway" in resp.text:
+                raise PlanDevHostVersionError("Incompatible PlanDev version: host version unknown")
             
             # Otherwise, it could just be a failed connection
             raise
 
-        if host_version not in COMPATIBLE_AERIE_VERSIONS:
-            raise AerieHostVersionError(f"Incompatible Aerie version: {host_version}")
+        if host_version not in COMPATIBLE_PLANDEV_VERSIONS:
+            raise PlanDevHostVersionError(f"Incompatible PlanDev version: {host_version}")
 
 
 @define
 class ExternalAuthConfiguration:
-    """Configure additional external authentication necessary for connecting to an Aerie host.
+    """Configure additional external authentication necessary for connecting to an PlanDev host.
 
     Define configuration for a server which can provide additional authentication via cookies.
 
@@ -373,7 +364,7 @@ class ExternalAuthConfiguration:
 
 
 @define
-class AerieHostConfiguration:
+class PlanDevHostConfiguration:
     name: str
     graphql_url: str
     gateway_url: str
@@ -381,7 +372,7 @@ class AerieHostConfiguration:
     external_auth: Optional[ExternalAuthConfiguration] = field(default=None)
 
     @classmethod
-    def from_dict(cls, config: Dict) -> "AerieHostConfiguration":
+    def from_dict(cls, config: Dict) -> "PlanDevHostConfiguration":
         try:
             name = config["name"]
             graphql_url = config["graphql_url"]

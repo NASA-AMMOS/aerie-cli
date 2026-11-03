@@ -4,9 +4,8 @@ import sys
 from rich.console import Console
 
 
-from aerie_cli.app import app
-from aerie_cli.persistent import NoActiveSessionError
-from aerie_cli.__version__ import __version__
+from plandev_cli.app import app
+from plandev_cli.persistent import NoActiveSessionError
 
 
 def main():
@@ -14,11 +13,12 @@ def main():
         app()
     except NoActiveSessionError:
         Console().print(
-            "There is no active session. Please start a session with aerie-cli activate"
+            "There is no active session. Please start a session with plandev-cli activate"
         )
         sys.exit(-1)
     except Exception:
         Console().print_exception()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

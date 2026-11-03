@@ -1,6 +1,6 @@
 """persistent.py
 
-Manage persistent storage of Aerie host configurations and active sessions
+Manage persistent storage of PlanDev host configurations and active sessions
 """
 
 from copy import deepcopy
@@ -13,13 +13,16 @@ from datetime import datetime, timedelta, timezone
 
 from appdirs import AppDirs
 
-from aerie_cli.aerie_host import AerieHost, AerieHostConfiguration
+from plandev_cli.plandev_host import PlanDevHost, PlanDevHostConfiguration
 
 # TODO add app version s.t. changes to configuration formats can be managed
-APP_DIRS = AppDirs('aerie_cli')
+APP_DIRS = AppDirs('plandev_cli')
 CONFIGURATION_FILE_DIRECTORY = Path(
     APP_DIRS.user_config_dir).resolve().absolute()
 CONFIGURATION_FILE_PATH = CONFIGURATION_FILE_DIRECTORY.joinpath('config.json')
+# automatically migrate forward old configs from old config directory if found
+LEGACY_CONFIGURATION_DIRECTORY = Path(AppDirs('aerie_cli').user_config_dir).resolve().absolute()
+LEGACY_CONFIGURATION_FILE_PATH = LEGACY_CONFIGURATION_DIRECTORY.joinpath('config.json')
 
 SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_config_dir).resolve().absolute()
 SESSION_TIMESTAMP_FSTRING = r'%Y-%jT%H-%M-%S.%f'
@@ -30,9 +33,13 @@ def delete_all_persistent_files():
     shutil.rmtree(CONFIGURATION_FILE_DIRECTORY, ignore_errors=True)
     shutil.rmtree(SESSION_FILE_DIRECTORY, ignore_errors=True)
 
+    PersistentSessionManager.reset()
+    PersistentConfigurationManager._configurations = []
+    # write a new empty config file, to avoid re-migrating old legacy configs
+    PersistentConfigurationManager.write_configurations()
 
 class PersistentConfigurationManager:
-    _configurations: List[AerieHostConfiguration] = None
+    _configurations: List[PlanDevHostConfiguration] = None
 
     def __init__(self) -> None:
         """Pseudo-singleton"""
@@ -44,12 +51,12 @@ class PersistentConfigurationManager:
             cls.read_configurations()
 
     @classmethod
-    def get_configurations(cls) -> List[AerieHostConfiguration]:
+    def get_configurations(cls) -> List[PlanDevHostConfiguration]:
         cls._initialize()
         return cls._configurations
 
     @classmethod
-    def get_configuration_by_name(cls, configuration_name: str) -> AerieHostConfiguration:
+    def get_configuration_by_name(cls, configuration_name: str) -> PlanDevHostConfiguration:
         cls._initialize()
         try:
             return next(filter(lambda c: c.name == configuration_name, cls._configurations))
@@ -57,7 +64,7 @@ class PersistentConfigurationManager:
             raise ValueError(f"Unknown configuration: {configuration_name}")
 
     @classmethod
-    def create_configuration(cls, configuration: AerieHostConfiguration) -> None:
+    def create_configuration(cls, configuration: PlanDevHostConfiguration) -> None:
         cls._initialize()
         if configuration.name in [c.name for c in cls._configurations]:
             raise ValueError(
@@ -67,7 +74,7 @@ class PersistentConfigurationManager:
         cls.write_configurations()
 
     @classmethod
-    def update_configuration(cls, configuration: AerieHostConfiguration) -> None:
+    def update_configuration(cls, configuration: PlanDevHostConfiguration) -> None:
         cls._initialize()
         old_configuration = cls.get_configuration_by_name(configuration.name)
         idx = cls._configurations.index(old_configuration)
@@ -91,17 +98,34 @@ class PersistentConfigurationManager:
     @classmethod
     def read_configurations(cls) -> None:
         CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True, parents=True)
-        if CONFIGURATION_FILE_PATH.is_file():
-            with open(CONFIGURATION_FILE_PATH, 'r') as fid:
-                try:
-                    raw_confs = json.load(fid)
-                except json.JSONDecodeError:
-                    raise RuntimeError(
-                        f"Unable to read configuration file: {str(CONFIGURATION_FILE_PATH)}")
-            cls._configurations = [
-                AerieHostConfiguration.from_dict(c) for c in raw_confs]
-        else:
-            cls._configurations = []
+        config_path = CONFIGURATION_FILE_PATH
+
+        # fallback to legacy config path
+        if not config_path.is_file():
+            if not LEGACY_CONFIGURATION_FILE_PATH.is_file():
+                cls._configurations = []
+                return
+            config_path = LEGACY_CONFIGURATION_FILE_PATH
+
+        try:
+            with config_path.open('r', encoding='utf-8') as fid:
+                raw_confs = json.load(fid)
+            if not isinstance(raw_confs, list) or not all(isinstance(c, dict) for c in raw_confs):
+                raise ValueError('Expected a list of configuration objects')
+            configurations = [
+                PlanDevHostConfiguration.from_dict(c) for c in raw_confs
+            ]
+        except ValueError as exc:
+            raise RuntimeError(
+                f'Unable to read configuration file: {config_path}: {exc}'
+            ) from exc
+
+        # if we read from the legacy config path, write the old config to the new path to migrate it forward
+        if config_path == LEGACY_CONFIGURATION_FILE_PATH:
+            with CONFIGURATION_FILE_PATH.open('x', encoding='utf-8') as fid:
+                json.dump(raw_confs, fid, indent=2)
+
+        cls._configurations = configurations
 
     @classmethod
     def reset(cls) -> None:
@@ -123,7 +147,7 @@ class PersistentSessionManager:
 
         # Get any/all open sessions. List in chronological order, newest first
         session_files: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+            f for f in SESSION_FILE_DIRECTORY.glob('*.plandev_cli.session')]
         session_files.sort(reverse=True)
 
         if not len(session_files):
@@ -137,7 +161,7 @@ class PersistentSessionManager:
         session_file = session_files[0]
         try:
             t = datetime.strptime(
-                session_file.name[:-(len('.aerie_cli.session'))], SESSION_TIMESTAMP_FSTRING)
+                session_file.name[:-(len('.plandev_cli.session'))], SESSION_TIMESTAMP_FSTRING)
         except Exception:
             raise RuntimeError(f"Cannot parse session timestamp: {session_file.name}. Try deactivating your session.")
 
@@ -149,7 +173,7 @@ class PersistentSessionManager:
         # Un-pickle the session
         try:
             with open(session_file, 'rb') as fid:
-                session: AerieHost = pickle.load(fid)
+                session: PlanDevHost = pickle.load(fid)
         except Exception:
             session_file.unlink()
             raise NoActiveSessionError
@@ -160,24 +184,24 @@ class PersistentSessionManager:
             raise NoActiveSessionError
 
     @classmethod
-    def get_active_session(cls) -> AerieHost:
+    def get_active_session(cls) -> PlanDevHost:
         cls._load_active_session()
         return cls._active_session
 
     @classmethod
-    def set_active_session(cls, session: AerieHost) -> bool:
+    def set_active_session(cls, session: PlanDevHost) -> bool:
 
         if not session.check_auth():
             return False
 
         session_files: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+            f for f in SESSION_FILE_DIRECTORY.glob('*.plandev_cli.session')]
         for session_file in session_files:
             session_file.unlink()
 
         cls._active_session = session
 
-        session_file = datetime.now(timezone.utc).strftime(SESSION_TIMESTAMP_FSTRING) + '.aerie_cli.session'
+        session_file = datetime.now(timezone.utc).strftime(SESSION_TIMESTAMP_FSTRING) + '.plandev_cli.session'
         session_file = SESSION_FILE_DIRECTORY.joinpath(session_file)
 
         with open(session_file, 'wb') as fid:
@@ -199,7 +223,7 @@ class PersistentSessionManager:
             return None
 
         fs: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+            f for f in SESSION_FILE_DIRECTORY.glob('*.plandev_cli.session')]
         for fn in fs:
             fn.unlink()
 
@@ -213,7 +237,7 @@ class PersistentSessionManager:
 
         # Get any/all open sessions. List in chronological order, newest first
         fs: List[Path] = [
-            f for f in SESSION_FILE_DIRECTORY.glob('*.aerie_cli.session')]
+            f for f in SESSION_FILE_DIRECTORY.glob('*.plandev_cli.session')]
         if not len(fs):
             return
         # Delete all session files

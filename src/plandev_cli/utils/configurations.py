@@ -1,9 +1,9 @@
-from aerie_cli.aerie_host import AerieHostConfiguration
-from aerie_cli.persistent import PersistentConfigurationManager
+from plandev_cli.plandev_host import PlanDevHostConfiguration
+from plandev_cli.persistent import PersistentConfigurationManager
 
 import json
 
-def find_configuration(configuration_identifier: str) -> AerieHostConfiguration:
+def find_configuration(configuration_identifier: str) -> PlanDevHostConfiguration:
     """Find a configuration by name or path.
     
     configuration_identifier (str): The name or path of a configuration. Paths should be to a configuration json file.
@@ -13,7 +13,7 @@ def find_configuration(configuration_identifier: str) -> AerieHostConfiguration:
         FileNotFoundError
 
     Returns:
-        AerieHostConfiguration
+        PlanDevHostConfiguration
     """
     # search for configuration by name
     for persistent_configuration in PersistentConfigurationManager.get_configurations():
@@ -31,4 +31,4 @@ def find_configuration(configuration_identifier: str) -> AerieHostConfiguration:
     except FileNotFoundError as e:
         raise FileNotFoundError(f"No configuration exists with the path or name {configuration_identifier}")
     
-    return AerieHostConfiguration.from_dict(found_configuration)
+    return PlanDevHostConfiguration.from_dict(found_configuration)

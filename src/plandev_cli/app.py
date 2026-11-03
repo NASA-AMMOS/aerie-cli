@@ -5,32 +5,33 @@
 import typer
 from typing import Optional
 
-from aerie_cli.commands import models
-from aerie_cli.commands import plans
-from aerie_cli.commands import configurations
-from aerie_cli.commands import expansion
-from aerie_cli.commands import constraints
-from aerie_cli.commands import scheduling
-from aerie_cli.commands import metadata
+from plandev_cli.commands import models
+from plandev_cli.commands import plans
+from plandev_cli.commands import configurations
+# from plandev_cli.commands import expansion
+from plandev_cli.commands import constraints
+from plandev_cli.commands import scheduling
+from plandev_cli.commands import metadata
 
-from aerie_cli.commands.command_context import CommandContext
-from aerie_cli.__version__ import __version__
-from aerie_cli.persistent import (
+from plandev_cli.commands.command_context import CommandContext
+from plandev_cli.__version__ import __version__
+from plandev_cli.persistent import (
     PersistentConfigurationManager,
     PersistentSessionManager,
 )
-from aerie_cli.utils.prompts import select_from_list
-from aerie_cli.utils.sessions import (
+from plandev_cli.utils.prompts import select_from_list
+from plandev_cli.utils.sessions import (
     start_session_from_configuration,
     get_active_session_client,
 )
-from aerie_cli.utils.configurations import find_configuration
+from plandev_cli.utils.configurations import find_configuration
 
 app = typer.Typer()
 app.add_typer(plans.plans_app, name="plans")
 app.add_typer(models.app, name="models")
 app.add_typer(configurations.app, name="configurations")
-app.add_typer(expansion.app, name="expansion")
+# expansion is temporarily unsupported by plandev-cli, until support for template expansion is added
+# app.add_typer(expansion.app, name="expansion")
 app.add_typer(constraints.app, name="constraints")
 app.add_typer(scheduling.app, name="scheduling")
 app.add_typer(metadata.app, name="metadata")
@@ -61,7 +62,7 @@ def app_callback(
         "--version",
         "-v",
         callback=print_version,
-        help="Print Aerie-CLI package version and exit.",
+        help="Print PlanDev-CLI package version and exit.",
     ),
     hasura_admin_secret=typer.Option(
         default="",
@@ -86,15 +87,15 @@ def activate_session(
         None, "--name", "-n", help="Name for this configuration", metavar="NAME"
     ),
     username: str = typer.Option(
-        None, "--username", "-u", help="Specify/override configured Aerie username", metavar="USERNAME"
+        None, "--username", "-u", help="Specify/override configured PlanDev username", metavar="USERNAME"
     ),
     role: str = typer.Option(
         None, "--role", "-r", help="Specify a non-default role", metavar="ROLE"
     ),
-    force: bool = typer.Option(False, "--force", help="Force connection to Aerie host and ignore version compatibility")
+    force: bool = typer.Option(False, "--force", help="Force connection to PlanDev host and ignore version compatibility")
 ):
     """
-    Activate a session with an Aerie host using a given configuration
+    Activate a session with a PlanDev host using a given configuration
     """
     if name is None:
         name = select_from_list(
@@ -106,7 +107,7 @@ def activate_session(
     session = start_session_from_configuration(conf, username, force=force)
 
     if role is not None:
-        if role in session.aerie_jwt.allowed_roles:
+        if role in session.plandev_jwt.allowed_roles:
             session.change_role(role)
         else:
             typer.echo(f"Role {role} not in allowed roles")
@@ -133,30 +134,30 @@ def change_role(
     )
 ):
     """
-    Change Aerie permissions role for the active session
+    Change PlanDev permissions role for the active session
     """
     client = get_active_session_client()
 
     if role is None:
-        typer.echo(f"Active Role: {client.aerie_host.active_role}")
-        role = select_from_list(client.aerie_host.aerie_jwt.allowed_roles)
+        typer.echo(f"Active Role: {client.plandev_host.active_role}")
+        role = select_from_list(client.plandev_host.plandev_jwt.allowed_roles)
 
-    client.aerie_host.change_role(role)
+    client.plandev_host.change_role(role)
 
-    PersistentSessionManager.set_active_session(client.aerie_host)
+    PersistentSessionManager.set_active_session(client.plandev_host)
 
-    typer.echo(f"Changed role to: {client.aerie_host.active_role}")
+    typer.echo(f"Changed role to: {client.plandev_host.active_role}")
 
 
 @app.command("status")
 def print_status():
     """
-    Returns information about the current Aerie session.
+    Returns information about the current PlanDev session.
     """
 
     client = CommandContext.get_client()
 
-    if client.aerie_host.configuration_name:
-        typer.echo(f"Active configuration: {client.aerie_host.configuration_name}")
+    if client.plandev_host.configuration_name:
+        typer.echo(f"Active configuration: {client.plandev_host.configuration_name}")
 
-    typer.echo(f"Active role: {client.aerie_host.active_role}")
+    typer.echo(f"Active role: {client.plandev_host.active_role}")
