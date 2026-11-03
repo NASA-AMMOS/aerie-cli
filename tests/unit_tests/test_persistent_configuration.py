@@ -22,6 +22,11 @@ def persistent_path(tmp_path: Path):
     PersistentConfigurationManager._configurations = None
     PersistentConfigurationManager._initialized = False
 
+    persistent.LEGACY_CONFIGURATION_FILE_PATH = tmp_path.joinpath(
+        "legacy", "config.json"
+    )
+    persistent.SESSION_FILE_DIRECTORY = persistent.CONFIGURATION_FILE_DIRECTORY
+
 
 def test_read_configurations_none():
     """
@@ -318,3 +323,51 @@ def test_create_configuration_valid():
     assert PersistentConfigurationManager._configurations == configurations_after
     with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
         assert [s.to_dict() for s in configurations_after] == json.load(fid)
+
+
+def test_read_configurations_migrates_legacy():
+    legacy_configurations = [{
+        "name": "legacy",
+        "graphql_url": "http://localhost:8080/v1/graphql",
+        "gateway_url": "http://localhost:9000",
+        "username": "tester",
+        "external_auth": {
+            "auth_url": "https://example.test/login",
+            "static_post_vars": {"username": "tester"},
+            "secret_post_vars": ["password"],
+        },
+    }]
+    legacy_path = persistent.LEGACY_CONFIGURATION_FILE_PATH
+    legacy_path.parent.mkdir()
+    with open(legacy_path, "w") as fid:
+        json.dump(legacy_configurations, fid)
+    original_contents = legacy_path.read_bytes()
+
+    configurations = PersistentConfigurationManager.get_configurations()
+
+    assert [c.to_dict() for c in configurations] == legacy_configurations
+    with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
+        assert json.load(fid) == legacy_configurations
+    assert legacy_path.read_bytes() == original_contents
+
+
+def test_clean_does_not_reimport_legacy_configurations():
+    legacy_configuration = PlanDevHostConfiguration(
+        "legacy", "http://localhost:8080/v1/graphql", "http://localhost:9000"
+    )
+    legacy_path = persistent.LEGACY_CONFIGURATION_FILE_PATH
+    legacy_path.parent.mkdir()
+    with open(legacy_path, "w") as fid:
+        json.dump([legacy_configuration.to_dict()], fid)
+
+    assert PersistentConfigurationManager.get_configurations() == [legacy_configuration]
+
+    persistent.delete_all_persistent_files()
+    # Force a fresh read, as in a new CLI process.
+    PersistentConfigurationManager.reset()
+
+    assert PersistentConfigurationManager.get_configurations() == []
+    with open(persistent.CONFIGURATION_FILE_PATH, "r") as fid:
+        assert json.load(fid) == []
+    with open(legacy_path, "r") as fid:
+        assert json.load(fid) == [legacy_configuration.to_dict()]

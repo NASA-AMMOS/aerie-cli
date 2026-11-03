@@ -20,6 +20,9 @@ APP_DIRS = AppDirs('plandev_cli')
 CONFIGURATION_FILE_DIRECTORY = Path(
     APP_DIRS.user_config_dir).resolve().absolute()
 CONFIGURATION_FILE_PATH = CONFIGURATION_FILE_DIRECTORY.joinpath('config.json')
+# automatically migrate forward old configs from old config directory if found
+LEGACY_CONFIGURATION_DIRECTORY = Path(AppDirs('aerie_cli').user_config_dir).resolve().absolute()
+LEGACY_CONFIGURATION_FILE_PATH = LEGACY_CONFIGURATION_DIRECTORY.joinpath('config.json')
 
 SESSION_FILE_DIRECTORY = Path(APP_DIRS.user_config_dir).resolve().absolute()
 SESSION_TIMESTAMP_FSTRING = r'%Y-%jT%H-%M-%S.%f'
@@ -30,6 +33,10 @@ def delete_all_persistent_files():
     shutil.rmtree(CONFIGURATION_FILE_DIRECTORY, ignore_errors=True)
     shutil.rmtree(SESSION_FILE_DIRECTORY, ignore_errors=True)
 
+    PersistentSessionManager.reset()
+    PersistentConfigurationManager._configurations = []
+    # write a new empty config file, to avoid re-migrating old legacy configs
+    PersistentConfigurationManager.write_configurations()
 
 class PersistentConfigurationManager:
     _configurations: List[PlanDevHostConfiguration] = None
@@ -91,17 +98,34 @@ class PersistentConfigurationManager:
     @classmethod
     def read_configurations(cls) -> None:
         CONFIGURATION_FILE_DIRECTORY.mkdir(exist_ok=True, parents=True)
-        if CONFIGURATION_FILE_PATH.is_file():
-            with open(CONFIGURATION_FILE_PATH, 'r') as fid:
-                try:
-                    raw_confs = json.load(fid)
-                except json.JSONDecodeError:
-                    raise RuntimeError(
-                        f"Unable to read configuration file: {str(CONFIGURATION_FILE_PATH)}")
-            cls._configurations = [
-                PlanDevHostConfiguration.from_dict(c) for c in raw_confs]
-        else:
-            cls._configurations = []
+        config_path = CONFIGURATION_FILE_PATH
+
+        # fallback to legacy config path
+        if not config_path.is_file():
+            if not LEGACY_CONFIGURATION_FILE_PATH.is_file():
+                cls._configurations = []
+                return
+            config_path = LEGACY_CONFIGURATION_FILE_PATH
+
+        try:
+            with config_path.open('r', encoding='utf-8') as fid:
+                raw_confs = json.load(fid)
+            if not isinstance(raw_confs, list) or not all(isinstance(c, dict) for c in raw_confs):
+                raise ValueError('Expected a list of configuration objects')
+            configurations = [
+                PlanDevHostConfiguration.from_dict(c) for c in raw_confs
+            ]
+        except ValueError as exc:
+            raise RuntimeError(
+                f'Unable to read configuration file: {config_path}: {exc}'
+            ) from exc
+
+        # if we read from the legacy config path, write the old config to the new path to migrate it forward
+        if config_path == LEGACY_CONFIGURATION_FILE_PATH:
+            with CONFIGURATION_FILE_PATH.open('x', encoding='utf-8') as fid:
+                json.dump(raw_confs, fid, indent=2)
+
+        cls._configurations = configurations
 
     @classmethod
     def reset(cls) -> None:
