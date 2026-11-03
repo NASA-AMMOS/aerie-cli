@@ -2,10 +2,8 @@ name: Test
 
 on:
   pull_request:
-  push:
-    tags:
-      - v*
   workflow_dispatch:
+  workflow_call:
 
 env:
   PLANDEV_USERNAME: "${{secrets.PLANDEV_USERNAME}}"
