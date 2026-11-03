@@ -4,19 +4,33 @@ PlanDev-CLI provides a command-line interface and user-extendable Python API for
 
 > Note: this project is an informal CLI and is _not_ maintained by the MPSA PlanDev team.
 
-## Aerie -> PlanDev Rebrand
 
-PlanDev was **formerly known as Aerie and is now named PlanDev**. While we've updated most documentation and external references, some legacy mentions of the old product name may remain as we complete the transition.
+## Upgrading from Aerie-CLI
 
-What to know:
+Version 2.12.0 renames Aerie-CLI to **PlanDev-CLI** and supports [PlanDev 4.4.0](https://nasa-ammos.github.io/plandev-docs/). This release uses the new package, command, and Python API names exclusively.
 
-* The planning product, including modeling, simulation, scheduling and constraint-checking, is now named PlanDev
-* The sequencing product, including the sequence editor, workspaces, and actions, is now named SeqDev
-* All features and functionality remain the same
-* Currently, repository names, package names and other internal code references will retain their existing names, and deployment/migration procedures have not changed
-* In a future release, our repository and/or package names may change. If so, this will be communicated to users via release notes and normal communication channels
+Use `plandev-cli` instead of `aerie-cli`, or `python3 -m plandev_cli` instead of `python3 -m aerie_cli`.
 
-For the latest documentation, visit: [PlanDev Documentation](https://nasa-ammos.github.io/plandev-docs/)
+Python applications must update their imports and references:
+
+| Usage                                 | Previous name | New name |
+|---------------------------------------|---|---|
+| Python package                        | `aerie_cli` | `plandev_cli` |
+| Python modules & constructor keywords | `aerie_client`, `aerie_host` | `plandev_client`, `plandev_host` |
+| Class name prefix                     | `Aerie` (e.g., `AerieClient`) | `PlanDev` (e.g., `PlanDevClient`) |
+| Host JWT attribute                    | `aerie_jwt` | `plandev_jwt` |
+| Host version-check method             | `check_aerie_version()` | `check_plandev_version()` |
+
+Existing legacy host configurations are automatically copied from the old `aerie_cli` configuration directory when no configuration file exists in the new `plandev_cli` directory.
+
+Saved authentication sessions are not migrated. After upgrading, reactivate a configuration:
+
+```sh
+plandev-cli activate
+```
+
+Command expansion is unavailable in this CLI release - previous CLI commands used the deprecated EDSL expansion APIs. Template-based expansion is supported by the PlanDev UI; CLI support is planned for a future release.
+
 
 ## Getting Started
 
@@ -266,11 +280,11 @@ USERNAME = "myusername"
 PASSWORD = getpass(prompt='Password: ')
 
 # Define the host and provide user credentials
-planDev_host = PlanDevHost(GRAPHQL_URL, GATEWAY_URL)
-planDev_host.authenticate(USERNAME, PASSWORD)
+plandev_host = PlanDevHost(GRAPHQL_URL, GATEWAY_URL)
+plandev_host.authenticate(USERNAME, PASSWORD)
 
 # PlanDevClient takes in a host and returns an object to issue requests to that host
-client = PlanDevClient(planDev_host)
+client = PlanDevClient(plandev_host)
 
 # Simple example of a request to get an activity plan using the plan ID
 plan = client.get_activity_plan_by_id(42)
@@ -281,7 +295,7 @@ Look through the available methods in the provided `PlanDevClient` class to find
 
 ### Adding Methods
 
-If you need to write a custom query, you can extend the `PlanDevClient` class and add your own method. Access the PlanDev host using the `planDev_host` property. For example:
+If you need to write a custom query, you can extend the `PlanDevClient` class and add your own method. Access the PlanDev host using the `plandev_host` property. For example:
 
 ```py
 
@@ -309,7 +323,7 @@ Now, you can use your custom method like any other:
 
 ```py
 # ...
-client = MyCustomPlanDevClient(planDev_host)
+client = MyCustomPlanDevClient(plandev_host)
 plan_id = client.get_plan_id_by_name("my-plan-name")
 print(plan_id)
 ```
@@ -340,13 +354,13 @@ my_custom_requests_session = Session()
 # Manipulate as necessary
 # ...
 
-planDev_host = PlanDevHost(
+plandev_host = PlanDevHost(
     GRAPHQL_URL,
     GATEWAY_URL,
     session=my_custom_requests_session
 )
-planDev_host.authenticate(...)
-client = PlanDevClient(planDev_host)
+plandev_host.authenticate(...)
+client = PlanDevClient(plandev_host)
 
 # Use client as normal
 ```
