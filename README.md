@@ -400,11 +400,11 @@ PlanDev-CLI has unit tests and integration tests built with the [pytest](https:/
 
 Unit tests can be run anytime and reference local test files. `test_plandev_client.py` is where unit tests are added to exercise particular methods of the `PlanDevClient` class using mocked PlanDev API responses. 
 
-Run the unit tests using `pytest` from the `tests/unit_tests` directory:
+Run the unit tests using `pytest` from the `tests` directory:
 
 ```
 cd tests
-python3 -m pytest tests/unit_tests
+python3 -m pytest unit_tests
 ```
 
 #### Integration Tests
