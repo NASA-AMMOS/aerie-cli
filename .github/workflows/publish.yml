@@ -41,7 +41,7 @@ jobs:
 
     environment:
       name: pypi-publish
-      url: https://pypi.org/p/aerie-cli
+      url: https://pypi.org/p/plandev-cli
     permissions:
       id-token: write
   
